@@ -25,6 +25,7 @@
 </head>
 
 <body class="h-full bg-gray-50">
+
   <!-- ================= LOADING OVERLAY ================= -->
   <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white p-6 rounded-lg shadow-xl text-center">
@@ -38,7 +39,7 @@
     <div class="flex items-center">
       <span class="mr-2">❌</span>
       <span id="errorMessage">Terjadi kesalahan</span>
-      <button onclick="hideErrorToast()" class="ml-4 text-white hover:text-gray-200">✕</button>
+      <button id="closeErrorToast" class="ml-4 text-white hover:text-gray-200">✕</button>
     </div>
   </div>
 
@@ -46,7 +47,7 @@
     <div class="flex items-center">
       <span class="mr-2">✅</span>
       <span id="successMessage">Berhasil</span>
-      <button onclick="hideSuccessToast()" class="ml-4 text-white hover:text-gray-200">✕</button>
+      <button id="closeSuccessToast" class="ml-4 text-white hover:text-gray-200">✕</button>
     </div>
   </div>
 
@@ -58,7 +59,7 @@
         <p class="mt-2 text-center text-sm text-gray-600">Tour & Sales Management System</p>
       </div>
 
-      <form id="loginForm" onsubmit="handleLogin(event)" action="javascript:void(0)" class="mt-8 space-y-6">
+      <form id="loginForm" class="mt-8 space-y-6">
         <div class="rounded-md shadow-sm -space-y-px">
           <div>
             <input id="username" name="username" type="text" required 
@@ -87,7 +88,7 @@
     <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg text-center">
       <h1 class="text-2xl font-bold text-gray-800 mb-4">Selamat Datang 👋</h1>
       <p id="userInfo" class="text-gray-600 mb-6">Memuat...</p>
-      <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
+      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
         Logout
       </button>
     </div>
@@ -103,13 +104,24 @@
   <script src="/js/error-handler.js"></script>
 
   <script>
-    // ✅ Auto toggle login/dashboard saat halaman dimuat
+    // ✅ Event binding tanpa inline script (aman untuk CSP Helmet)
     document.addEventListener('DOMContentLoaded', () => {
       const token = localStorage.getItem('token');
       const loginPage = document.getElementById('loginPage');
       const mainApp = document.getElementById('mainApp');
       const userInfo = document.getElementById('userInfo');
+      const loginForm = document.getElementById('loginForm');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const closeErrorToast = document.getElementById('closeErrorToast');
+      const closeSuccessToast = document.getElementById('closeSuccessToast');
 
+      // ✅ Bind actions
+      if (loginForm) loginForm.addEventListener('submit', handleLogin);
+      if (logoutBtn) logoutBtn.addEventListener('click', logout);
+      if (closeErrorToast) closeErrorToast.addEventListener('click', () => document.getElementById('errorToast').classList.add('hidden'));
+      if (closeSuccessToast) closeSuccessToast.addEventListener('click', () => document.getElementById('successToast').classList.add('hidden'));
+
+      // ✅ Auth state
       if (token) {
         loginPage.classList.add('hidden');
         mainApp.classList.remove('hidden');
