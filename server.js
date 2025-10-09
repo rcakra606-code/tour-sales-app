@@ -114,7 +114,7 @@ app.get('*', (req, res) => {
 // =====================
 // ✅ Start server
 // =====================
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 const httpServer = http.createServer(app);
 
 httpServer.listen(PORT, () => {
