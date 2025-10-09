@@ -3,77 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Tour & Sales</title>
+  <title>Dashboard - Tour & Sales Management</title>
 
-  <!-- ✅ CDN Aman -->
+  <!-- Tailwind & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { background-color: #f9fafb; }
-    .loading-spinner {
-      border:3px solid #f3f3f3;
-      border-top:3px solid #3498db;
-      border-radius:50%;
-      width:30px;height:30px;
-      animation:spin 1s linear infinite;
-    }
-    @keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+    body { background-color: #f9fafb; font-family: system-ui, sans-serif; }
+    .card { background: white; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
   </style>
 </head>
 
 <body class="min-h-screen flex flex-col">
-
   <!-- ================= HEADER ================= -->
   <header class="bg-blue-700 text-white py-4 shadow-md">
     <div class="container mx-auto flex justify-between items-center px-6">
-      <h1 class="text-2xl font-semibold">Tour & Sales Dashboard</h1>
-      <div class="flex items-center gap-4">
-        <span id="userInfo" class="text-sm text-blue-100"></span>
-        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-          Logout
-        </button>
-      </div>
+      <h1 class="text-xl md:text-2xl font-semibold">📊 Tour & Sales Dashboard</h1>
+      <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition">
+        Logout
+      </button>
     </div>
   </header>
 
-  <!-- ================= LOADING OVERLAY ================= -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-      <div class="loading-spinner mx-auto mb-4"></div>
-      <p class="text-gray-600">Memuat data...</p>
-    </div>
-  </div>
-
   <!-- ================= MAIN CONTENT ================= -->
-  <main class="container mx-auto p-6 flex-1">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-      <div class="bg-white shadow rounded-lg p-4 text-center">
-        <h2 class="text-gray-600 text-sm">Total Sales</h2>
-        <p id="totalSales" class="text-3xl font-bold text-blue-700 mt-2">0</p>
+  <main class="container mx-auto px-6 py-6 flex-1 space-y-6">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="card p-5 text-center border-t-4 border-blue-500">
+        <h2 class="text-gray-600 text-sm uppercase">Total Sales</h2>
+        <p id="totalSales" class="text-3xl font-bold text-blue-600 mt-2">0</p>
       </div>
-      <div class="bg-white shadow rounded-lg p-4 text-center">
-        <h2 class="text-gray-600 text-sm">Active Tours</h2>
+      <div class="card p-5 text-center border-t-4 border-green-500">
+        <h2 class="text-gray-600 text-sm uppercase">Active Tours</h2>
         <p id="activeTours" class="text-3xl font-bold text-green-600 mt-2">0</p>
       </div>
-      <div class="bg-white shadow rounded-lg p-4 text-center">
-        <h2 class="text-gray-600 text-sm">Pending Bookings</h2>
+      <div class="card p-5 text-center border-t-4 border-yellow-400">
+        <h2 class="text-gray-600 text-sm uppercase">Pending Bookings</h2>
         <p id="pendingBookings" class="text-3xl font-bold text-yellow-500 mt-2">0</p>
       </div>
     </div>
 
-    <!-- Sales Chart -->
-    <div class="bg-white shadow rounded-lg p-6">
-      <h2 class="text-xl font-semibold mb-4 text-gray-700">Sales Overview</h2>
-      <canvas id="salesChart" height="100"></canvas>
+    <!-- Chart -->
+    <div class="card p-6">
+      <h2 class="text-lg font-semibold text-gray-700 mb-4">Sales Overview</h2>
+      <canvas id="salesChart" height="120"></canvas>
     </div>
 
-    <!-- Recent Tours Table -->
-    <div class="bg-white shadow rounded-lg p-6 mt-6">
-      <h2 class="text-xl font-semibold mb-4 text-gray-700">Recent Tours</h2>
+    <!-- Tour Table -->
+    <div class="card p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-700">Recent Tours</h2>
+      </div>
       <div class="overflow-x-auto">
-        <table class="min-w-full text-left border">
-          <thead class="bg-gray-100 text-gray-700 uppercase text-sm">
+        <table class="min-w-full border border-gray-200 text-sm">
+          <thead class="bg-gray-100 text-gray-700 uppercase">
             <tr>
               <th class="py-3 px-4 border-b">Tour Name</th>
               <th class="py-3 px-4 border-b">Date</th>
@@ -87,90 +71,85 @@
     </div>
   </main>
 
+  <!-- ================= FOOTER ================= -->
   <footer class="bg-gray-800 text-gray-300 text-center py-3 text-sm">
-    © 2025 Tour Sales Management
+    © 2025 Tour & Sales Management System
   </footer>
 
-  <!-- ================= JS FILES ================= -->
+  <!-- ================= JS SCRIPTS ================= -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
 
-  <!-- ================= DASHBOARD SCRIPT ================= -->
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // Proteksi route: redirect ke login jika belum login
+      // ✅ Proteksi login
       const token = localStorage.getItem("token");
       if (!token) {
         window.location.href = "/";
         return;
       }
 
-      const username = localStorage.getItem("username") || "User";
-      document.getElementById("userInfo").textContent = `Halo, ${username}`;
+      const totalSalesEl = document.getElementById("totalSales");
+      const activeToursEl = document.getElementById("activeTours");
+      const pendingBookingsEl = document.getElementById("pendingBookings");
+      const tourTable = document.getElementById("tourTable");
+      const logoutBtn = document.getElementById("logoutBtn");
 
-      // Tombol logout
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        logout();
-      });
-
-      // Tampilkan overlay loading
-      const overlay = document.getElementById("loadingOverlay");
-      overlay.classList.remove("hidden");
+      logoutBtn.addEventListener("click", logout);
 
       try {
-        // Ambil data dummy dari API
-        const salesData = await API.get("/sales");
-        const toursData = await API.get("/tours");
+        // ✅ Ambil data API
+        const [sales, tours] = await Promise.all([
+          API.get("/sales"),
+          API.get("/tours"),
+        ]);
 
-        // Update angka statistik
-        document.getElementById("totalSales").textContent = salesData?.sales?.length || 0;
-        document.getElementById("activeTours").textContent = (toursData?.tours || []).filter(t => t.departure_status === "jalan").length;
-        document.getElementById("pendingBookings").textContent = (toursData?.tours || []).filter(t => t.departure_status === "belum_jalan").length;
+        // ✅ Update ringkasan
+        totalSalesEl.textContent = sales?.length || 0;
+        activeToursEl.textContent = tours?.filter(t => t.status === "active").length || 0;
+        pendingBookingsEl.textContent = tours?.filter(t => t.status === "pending").length || 0;
 
-        // Update tabel
-        const tourTable = document.getElementById("tourTable");
-        tourTable.innerHTML = "";
-        (toursData?.tours || []).slice(0, 5).forEach(t => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td class="py-3 px-4 border-b">${t.lead_passenger || "-"}</td>
-            <td class="py-3 px-4 border-b">${t.departure_date || "-"}</td>
-            <td class="py-3 px-4 border-b">${t.pax_count || 0}</td>
-            <td class="py-3 px-4 border-b">${t.departure_status || "-"}</td>
-          `;
-          tourTable.appendChild(row);
-        });
+        // ✅ Tampilkan tabel
+        tourTable.innerHTML = (tours || []).slice(0, 10).map(t => `
+          <tr>
+            <td class="py-2 px-4 border-b">${t.name || t.tour_code || "-"}</td>
+            <td class="py-2 px-4 border-b">${t.date ? new Date(t.date).toLocaleDateString() : "-"}</td>
+            <td class="py-2 px-4 border-b">${t.participants || t.pax_count || 0}</td>
+            <td class="py-2 px-4 border-b">
+              <span class="px-2 py-1 rounded text-xs ${
+                t.status === "active" ? "bg-green-100 text-green-700" :
+                t.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                "bg-gray-100 text-gray-600"
+              }">${t.status || "N/A"}</span>
+            </td>
+          </tr>
+        `).join("");
 
-        // Render chart
+        // ✅ Chart
         const ctx = document.getElementById("salesChart").getContext("2d");
-        const labels = (salesData?.sales || []).map(s => s.transaction_date).slice(-7);
-        const values = (salesData?.sales || []).map(s => s.sales_amount).slice(-7);
+        const chartData = (sales || []).slice(0, 7).map(s => s.sales_amount || 0);
+        const chartLabels = (sales || []).slice(0, 7).map((s, i) => s.transaction_date || `Hari ${i+1}`);
+
         new Chart(ctx, {
           type: "bar",
           data: {
-            labels,
+            labels: chartLabels,
             datasets: [{
-              label: "Sales (Rp)",
-              data: values,
+              label: "Sales Amount",
+              data: chartData,
               backgroundColor: "rgba(37, 99, 235, 0.5)",
               borderColor: "rgba(37, 99, 235, 1)",
-              borderWidth: 1
-            }]
+              borderWidth: 1,
+            }],
           },
-          options: {
-            responsive: true,
-            scales: {
-              y: { beginAtZero: true }
-            }
-          }
+          options: { responsive: true, scales: { y: { beginAtZero: true } } },
         });
-
-      } catch (err) {
-        console.error(err);
-        alert("Gagal memuat data dashboard: " + err.message);
-      } finally {
-        overlay.classList.add("hidden");
+      } catch (error) {
+        console.error("❌ Error loading dashboard:", error);
+        alert("Gagal memuat data dashboard. Silakan login ulang.");
+        localStorage.removeItem("token");
+        window.location.href = "/";
       }
     });
   </script>
