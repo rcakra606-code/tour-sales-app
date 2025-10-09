@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour & Sales Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { box-sizing: border-box; }
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+        .chart-container { position: relative; height: 300px; }
+        .modal { backdrop-filter: blur(4px); }
+        .error-animation { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
+        .loading-spinner { border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;}
+        @keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+    </style>
+</head>
+<body class="h-full bg-gray-50">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <p class="text-gray-600">Memuat...</p>
+        </div>
+    </div>
+
+    <!-- Error Toast -->
+    <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
+        <div class="flex items-center">
+            <span class="mr-2">❌</span>
+            <span id="errorMessage">Terjadi kesalahan</span>
+            <button onclick="hideErrorToast()" class="ml-4 text-white hover:text-gray-200">✕</button>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+        <div class="flex items-center">
+            <span class="mr-2">✅</span>
+            <span id="successMessage">Berhasil</span>
+            <button onclick="hideSuccessToast()" class="ml-4 text-white hover:text-gray-200">✕</button>
+        </div>
+    </div>
+
+    <!-- Network Error Page -->
+    <div id="networkErrorPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 hidden">
+        <div class="max-w-md w-full text-center">
+            <div class="mb-8">
+                <div class="text-6xl mb-4">🌐</div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Koneksi Bermasalah</h2>
+                <p class="text-gray-600 mb-6">Tidak dapat terhubung ke server. Periksa koneksi internet Anda.</p>
+                <button onclick="retryConnection()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+                    Coba Lagi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Error Page -->
+    <div id="serverErrorPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 hidden">
+        <div class="max-w-md w-full text-center">
+            <div class="mb-8">
+                <div class="text-6xl mb-4">🔧</div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Server Error</h2>
+                <p class="text-gray-600 mb-6">Terjadi kesalahan pada server. Tim kami sedang memperbaikinya.</p>
+                <button onclick="retryConnection()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+                    Muat Ulang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 404 Error Page -->
+    <div id="notFoundPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 hidden">
+        <div class="max-w-md w-full text-center">
+            <div class="mb-8">
+                <div class="text-6xl mb-4">🔍</div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Halaman Tidak Ditemukan</h2>
+                <p class="text-gray-600 mb-6">Halaman yang Anda cari tidak dapat ditemukan.</p>
+                <button onclick="goHome()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+                    Kembali ke Beranda
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div>
+                <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    Masuk ke Sistem
+                </h2>
+                <p class="mt-2 text-center text-sm text-gray-600">
+                    Tour & Sales Management System
+                </p>
+            </div>
+            <form class="mt-8 space-y-6" onsubmit="handleLogin(event)">
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <input id="username" name="username" type="text" required 
+                               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
+                               placeholder="Username">
+                    </div>
+                    <div>
+                        <input id="password" name="password" type="password" required 
+                               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
+                               placeholder="Password">
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" 
+                            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Masuk
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden h-full">
+        <!-- Sidebar -->
+        <div class="fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 sidebar-transition" id="sidebar">
+            <div class="flex items-center justify-center h-16 bg-gray-800">
+                <span class="text-white text-lg font-semibold">Tour & Sales</span>
+            </div>
+            <nav class="mt-5 px-2">
+                <a href="#" onclick="showPage('dashboard')" class="nav-item group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white">
+                    📊 Dashboard Tour
+                </a>
+                <div id="salesMenuItems" class="hidden">
+                    <a href="#" onclick="showPage('salesDashboard')" class="nav-item group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white">
+                        💰 Dashboard Sales
+                    </a>
+                    <a href="#" onclick="showPage('salesDataEntry')" id="salesDataEntryMenu" class="nav-item group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white">
+                        💼 Input Data Sales
+                    </a>
+                </div>
+                <a href="#" onclick="showPage('dataEntry')" class="nav-item group flex items-center px-2 py-2 text-base font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white">
+                    📝 Input Data Tour
+                </a>
+                <a href="#" onclick="logout()" class="group flex items-center px-2 py-2 text-base font-medium rounded-md text-red-300 hover:bg-red-700 hover:text-white mt-4">
+                    🚪 Logout
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="ml-64 flex flex-col h-full">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200">
+                <div class="px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center">
+                            <h1 class="text-xl font-semibold text-gray-900" id="pageTitle">Dashboard</h1>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-2">
+                                <div id="connectionStatus" class="w-3 h-3 bg-green-500 rounded-full" title="Terhubung"></div>
+                                <span class="text-sm text-gray-500" id="userInfo">Selamat datang, User</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <main class="flex-1 overflow-y-auto p-6">
+                <!-- Dashboard Tour Page -->
+                <div id="dashboardPage" class="page-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- Tour Statistics -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Statistik Tour</h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Total Tour</span>
+                                    <span class="text-lg font-semibold text-blue-600" id="totalTours">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Tour Jalan</span>
+                                    <span class="text-lg font-semibold text-green-600" id="toursJalan">0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Tour Tidak Jalan</span>
+                                    <span class="text-lg font-semibold text-red-600" id="toursNotJalan">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sales Statistics -->
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Statistik Sales</h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Total Sales</span>
+                                    <span class="text-lg font-semibold text-blue-600" id="totalSalesAmount">Rp 0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Total Profit</span>
+                                    <span class="text-lg font-semibold text-green-600" id="totalProfitAmount">Rp 0</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Total Invoice</span>
+                                    <span class="text-lg font-semibold text-purple-600" id="totalInvoices">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales Dashboard Page -->
+                <div id="salesDashboardPage" class="page-content hidden">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Dashboard Sales</h3>
+                        <p class="text-gray-600">Dashboard sales akan ditampilkan di sini.</p>
+                    </div>
+                </div>
+
+                <!-- Data Entry Page -->
+                <div id="dataEntryPage" class="page-content hidden">
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">Input Data Tour</h3>
+                                <button onclick="openTourModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                    Tambah Data Tour
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tgl Daftar</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead Passenger</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Pax</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode Tour</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tourTableBody" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales Data Entry Page -->
+                <div id="salesDataEntryPage" class="page-content hidden">
+                    <div class="bg-white shadow rounded-lg">
+                        <div class="px-4 py-5 sm:p-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-medium text-gray-900">Input Data Sales</h3>
+                                <button onclick="openSalesModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                    Tambah Data Sales
+                                </button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tgl Transaksi</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No Invoice</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="salesTableBody" class="bg-white divide-y divide-gray-200">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Tour Modal -->
+    <div id="tourModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 modal hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900" id="tourModalTitle">Tambah Data Tour</h3>
+                </div>
+                <form onsubmit="saveTour(event)" class="p-6 space-y-4">
+                    <input type="hidden" id="tourId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Tanggal Pendaftaran</label>
+                            <input type="date" id="regDate" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Lead Passenger</label>
+                            <input type="text" id="leadPassenger" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Semua Passenger</label>
+                            <textarea id="allPassengers" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" rows="2"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Jumlah Pax</label>
+                            <input type="number" id="paxCount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" min="1">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Kode Tour</label>
+                            <input type="text" id="tourCode" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Region</label>
+                            <input type="text" id="region" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Tanggal Keberangkatan</label>
+                            <input type="date" id="departureDate" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Kode Booking</label>
+                            <input type="text" id="bookingCode" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Harga (Rp)</label>
+                            <input type="number" id="price" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Status Keberangkatan</label>
+                            <select id="departureStatus" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="belum_jalan">Belum Jalan</option>
+                                <option value="jalan">Jalan</option>
+                                <option value="tidak_jalan">Tidak Jalan</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeTourModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium">
+                            Batal
+                        </button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Modal -->
+    <div id="salesModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 modal hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900" id="salesModalTitle">Tambah Data Sales</h3>
+                </div>
+                <form onsubmit="saveSales(event)" class="p-6 space-y-4">
+                    <input type="hidden" id="salesId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Tanggal Transaksi</label>
+                            <input type="date" id="transactionDate" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Nomor Invoice</label>
+                            <input type="text" id="invoiceNumber" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Sales Amount (Rp)</label>
+                            <input type="number" id="salesAmount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Profit Amount (Rp)</label>
+                            <input type="number" id="profitAmount" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Discount Amount (Rp)</label>
+                            <input type="number" id="discountAmount" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" value="0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Staff Name</label>
+                            <input type="text" id="staffName" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Discount Remarks</label>
+                            <textarea id="discountRemarks" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" rows="2"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeSalesModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium">
+                            Batal
+                        </button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/tours.js"></script>
+    <script src="js/sales.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/error-handler.js"></script>
+</body>
+</html>
