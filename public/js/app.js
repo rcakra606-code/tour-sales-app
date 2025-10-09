@@ -1,86 +1,120 @@
-// ==============================
-// ✅ APP INITIALIZATION
-// ==============================
+// ===============================
+// ✅ APP MAIN HANDLER (Frontend)
+// ===============================
 
+// Fungsi utama dipanggil setelah login sukses atau reload dengan session aktif
 async function initializeApp() {
+  console.log("🟢 initializeApp dijalankan");
+
+  const username = localStorage.getItem("username") || "User";
+  const userInfo = document.getElementById("userInfo");
+  if (userInfo) userInfo.textContent = `Selamat datang, ${username}`;
+
+  // Tampilkan menu khusus admin jika ada hak akses lebih
+  const salesMenuItems = document.getElementById("salesMenuItems");
+  if (salesMenuItems && username.toLowerCase() === "admin") {
+    salesMenuItems.classList.remove("hidden");
+  }
+
   try {
-    // Cek login user
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
-
-    const userInfo = document.getElementById("userInfo");
-    const salesMenu = document.getElementById("salesMenuItems");
-
-    if (!token) {
-      console.warn("User belum login. Redirect ke login page.");
-      window.location.href = "/";
-      return;
-    }
-
-    // Tampilkan nama user
-    if (userInfo) userInfo.textContent = `Selamat datang, ${username || "User"}`;
-
-    // Menu sales opsional (jika elemen ada)
-    if (salesMenu) salesMenu.classList.remove("hidden");
-
-    // Muat data awal (tours & sales)
-    if (typeof loadTours === "function") await loadTours();
-    if (typeof loadSales === "function") await loadSales();
-
-    // Tampilkan dashboard utama
+    toggleLoading(true);
+    await Promise.all([loadTours(), loadSales()]);
     showPage("dashboard");
-  } catch (err) {
-    console.error("Init app error:", err);
-    showErrorToast("Gagal memuat aplikasi. Silakan coba lagi.");
+  } catch (error) {
+    console.error("initializeApp error:", error);
+    showErrorToast(error.message || "Gagal memuat data aplikasi");
+  } finally {
+    toggleLoading(false);
   }
 }
 
-// ==============================
-// ✅ PAGE NAVIGATION CONTROLLER
-// ==============================
+// ===============================
+// ✅ PAGE NAVIGATION
+// ===============================
 function showPage(page) {
-  const pageMap = {
+  const pages = {
     dashboard: "dashboardPage",
     dataEntry: "dataEntryPage",
     salesDashboard: "salesDashboardPage",
     salesDataEntry: "salesDataEntryPage",
   };
 
-  Object.values(pageMap).forEach((id) => {
+  // Sembunyikan semua halaman
+  Object.values(pages).forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.classList.add("hidden");
   });
 
-  const targetId = pageMap[page] || "dashboardPage";
-  const target = document.getElementById(targetId);
-  if (target) target.classList.remove("hidden");
+  // Tampilkan halaman yang dipilih
+  const current = document.getElementById(pages[page] || "dashboardPage");
+  if (current) current.classList.remove("hidden");
 
-  const titleEl = document.getElementById("pageTitle");
-  if (titleEl) {
-    titleEl.textContent = page.charAt(0).toUpperCase() + page.slice(1);
+  // Update judul halaman
+  const pageTitle = document.getElementById("pageTitle");
+  if (pageTitle) {
+    const titleMap = {
+      dashboard: "Dashboard Tour",
+      dataEntry: "Input Data Tour",
+      salesDashboard: "Dashboard Sales",
+      salesDataEntry: "Input Data Sales",
+    };
+    pageTitle.textContent = titleMap[page] || "Dashboard";
+  }
+
+  console.log(`📄 Navigated to page: ${page}`);
+}
+
+// ===============================
+// ✅ HELPER: Toasts & Loading
+// ===============================
+function toggleLoading(show) {
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.classList.toggle("hidden", !show);
+}
+
+function showErrorToast(message) {
+  const toast = document.getElementById("errorToast");
+  const msg = document.getElementById("errorMessage");
+  if (toast && msg) {
+    msg.textContent = message;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 4000);
+  } else {
+    alert(message);
   }
 }
 
-// ==============================
-// ✅ LOGOUT HANDLER
-// ==============================
-function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("username");
-  showSuccessToast("Berhasil logout!");
-  setTimeout(() => (window.location.href = "/"), 800);
+function showSuccessToast(message) {
+  const toast = document.getElementById("successToast");
+  const msg = document.getElementById("successMessage");
+  if (toast && msg) {
+    msg.textContent = message;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 3000);
+  } else {
+    console.log(message);
+  }
 }
 
-// ==============================
-// ✅ AUTO INIT
-// ==============================
+// ===============================
+// ✅ HELPER: Sidebar Navigation
+// ===============================
 document.addEventListener("DOMContentLoaded", () => {
-  const token = localStorage.getItem("token");
+  const navItems = document.querySelectorAll(".nav-item");
+  navItems.forEach((item) => {
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      const target = e.currentTarget.getAttribute("onclick") || "";
+      const pageMatch = target.match(/showPage\(['"](.+?)['"]\)/);
+      if (pageMatch && pageMatch[1]) {
+        showPage(pageMatch[1]);
+      }
+    });
+  });
 
-  // Jika sudah login → inisialisasi dashboard
+  // Jika user sudah login, langsung tampilkan dashboard
+  const token = localStorage.getItem("token");
   if (token) {
     initializeApp();
-  } else {
-    console.warn("Tidak ada token. Halaman login tetap ditampilkan.");
   }
 });
