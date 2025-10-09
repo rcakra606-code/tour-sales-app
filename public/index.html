@@ -13,7 +13,13 @@
     .modal { backdrop-filter: blur(4px); }
     .error-animation { animation: shake 0.5s ease-in-out; }
     @keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
-    .loading-spinner { border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;}
+    .loading-spinner {
+      border:3px solid #f3f3f3;
+      border-top:3px solid #3498db;
+      border-radius:50%;
+      width:30px;height:30px;
+      animation:spin 1s linear infinite;
+    }
     @keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
   </style>
 </head>
@@ -52,7 +58,7 @@
         <p class="mt-2 text-center text-sm text-gray-600">Tour & Sales Management System</p>
       </div>
 
-      <form class="mt-8 space-y-6" onsubmit="handleLogin(event)">
+      <form id="loginForm" onsubmit="handleLogin(event)" action="javascript:void(0)" class="mt-8 space-y-6">
         <div class="rounded-md shadow-sm -space-y-px">
           <div>
             <input id="username" name="username" type="text" required 
@@ -76,16 +82,18 @@
     </div>
   </div>
 
-  <!-- ================= DASHBOARD (auto redirect after login) ================= -->
+  <!-- ================= DASHBOARD ================= -->
   <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-center bg-gray-100">
     <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg text-center">
       <h1 class="text-2xl font-bold text-gray-800 mb-4">Selamat Datang 👋</h1>
       <p id="userInfo" class="text-gray-600 mb-6">Memuat...</p>
-      <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">Logout</button>
+      <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
+        Logout
+      </button>
     </div>
   </div>
 
-  <!-- ================= JS SCRIPTS (ABSOLUTE PATHS) ================= -->
+  <!-- ================= JS SCRIPTS ================= -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
@@ -93,5 +101,25 @@
   <script src="/js/sales.js"></script>
   <script src="/js/app.js"></script>
   <script src="/js/error-handler.js"></script>
+
+  <script>
+    // ✅ Auto toggle login/dashboard saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+      const token = localStorage.getItem('token');
+      const loginPage = document.getElementById('loginPage');
+      const mainApp = document.getElementById('mainApp');
+      const userInfo = document.getElementById('userInfo');
+
+      if (token) {
+        loginPage.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+        const username = localStorage.getItem('username') || 'User';
+        userInfo.textContent = `Selamat datang, ${username}`;
+      } else {
+        mainApp.classList.add('hidden');
+        loginPage.classList.remove('hidden');
+      }
+    });
+  </script>
 </body>
 </html>
