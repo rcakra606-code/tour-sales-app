@@ -112,65 +112,64 @@ app.get('*', (req, res) => {
 });
 
 // =====================
-// ✅ Start server
+// ✅ Start server (Render compatible)
 // =====================
-const port = process.env.port || 3000;
+
+// Gunakan satu deklarasi port saja
+const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// Jalankan HTTP server (Render otomatis pakai HTTPS di layer proxy)
 const httpServer = http.createServer(app);
 
-httpServer.listen(port, () => {
-  logger.info(`Server running on port ${port} in ${process.env.NODE_ENV} mode`);
+httpServer.listen(PORT, () => {
+  logger.info(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
-// Serve frontend
+// =====================
+// ✅ Serve frontend build (SPA mode)
+// =====================
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Health endpoint
+// Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString(), env: process.env.NODE_ENV || 'development' });
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
-// Fallback to index.html for SPA routes
+// Fallback route for SPA (so React Router works)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const port = parseInt(process.env.port || '3000', 10);
-const sslport = productionConfig.ssl.port || 443;
-
-// start http
-const httpServer = http.createServer(app);
-httpServer.listen(port, () => logger.info('HTTP server listening on ' + port));
-
-// start https if enabled
-if (productionConfig.ssl.enabled) {
-  try {
-    const key = fs.readFileSync(productionConfig.ssl.keyPath, 'utf8');
-    const cert = fs.readFileSync(productionConfig.ssl.certPath, 'utf8');
-    const httpsServer = https.createServer({ key, cert }, app);
-    httpsServer.listen(sslport, () => logger.info('HTTPS server listening on ' + sslport));
-  } catch (e) {
-    logger.error('HTTPS start failed', { msg: e.message });
-  }
-}
-
-// scheduler
+// =====================
+// ✅ Backup scheduler (only if enabled)
+// =====================
 const scheduler = new BackupScheduler();
 if (productionConfig.backup.enabled) {
   scheduler.scheduleBackup(productionConfig.backup.schedule);
   scheduler.scheduleHealthCheck();
 }
 
-// graceful shutdown
-const graceful = (sig) => {
-  logger.info('Shutdown ' + sig);
-  try { scheduler.stopAll(); } catch(e){}
+// =====================
+// ✅ Graceful shutdown
+// =====================
+const gracefulShutdown = (signal) => {
+  logger.info(`${signal} received, shutting down gracefully`);
+  try {
+    scheduler.stopAll();
+  } catch (e) {
+    logger.error('Scheduler stop failed', { error: e.message });
+  }
   httpServer.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
   });
 };
 
-process.on('SIGINT', () => graceful('SIGINT'));
-process.on('SIGTERM', () => graceful('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 module.exports = app;
