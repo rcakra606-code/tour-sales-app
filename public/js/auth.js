@@ -11,10 +11,17 @@ const API_BASE = window.location.origin.includes('localhost')
 // ✅ Login Handler
 // ===========================
 async function handleLogin(event) {
-  event.preventDefault();
+  if (event) event.preventDefault(); // cegah reload
+  console.log('🟢 handleLogin dipanggil');
 
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
+  const form = document.getElementById('loginForm');
+  if (form) form.setAttribute('novalidate', 'true');
+
+  const usernameEl = document.getElementById('username');
+  const passwordEl = document.getElementById('password');
+
+  const username = usernameEl ? usernameEl.value.trim() : '';
+  const password = passwordEl ? passwordEl.value.trim() : '';
 
   if (!username || !password) {
     showErrorToast('Masukkan username dan password.');
@@ -24,15 +31,17 @@ async function handleLogin(event) {
   try {
     toggleLoading(true);
 
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
+      cache: 'no-store' // cegah cache (menghindari status 304)
     });
 
-    const data = await response.json();
+    console.log('🔵 Response status:', res.status);
+    const data = await res.json().catch(() => ({}));
 
-    if (!response.ok) {
+    if (!res.ok) {
       showErrorToast(data.message || 'Login gagal.');
       return;
     }
@@ -46,7 +55,7 @@ async function handleLogin(event) {
       window.location.href = '/dashboard.html'; // arahkan ke dashboard utama
     }, 800);
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('❌ Login error:', err);
     showErrorToast('Tidak dapat terhubung ke server.');
   } finally {
     toggleLoading(false);
@@ -69,7 +78,9 @@ function logout() {
 function checkAuth() {
   const token = localStorage.getItem('token');
   const username = localStorage.getItem('username');
-  const isLoginPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
+  const path = window.location.pathname;
+  const isLoginPage =
+    path === '/' || path.endsWith('/index.html') || path === '/login.html';
 
   // Jika belum login & buka halaman selain index.html → paksa balik ke login
   if (!token && !isLoginPage) {
