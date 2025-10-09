@@ -20,20 +20,106 @@ const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
+// Trust proxy (for Render / production)
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 
-app.use(helmet({ crossOriginEmbedderPolicy: false }));
+// =====================
+// ✅ Security (Helmet)
+// =====================
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.tailwindcss.com",
+          "https://cdn.jsdelivr.net",
+          "https://fonts.googleapis.com"
+        ],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.tailwindcss.com",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com"
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https:"],
+      },
+    },
+  })
+);
+
+// =====================
+// ✅ Logging middleware
+// =====================
 app.use(httpLogger);
 
+// =====================
+// ✅ Request parsing
+// =====================
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-app.use(require('cors')(productionConfig.cors));
+// =====================
+// ✅ CORS config
+// =====================
+app.use(cors(productionConfig.cors));
 
+// =====================
+// ✅ Serve static frontend (public folder)
+// =====================
+app.use(
+  '/js',
+  express.static(path.join(__dirname, 'public', 'js'), {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+    },
+  })
+);
+app.use(express.static(path.join(__dirname, 'public')));
+
+// =====================
+// ✅ API Routes
+// =====================
 app.use('/api/auth', authRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/uploads', uploadRoutes);
+
+// =====================
+// ✅ Health check
+// =====================
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// =====================
+// ✅ Catch-all for frontend routes
+// =====================
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// =====================
+// ✅ Start server
+// =====================
+const PORT = process.env.PORT || 3000;
+const httpServer = http.createServer(app);
+
+httpServer.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+});
 
 // Serve frontend
 app.use(express.static(path.join(__dirname, 'public')));
