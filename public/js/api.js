@@ -1,67 +1,158 @@
-const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+// ===============================
+// ✅ API HANDLER (Frontend)
+// ===============================
 
+// Deteksi otomatis base URL (Render vs Local)
+const API_BASE = window.location.origin.includes("localhost")
+  ? "http://localhost:3000"
+  : window.location.origin;
+
+// ===============================
+// ✅ API Wrapper
+// ===============================
 class API {
   static getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    return { 'Content-Type': 'application/json', 'Authorization': token ? 'Bearer ' + token : '' };
+    const token = localStorage.getItem("token");
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
   }
 
   static async request(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const config = { headers: this.getAuthHeaders(), ...options };
+    const url = `${API_BASE}/api${endpoint}`;
+    const config = {
+      method: options.method || "GET",
+      headers: this.getAuthHeaders(),
+      cache: "no-store", // cegah respon 304 cache
+      ...options,
+    };
+
     try {
-      showLoading();
+      toggleLoading(true);
+
       const res = await fetch(url, config);
-      const data = await res.json().catch(()=>null);
-      hideLoading();
+      const data = await res.json().catch(() => null);
+
+      toggleLoading(false);
+
       if (!res.ok) {
-        switch(res.status){
-          case 401: localStorage.removeItem('token'); localStorage.removeItem('user'); hideAllPages(); document.getElementById('loginPage').classList.remove('hidden'); throw new Error('Sesi berakhir');
-          case 403: throw new Error('Anda tidak memiliki akses');
-          case 404: throw new Error('Data tidak ditemukan');
-          default: throw new Error((data && data.error) ? data.error : 'Terjadi kesalahan');
+        switch (res.status) {
+          case 401:
+            showErrorToast("Sesi telah berakhir, silakan login ulang.");
+            logout();
+            throw new Error("Unauthorized");
+          case 403:
+            showErrorToast("Anda tidak memiliki izin akses.");
+            throw new Error("Forbidden");
+          case 404:
+            showErrorToast("Data tidak ditemukan.");
+            throw new Error("Not Found");
+          default:
+            throw new Error(data?.message || "Terjadi kesalahan server.");
         }
       }
+
       return data;
     } catch (err) {
-      hideLoading();
-      if (err.name === 'TypeError' || err.message.includes('fetch')) { updateConnectionStatus(false); throw new Error('Tidak dapat terhubung ke server'); }
+      toggleLoading(false);
+      if (err.name === "TypeError" || err.message.includes("fetch")) {
+        showErrorToast("Tidak dapat terhubung ke server.");
+      } else {
+        console.error("API error:", err.message);
+      }
       throw err;
     }
   }
 
-  static get(ep){ return this.request(ep, { method: 'GET' }); }
-  static post(ep, body){ return this.request(ep, { method: 'POST', body: JSON.stringify(body) }); }
-  static put(ep, body){ return this.request(ep, { method: 'PUT', body: JSON.stringify(body) }); }
-  static delete(ep){ return this.request(ep, { method: 'DELETE' }); }
+  // ===============================
+  // ✅ CRUD Helper Methods
+  // ===============================
+  static get(ep) {
+    return this.request(ep, { method: "GET" });
+  }
 
-  static async uploadFile(file){
-    const fd = new FormData(); fd.append('file', file);
-    const token = localStorage.getItem('token');
-    const cfg = { method: 'POST', headers: { 'Authorization': token ? 'Bearer '+token : '' }, body: fd };
+  static post(ep, body) {
+    return this.request(ep, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
+  static put(ep, body) {
+    return this.request(ep, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  static delete(ep) {
+    return this.request(ep, { method: "DELETE" });
+  }
+
+  // ===============================
+  // ✅ Upload Handler
+  // ===============================
+  static async uploadFile(file) {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const token = localStorage.getItem("token");
+    const cfg = {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: fd,
+    };
+
     try {
-      showLoading();
-      const res = await fetch(API_BASE_URL + '/uploads/single', cfg);
+      toggleLoading(true);
+      const res = await fetch(`${API_BASE}/api/uploads/single`, cfg);
       const data = await res.json();
-      hideLoading();
-      if (!res.ok) throw new Error(data.error || 'Upload gagal');
+      toggleLoading(false);
+
+      if (!res.ok) throw new Error(data?.message || "Upload gagal");
       return data;
-    } catch (e) { hideLoading(); throw e; }
+    } catch (e) {
+      toggleLoading(false);
+      showErrorToast(e.message || "Upload gagal.");
+      throw e;
+    }
   }
 }
 
+// ===============================
+// ✅ Specific API Modules
+// ===============================
+
 const AuthAPI = {
-  login: (u,p) => API.post('/auth/login', { username: u, password: p }),
-  register: (d) => API.post('/auth/register', d),
-  getProfile: () => API.get('/auth/profile')
+  login: (username, password) =>
+    API.post("/auth/login", { username, password }),
+
+  getProfile: () => API.get("/auth/profile"),
 };
 
 const ToursAPI = {
-  getAll: () => API.get('/tours'),
-  create: (d) => API.post('/tours', d)
+  getAll: () => API.get("/tours"),
+  create: (data) => API.post("/tours", data),
+  update: (id, data) => API.put(`/tours/${id}`, data),
+  delete: (id) => API.delete(`/tours/${id}`),
 };
 
 const SalesAPI = {
-  getAll: () => API.get('/sales'),
-  create: (d) => API.post('/sales', d)
+  getAll: () => API.get("/sales"),
+  create: (data) => API.post("/sales", data),
+  update: (id, data) => API.put(`/sales/${id}`, data),
+  delete: (id) => API.delete(`/sales/${id}`),
 };
+
+// ===============================
+// ✅ Optional: Tes koneksi
+// ===============================
+async function testAPIConnection() {
+  try {
+    const res = await API.get("/health");
+    console.log("Server OK:", res);
+  } catch (e) {
+    console.warn("Server tidak merespons:", e.message);
+  }
+}
