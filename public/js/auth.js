@@ -2,10 +2,8 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// Deteksi otomatis base URL (Render vs Local)
-const API_BASE = window.location.origin.includes("localhost")
-  ? "http://localhost:3000"
-  : window.location.origin;
+// Gunakan dari config.js agar tidak duplikat
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
 
 // ===========================
 // ✅ Login Handler
@@ -23,7 +21,7 @@ async function handleLogin(event) {
 
   toggleLoading(true);
   try {
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -41,8 +39,9 @@ async function handleLogin(event) {
     localStorage.setItem("username", data.username);
 
     showSuccessToast("Login berhasil!");
+
     setTimeout(() => {
-      window.location.reload(); // reload agar checkAuth berjalan
+      window.location.href = "/dashboard.html";
     }, 700);
   } catch (err) {
     console.error("Login error:", err);
@@ -63,61 +62,26 @@ function logout() {
 }
 
 // ===========================
-// ✅ Proteksi Route & Autentikasi
+// ✅ Route Protection
 // ===========================
 function checkAuth() {
   const token = localStorage.getItem("token");
-  const username = localStorage.getItem("username");
+  const isLoginPage = window.location.pathname.endsWith("index.html") || window.location.pathname === "/";
 
-  const loginPage = document.getElementById("loginPage");
-  const mainApp = document.getElementById("mainApp");
-  const userInfo = document.getElementById("userInfo");
-
-  if (!token) {
-    // Belum login → tampilkan login
-    if (mainApp) mainApp.classList.add("hidden");
-    if (loginPage) loginPage.classList.remove("hidden");
+  if (!token && !isLoginPage) {
+    window.location.href = "/";
     return false;
   }
 
-  // Sudah login → tampilkan dashboard
-  if (loginPage) loginPage.classList.add("hidden");
-  if (mainApp) mainApp.classList.remove("hidden");
-
-  if (userInfo && username) {
-    userInfo.textContent = `Selamat datang, ${username}`;
+  if (token && isLoginPage) {
+    window.location.href = "/dashboard.html";
+    return false;
   }
 
   return true;
 }
 
-// ===========================
-// ✅ Wrapper Fetch (otomatis kirim token + handle 401/403)
-// ===========================
-async function secureFetch(url, options = {}) {
-  const token = localStorage.getItem("token");
-
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {}),
-  };
-
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(url, { ...options, headers });
-
-  // Jika token invalid atau expired → logout otomatis
-  if (response.status === 401 || response.status === 403) {
-    console.warn("Token tidak valid, user akan logout otomatis");
-    logout();
-    return Promise.reject(new Error("Unauthorized"));
-  }
-
-  return response;
-}
-
-// Contoh penggunaan secureFetch di modul lain:
-// const res = await secureFetch(`${API_BASE}/api/tours`);
+document.addEventListener("DOMContentLoaded", checkAuth);
 
 // ===========================
 // ✅ Helper UI
@@ -150,8 +114,3 @@ function showSuccessToast(message) {
     console.log(message);
   }
 }
-
-// ===========================
-// ✅ Jalankan proteksi otomatis
-// ===========================
-document.addEventListener("DOMContentLoaded", checkAuth);
