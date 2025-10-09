@@ -10,59 +10,68 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { background-color: #f9fafb; font-family: system-ui, sans-serif; }
-    .card { background: white; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    body { background-color: #f9fafb; }
+    .card { @apply bg-white shadow rounded-lg p-6; }
   </style>
 </head>
-
 <body class="min-h-screen flex flex-col">
+
   <!-- ================= HEADER ================= -->
-  <header class="bg-blue-700 text-white py-4 shadow-md">
-    <div class="container mx-auto flex justify-between items-center px-6">
-      <h1 class="text-xl md:text-2xl font-semibold">📊 Tour & Sales Dashboard</h1>
-      <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded transition">
+  <header class="bg-blue-700 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-semibold tracking-wide">Tour & Sales Dashboard</h1>
+      <button id="logoutBtn"
+        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium transition">
         Logout
       </button>
     </div>
   </header>
 
   <!-- ================= MAIN CONTENT ================= -->
-  <main class="container mx-auto px-6 py-6 flex-1 space-y-6">
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="card p-5 text-center border-t-4 border-blue-500">
-        <h2 class="text-gray-600 text-sm uppercase">Total Sales</h2>
-        <p id="totalSales" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+  <main class="max-w-7xl mx-auto p-6 flex-1 w-full">
+    <!-- === STATS CARDS === -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white shadow rounded-lg p-6 text-center">
+        <h2 class="text-gray-600 text-sm font-medium">Total Sales</h2>
+        <p id="totalSales" class="text-3xl font-bold text-blue-700 mt-2">0</p>
       </div>
-      <div class="card p-5 text-center border-t-4 border-green-500">
-        <h2 class="text-gray-600 text-sm uppercase">Active Tours</h2>
+      <div class="bg-white shadow rounded-lg p-6 text-center">
+        <h2 class="text-gray-600 text-sm font-medium">Active Tours</h2>
         <p id="activeTours" class="text-3xl font-bold text-green-600 mt-2">0</p>
       </div>
-      <div class="card p-5 text-center border-t-4 border-yellow-400">
-        <h2 class="text-gray-600 text-sm uppercase">Pending Bookings</h2>
+      <div class="bg-white shadow rounded-lg p-6 text-center">
+        <h2 class="text-gray-600 text-sm font-medium">Pending Bookings</h2>
         <p id="pendingBookings" class="text-3xl font-bold text-yellow-500 mt-2">0</p>
       </div>
     </div>
 
-    <!-- Chart -->
-    <div class="card p-6">
-      <h2 class="text-lg font-semibold text-gray-700 mb-4">Sales Overview</h2>
-      <canvas id="salesChart" height="120"></canvas>
+    <!-- === SALES CHART === -->
+    <div class="bg-white shadow rounded-lg p-6 mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-700">Sales Overview</h2>
+        <select id="chartFilter" class="border border-gray-300 rounded-md text-sm px-2 py-1 focus:ring-blue-500">
+          <option value="7">7 Hari Terakhir</option>
+          <option value="30">30 Hari Terakhir</option>
+        </select>
+      </div>
+      <canvas id="salesChart" height="100"></canvas>
     </div>
 
-    <!-- Tour Table -->
-    <div class="card p-6">
+    <!-- === TOURS TABLE === -->
+    <div class="bg-white shadow rounded-lg p-6">
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-semibold text-gray-700">Recent Tours</h2>
+        <h2 class="text-xl font-semibold text-gray-700">Recent Tours</h2>
       </div>
       <div class="overflow-x-auto">
-        <table class="min-w-full border border-gray-200 text-sm">
-          <thead class="bg-gray-100 text-gray-700 uppercase">
+        <table class="min-w-full text-left border border-gray-200">
+          <thead class="bg-gray-100 text-gray-700 uppercase text-sm">
             <tr>
-              <th class="py-3 px-4 border-b">Tour Name</th>
-              <th class="py-3 px-4 border-b">Date</th>
-              <th class="py-3 px-4 border-b">Participants</th>
+              <th class="py-3 px-4 border-b">Tour Code</th>
+              <th class="py-3 px-4 border-b">Lead Passenger</th>
+              <th class="py-3 px-4 border-b">Region</th>
+              <th class="py-3 px-4 border-b">Pax</th>
               <th class="py-3 px-4 border-b">Status</th>
+              <th class="py-3 px-4 border-b">Tanggal</th>
             </tr>
           </thead>
           <tbody id="tourTable" class="text-gray-600"></tbody>
@@ -73,85 +82,13 @@
 
   <!-- ================= FOOTER ================= -->
   <footer class="bg-gray-800 text-gray-300 text-center py-3 text-sm">
-    © 2025 Tour & Sales Management System
+    © 2025 Tour & Sales Management. All Rights Reserved.
   </footer>
 
   <!-- ================= JS SCRIPTS ================= -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
-
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      // ✅ Proteksi login
-      const token = localStorage.getItem("token");
-      if (!token) {
-        window.location.href = "/";
-        return;
-      }
-
-      const totalSalesEl = document.getElementById("totalSales");
-      const activeToursEl = document.getElementById("activeTours");
-      const pendingBookingsEl = document.getElementById("pendingBookings");
-      const tourTable = document.getElementById("tourTable");
-      const logoutBtn = document.getElementById("logoutBtn");
-
-      logoutBtn.addEventListener("click", logout);
-
-      try {
-        // ✅ Ambil data API
-        const [sales, tours] = await Promise.all([
-          API.get("/sales"),
-          API.get("/tours"),
-        ]);
-
-        // ✅ Update ringkasan
-        totalSalesEl.textContent = sales?.length || 0;
-        activeToursEl.textContent = tours?.filter(t => t.status === "active").length || 0;
-        pendingBookingsEl.textContent = tours?.filter(t => t.status === "pending").length || 0;
-
-        // ✅ Tampilkan tabel
-        tourTable.innerHTML = (tours || []).slice(0, 10).map(t => `
-          <tr>
-            <td class="py-2 px-4 border-b">${t.name || t.tour_code || "-"}</td>
-            <td class="py-2 px-4 border-b">${t.date ? new Date(t.date).toLocaleDateString() : "-"}</td>
-            <td class="py-2 px-4 border-b">${t.participants || t.pax_count || 0}</td>
-            <td class="py-2 px-4 border-b">
-              <span class="px-2 py-1 rounded text-xs ${
-                t.status === "active" ? "bg-green-100 text-green-700" :
-                t.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                "bg-gray-100 text-gray-600"
-              }">${t.status || "N/A"}</span>
-            </td>
-          </tr>
-        `).join("");
-
-        // ✅ Chart
-        const ctx = document.getElementById("salesChart").getContext("2d");
-        const chartData = (sales || []).slice(0, 7).map(s => s.sales_amount || 0);
-        const chartLabels = (sales || []).slice(0, 7).map((s, i) => s.transaction_date || `Hari ${i+1}`);
-
-        new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: chartLabels,
-            datasets: [{
-              label: "Sales Amount",
-              data: chartData,
-              backgroundColor: "rgba(37, 99, 235, 0.5)",
-              borderColor: "rgba(37, 99, 235, 1)",
-              borderWidth: 1,
-            }],
-          },
-          options: { responsive: true, scales: { y: { beginAtZero: true } } },
-        });
-      } catch (error) {
-        console.error("❌ Error loading dashboard:", error);
-        alert("Gagal memuat data dashboard. Silakan login ulang.");
-        localStorage.removeItem("token");
-        window.location.href = "/";
-      }
-    });
-  </script>
+  <script src="/js/dashboard.js"></script>
 </body>
 </html>
