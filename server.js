@@ -114,11 +114,11 @@ app.get('*', (req, res) => {
 // =====================
 // ✅ Start server
 // =====================
-const port = process.env.PORT || 3000;
+const port = process.env.port || 3000;
 const httpServer = http.createServer(app);
 
-httpServer.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+httpServer.listen(port, () => {
+  logger.info(`Server running on port ${port} in ${process.env.NODE_ENV} mode`);
 });
 
 // Serve frontend
@@ -134,12 +134,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
-const sslPort = productionConfig.ssl.port || 443;
+const port = parseInt(process.env.port || '3000', 10);
+const sslport = productionConfig.ssl.port || 443;
 
 // start http
 const httpServer = http.createServer(app);
-httpServer.listen(PORT, () => logger.info('HTTP server listening on ' + PORT));
+httpServer.listen(port, () => logger.info('HTTP server listening on ' + port));
 
 // start https if enabled
 if (productionConfig.ssl.enabled) {
@@ -147,7 +147,7 @@ if (productionConfig.ssl.enabled) {
     const key = fs.readFileSync(productionConfig.ssl.keyPath, 'utf8');
     const cert = fs.readFileSync(productionConfig.ssl.certPath, 'utf8');
     const httpsServer = https.createServer({ key, cert }, app);
-    httpsServer.listen(sslPort, () => logger.info('HTTPS server listening on ' + sslPort));
+    httpsServer.listen(sslport, () => logger.info('HTTPS server listening on ' + sslport));
   } catch (e) {
     logger.error('HTTPS start failed', { msg: e.message });
   }
