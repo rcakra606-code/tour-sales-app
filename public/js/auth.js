@@ -2,61 +2,53 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// Base URL otomatis menyesuaikan environment (local atau render)
-const API_BASE = window.location.origin.includes('localhost')
-  ? 'http://localhost:3000'
+// Deteksi otomatis base URL (Render vs local)
+const API_BASE = window.location.origin.includes("localhost")
+  ? "http://localhost:3000"
   : window.location.origin;
 
 // ===========================
 // ✅ Login Handler
 // ===========================
 async function handleLogin(event) {
-  if (event) event.preventDefault(); // cegah reload
-  console.log('🟢 handleLogin dipanggil');
+  event.preventDefault();
 
-  const form = document.getElementById('loginForm');
-  if (form) form.setAttribute('novalidate', 'true');
-
-  const usernameEl = document.getElementById('username');
-  const passwordEl = document.getElementById('password');
-
-  const username = usernameEl ? usernameEl.value.trim() : '';
-  const password = passwordEl ? passwordEl.value.trim() : '';
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
   if (!username || !password) {
-    showErrorToast('Masukkan username dan password.');
+    showErrorToast("Masukkan username dan password.");
     return;
   }
 
+  toggleLoading(true);
   try {
-    toggleLoading(true);
-
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
-      cache: 'no-store' // cegah cache (menghindari status 304)
     });
 
-    console.log('🔵 Response status:', res.status);
-    const data = await res.json().catch(() => ({}));
+    const data = await response.json();
 
-    if (!res.ok) {
-      showErrorToast(data.message || 'Login gagal.');
+    if (!response.ok) {
+      showErrorToast(data.message || "Login gagal.");
       return;
     }
 
-    // Simpan token dan username
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('username', data.username);
+    // Simpan token & username di localStorage
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("username", data.username);
 
-    showSuccessToast('Login berhasil!');
+    showSuccessToast("Login berhasil!");
+
+    // Delay sedikit agar toast tampil
     setTimeout(() => {
-      window.location.href = '/dashboard.html'; // arahkan ke dashboard utama
-    }, 800);
+      window.location.reload();
+    }, 700);
   } catch (err) {
-    console.error('❌ Login error:', err);
-    showErrorToast('Tidak dapat terhubung ke server.');
+    console.error("Login error:", err);
+    showErrorToast("Tidak dapat terhubung ke server.");
   } finally {
     toggleLoading(false);
   }
@@ -66,75 +58,71 @@ async function handleLogin(event) {
 // ✅ Logout
 // ===========================
 function logout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('username');
-  showSuccessToast('Berhasil logout');
-  setTimeout(() => (window.location.href = '/'), 700);
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  showSuccessToast("Berhasil logout!");
+  setTimeout(() => (window.location.href = "/"), 700);
 }
 
 // ===========================
 // ✅ Route Protection
 // ===========================
 function checkAuth() {
-  const token = localStorage.getItem('token');
-  const username = localStorage.getItem('username');
-  const path = window.location.pathname;
-  const isLoginPage =
-    path === '/' || path.endsWith('/index.html') || path === '/login.html';
+  const token = localStorage.getItem("token");
+  const username = localStorage.getItem("username");
 
-  // Jika belum login & buka halaman selain index.html → paksa balik ke login
-  if (!token && !isLoginPage) {
-    console.warn('User belum login. Redirect ke login page.');
-    window.location.href = '/';
+  const loginPage = document.getElementById("loginPage");
+  const mainApp = document.getElementById("mainApp");
+  const userInfo = document.getElementById("userInfo");
+
+  // Jika belum login → tampilkan form login
+  if (!token) {
+    if (mainApp) mainApp.classList.add("hidden");
+    if (loginPage) loginPage.classList.remove("hidden");
     return false;
   }
 
-  // Jika sudah login & masih di halaman login → langsung ke dashboard
-  if (token && isLoginPage) {
-    console.log('User sudah login. Redirect ke dashboard.');
-    window.location.href = '/dashboard.html';
-    return false;
-  }
+  // Jika sudah login → tampilkan dashboard
+  if (loginPage) loginPage.classList.add("hidden");
+  if (mainApp) mainApp.classList.remove("hidden");
 
-  // Jika sudah login di halaman dashboard → tampilkan info user
-  if (token && username) {
-    const info = document.getElementById('userInfo');
-    if (info) info.innerText = `Selamat datang, ${username}`;
+  if (userInfo && username) {
+    userInfo.textContent = `Selamat datang, ${username}`;
   }
 
   return true;
 }
 
-// Jalankan proteksi saat halaman dimuat
-window.addEventListener('DOMContentLoaded', checkAuth);
+// Jalankan proteksi otomatis saat halaman dimuat
+document.addEventListener("DOMContentLoaded", checkAuth);
 
 // ===========================
-// ✅ Helper Toast & Loading
+// ✅ Helper UI
 // ===========================
 function toggleLoading(show) {
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.classList.toggle('hidden', !show);
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.classList.toggle("hidden", !show);
 }
 
 function showErrorToast(message) {
-  const toast = document.getElementById('errorToast');
-  const msg = document.getElementById('errorMessage');
+  const toast = document.getElementById("errorToast");
+  const msg = document.getElementById("errorMessage");
   if (toast && msg) {
     msg.textContent = message;
-    toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 4000);
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 4000);
   } else {
     alert(message);
   }
 }
 
 function showSuccessToast(message) {
-  const toast = document.getElementById('successToast');
-  const msg = document.getElementById('successMessage');
+  const toast = document.getElementById("successToast");
+  const msg = document.getElementById("successMessage");
   if (toast && msg) {
     msg.textContent = message;
-    toast.classList.remove('hidden');
-    setTimeout(() => toast.classList.add('hidden'), 3000);
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 3000);
   } else {
     console.log(message);
   }
