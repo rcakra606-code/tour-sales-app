@@ -2,17 +2,17 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// Base API otomatis sesuai environment
+// Pastikan API_BASE_URL dari config.js sudah tersedia
 const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || window.location.origin;
 
 // ===========================
-// ✅ Login Handler
+// ✅ LOGIN HANDLER
 // ===========================
 async function handleLogin(event) {
   event.preventDefault();
 
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const username = document.getElementById("username")?.value.trim();
+  const password = document.getElementById("password")?.value.trim();
 
   if (!username || !password) {
     showErrorToast("Masukkan username dan password.");
@@ -21,87 +21,82 @@ async function handleLogin(event) {
 
   toggleLoading(true);
   try {
-    console.log("➡️ Login API:", `${API_BASE_URL}/api/auth/login`);
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
-    // Cek jika bukan JSON valid
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("❌ Response bukan JSON:", text);
-      throw new Error("Server mengembalikan respons tidak valid (HTML)");
-    }
+    const data = await res.json().catch(() => ({}));
 
-    if (!response.ok) {
-      showErrorToast(data.message || "Login gagal.");
+    if (!res.ok) {
+      showErrorToast(data.message || "Login gagal. Periksa kembali data Anda.");
       return;
     }
 
-    // Simpan token & username di localStorage
+    // Simpan token & username ke localStorage
     localStorage.setItem("token", data.token);
     localStorage.setItem("username", data.username);
 
     showSuccessToast("Login berhasil!");
 
-    // Delay sedikit agar toast terlihat
+    // Tunggu sebentar untuk efek transisi
     setTimeout(() => {
-      window.location.href = "/dashboard.html";
-    }, 700);
-
+      window.location.reload();
+    }, 800);
   } catch (err) {
     console.error("Login error:", err);
-    showErrorToast(err.message || "Tidak dapat terhubung ke server.");
+    showErrorToast("Gagal terhubung ke server. Pastikan koneksi Anda stabil.");
   } finally {
     toggleLoading(false);
   }
 }
 
 // ===========================
-// ✅ Logout Handler
+// ✅ LOGOUT HANDLER
 // ===========================
 function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("username");
+
   showSuccessToast("Berhasil logout!");
-  setTimeout(() => (window.location.href = "/"), 700);
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 700);
 }
 
 // ===========================
-// ✅ Route Protection
+// ✅ ROUTE PROTECTION
 // ===========================
 function checkAuth() {
   const token = localStorage.getItem("token");
-  const username = localStorage.getItem("username");
   const loginPage = document.getElementById("loginPage");
   const mainApp = document.getElementById("mainApp");
   const userInfo = document.getElementById("userInfo");
 
   if (!token) {
-    // Belum login
+    // Belum login → tampilkan login page
     if (mainApp) mainApp.classList.add("hidden");
     if (loginPage) loginPage.classList.remove("hidden");
     return false;
   }
 
-  // Sudah login
+  // Sudah login → tampilkan dashboard
   if (loginPage) loginPage.classList.add("hidden");
   if (mainApp) mainApp.classList.remove("hidden");
-  if (userInfo && username) userInfo.textContent = `Selamat datang, ${username}`;
+
+  if (userInfo) {
+    const username = localStorage.getItem("username") || "User";
+    userInfo.textContent = `Selamat datang, ${username}`;
+  }
+
   return true;
 }
 
-// Jalankan proteksi otomatis saat halaman dimuat
 document.addEventListener("DOMContentLoaded", checkAuth);
 
 // ===========================
-// ✅ Helper UI Functions
+// ✅ HELPER UI FUNCTION
 // ===========================
 function toggleLoading(show) {
   const overlay = document.getElementById("loadingOverlay");
