@@ -1,29 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Tour Sales</title>
+  <title>Dashboard - Tour & Sales</title>
 
-  <!-- Tailwind & Chart.js -->
+  <!-- ✅ CDN Aman -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body { background-color: #f9fafb; }
+    .loading-spinner {
+      border:3px solid #f3f3f3;
+      border-top:3px solid #3498db;
+      border-radius:50%;
+      width:30px;height:30px;
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
   </style>
 </head>
+
 <body class="min-h-screen flex flex-col">
 
-  <!-- Header -->
+  <!-- ================= HEADER ================= -->
   <header class="bg-blue-700 text-white py-4 shadow-md">
     <div class="container mx-auto flex justify-between items-center px-6">
-      <h1 class="text-2xl font-semibold">Tour Sales Dashboard</h1>
-      <button id="logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">Logout</button>
+      <h1 class="text-2xl font-semibold">Tour & Sales Dashboard</h1>
+      <div class="flex items-center gap-4">
+        <span id="userInfo" class="text-sm text-blue-100"></span>
+        <button id="logoutBtn" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+          Logout
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Main content -->
+  <!-- ================= LOADING OVERLAY ================= -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+      <div class="loading-spinner mx-auto mb-4"></div>
+      <p class="text-gray-600">Memuat data...</p>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CONTENT ================= -->
   <main class="container mx-auto p-6 flex-1">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
       <div class="bg-white shadow rounded-lg p-4 text-center">
@@ -40,13 +62,13 @@
       </div>
     </div>
 
-    <!-- Chart -->
+    <!-- Sales Chart -->
     <div class="bg-white shadow rounded-lg p-6">
       <h2 class="text-xl font-semibold mb-4 text-gray-700">Sales Overview</h2>
       <canvas id="salesChart" height="100"></canvas>
     </div>
 
-    <!-- Table -->
+    <!-- Recent Tours Table -->
     <div class="bg-white shadow rounded-lg p-6 mt-6">
       <h2 class="text-xl font-semibold mb-4 text-gray-700">Recent Tours</h2>
       <div class="overflow-x-auto">
@@ -69,6 +91,88 @@
     © 2025 Tour Sales Management
   </footer>
 
-  <script src="./js/dashboard.js"></script>
+  <!-- ================= JS FILES ================= -->
+  <script src="/js/config.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+
+  <!-- ================= DASHBOARD SCRIPT ================= -->
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Proteksi route: redirect ke login jika belum login
+      const token = localStorage.getItem("token");
+      if (!token) {
+        window.location.href = "/";
+        return;
+      }
+
+      const username = localStorage.getItem("username") || "User";
+      document.getElementById("userInfo").textContent = `Halo, ${username}`;
+
+      // Tombol logout
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        logout();
+      });
+
+      // Tampilkan overlay loading
+      const overlay = document.getElementById("loadingOverlay");
+      overlay.classList.remove("hidden");
+
+      try {
+        // Ambil data dummy dari API
+        const salesData = await API.get("/sales");
+        const toursData = await API.get("/tours");
+
+        // Update angka statistik
+        document.getElementById("totalSales").textContent = salesData?.sales?.length || 0;
+        document.getElementById("activeTours").textContent = (toursData?.tours || []).filter(t => t.departure_status === "jalan").length;
+        document.getElementById("pendingBookings").textContent = (toursData?.tours || []).filter(t => t.departure_status === "belum_jalan").length;
+
+        // Update tabel
+        const tourTable = document.getElementById("tourTable");
+        tourTable.innerHTML = "";
+        (toursData?.tours || []).slice(0, 5).forEach(t => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class="py-3 px-4 border-b">${t.lead_passenger || "-"}</td>
+            <td class="py-3 px-4 border-b">${t.departure_date || "-"}</td>
+            <td class="py-3 px-4 border-b">${t.pax_count || 0}</td>
+            <td class="py-3 px-4 border-b">${t.departure_status || "-"}</td>
+          `;
+          tourTable.appendChild(row);
+        });
+
+        // Render chart
+        const ctx = document.getElementById("salesChart").getContext("2d");
+        const labels = (salesData?.sales || []).map(s => s.transaction_date).slice(-7);
+        const values = (salesData?.sales || []).map(s => s.sales_amount).slice(-7);
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [{
+              label: "Sales (Rp)",
+              data: values,
+              backgroundColor: "rgba(37, 99, 235, 0.5)",
+              borderColor: "rgba(37, 99, 235, 1)",
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error(err);
+        alert("Gagal memuat data dashboard: " + err.message);
+      } finally {
+        overlay.classList.add("hidden");
+      }
+    });
+  </script>
 </body>
 </html>
