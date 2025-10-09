@@ -2,12 +2,14 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// URL API (otomatis sesuaikan untuk lokal atau Render)
+// Base URL otomatis menyesuaikan environment (local atau render)
 const API_BASE = window.location.origin.includes('localhost')
   ? 'http://localhost:3000'
   : window.location.origin;
 
-// Fungsi login (dipanggil dari <form onsubmit="handleLogin(event)">)
+// ===========================
+// ✅ Login Handler
+// ===========================
 async function handleLogin(event) {
   event.preventDefault();
 
@@ -15,39 +17,37 @@ async function handleLogin(event) {
   const password = document.getElementById('password').value.trim();
 
   if (!username || !password) {
-    showErrorToast('Masukkan username dan password');
+    showErrorToast('Masukkan username dan password.');
     return;
   }
 
   try {
-    // tampilkan loading overlay
     toggleLoading(true);
 
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
 
-    const data = await res.json();
+    const data = await response.json();
 
-    if (!res.ok) {
-      showErrorToast(data.message || 'Login gagal');
+    if (!response.ok) {
+      showErrorToast(data.message || 'Login gagal.');
       return;
     }
 
-    // Simpan token sederhana di localStorage
+    // Simpan token dan username
     localStorage.setItem('token', data.token);
     localStorage.setItem('username', data.username);
 
     showSuccessToast('Login berhasil!');
-    document.getElementById('loginPage').classList.add('hidden');
-    document.getElementById('mainApp').classList.remove('hidden');
-    document.getElementById('userInfo').innerText = `Selamat datang, ${data.username}`;
+    setTimeout(() => {
+      window.location.href = '/dashboard.html'; // arahkan ke dashboard utama
+    }, 800);
   } catch (err) {
     console.error('Login error:', err);
-    showErrorToast('Gagal terhubung ke server.');
-    document.getElementById('networkErrorPage').classList.remove('hidden');
+    showErrorToast('Tidak dapat terhubung ke server.');
   } finally {
     toggleLoading(false);
   }
@@ -59,26 +59,46 @@ async function handleLogin(event) {
 function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('username');
-  document.getElementById('mainApp').classList.add('hidden');
-  document.getElementById('loginPage').classList.remove('hidden');
   showSuccessToast('Berhasil logout');
+  setTimeout(() => (window.location.href = '/'), 700);
 }
 
 // ===========================
-// ✅ Auto-login jika token masih ada
+// ✅ Route Protection
 // ===========================
-window.addEventListener('DOMContentLoaded', () => {
+function checkAuth() {
   const token = localStorage.getItem('token');
   const username = localStorage.getItem('username');
-  if (token && username) {
-    document.getElementById('loginPage').classList.add('hidden');
-    document.getElementById('mainApp').classList.remove('hidden');
-    document.getElementById('userInfo').innerText = `Selamat datang, ${username}`;
+  const isLoginPage = window.location.pathname === '/' || window.location.pathname.endsWith('index.html');
+
+  // Jika belum login & buka halaman selain index.html → paksa balik ke login
+  if (!token && !isLoginPage) {
+    console.warn('User belum login. Redirect ke login page.');
+    window.location.href = '/';
+    return false;
   }
-});
+
+  // Jika sudah login & masih di halaman login → langsung ke dashboard
+  if (token && isLoginPage) {
+    console.log('User sudah login. Redirect ke dashboard.');
+    window.location.href = '/dashboard.html';
+    return false;
+  }
+
+  // Jika sudah login di halaman dashboard → tampilkan info user
+  if (token && username) {
+    const info = document.getElementById('userInfo');
+    if (info) info.innerText = `Selamat datang, ${username}`;
+  }
+
+  return true;
+}
+
+// Jalankan proteksi saat halaman dimuat
+window.addEventListener('DOMContentLoaded', checkAuth);
 
 // ===========================
-// ✅ Helper functions
+// ✅ Helper Toast & Loading
 // ===========================
 function toggleLoading(show) {
   const overlay = document.getElementById('loadingOverlay');
@@ -92,6 +112,8 @@ function showErrorToast(message) {
     msg.textContent = message;
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 4000);
+  } else {
+    alert(message);
   }
 }
 
@@ -102,5 +124,7 @@ function showSuccessToast(message) {
     msg.textContent = message;
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 3000);
+  } else {
+    console.log(message);
   }
 }
