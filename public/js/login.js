@@ -10,11 +10,16 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     : 'https://tour-sales-app.onrender.com'; // ganti dengan URL Render kamu
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+    const API_BASE = window.location.origin.includes('localhost')
+  ? 'http://localhost:3000'
+  : 'https://tour-sales-app.onrender.com'; // ubah ke domain Render kamu
+
+const res = await fetch(`${API_BASE}/api/auth/login`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ username, password })
+});
+
 
     const data = await res.json().catch(() => null);
 
