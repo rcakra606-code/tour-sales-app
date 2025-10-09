@@ -2,8 +2,8 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// Pastikan API_BASE_URL dari config.js sudah tersedia
-const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || window.location.origin;
+// Deteksi otomatis base URL (Render / local)
+const API_BASE = window.APP_CONFIG?.API_BASE_URL || window.location.origin;
 
 // ===========================
 // ✅ LOGIN HANDLER
@@ -11,8 +11,8 @@ const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || window.location.origin;
 async function handleLogin(event) {
   event.preventDefault();
 
-  const username = document.getElementById("username")?.value.trim();
-  const password = document.getElementById("password")?.value.trim();
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
   if (!username || !password) {
     showErrorToast("Masukkan username dan password.");
@@ -20,33 +20,48 @@ async function handleLogin(event) {
   }
 
   toggleLoading(true);
+
   try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
-    const data = await res.json().catch(() => ({}));
+    const data = await response.json();
 
-    if (!res.ok) {
-      showErrorToast(data.message || "Login gagal. Periksa kembali data Anda.");
+    if (!response.ok) {
+      showErrorToast(data.message || "Login gagal. Periksa kembali kredensial Anda.");
       return;
     }
 
-    // Simpan token & username ke localStorage
+    // ✅ Simpan session
     localStorage.setItem("token", data.token);
     localStorage.setItem("username", data.username);
 
     showSuccessToast("Login berhasil!");
 
-    // Tunggu sebentar untuk efek transisi
+    // ✅ Tampilkan dashboard
     setTimeout(() => {
-      window.location.reload();
-    }, 800);
+      const loginPage = document.getElementById("loginPage");
+      const mainApp = document.getElementById("mainApp");
+      const userInfo = document.getElementById("userInfo");
+
+      if (loginPage) loginPage.classList.add("hidden");
+      if (mainApp) mainApp.classList.remove("hidden");
+
+      if (userInfo) userInfo.textContent = `Selamat datang, ${data.username}`;
+
+      // Jalankan inisialisasi dashboard (loadTours & loadSales)
+      if (typeof initializeApp === "function") {
+        initializeApp();
+      } else {
+        console.warn("⚠️ initializeApp() belum didefinisikan.");
+      }
+    }, 700);
   } catch (err) {
     console.error("Login error:", err);
-    showErrorToast("Gagal terhubung ke server. Pastikan koneksi Anda stabil.");
+    showErrorToast("Tidak dapat terhubung ke server. Pastikan server berjalan.");
   } finally {
     toggleLoading(false);
   }
@@ -58,11 +73,8 @@ async function handleLogin(event) {
 function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("username");
-
   showSuccessToast("Berhasil logout!");
-  setTimeout(() => {
-    window.location.href = "/";
-  }, 700);
+  setTimeout(() => window.location.reload(), 500);
 }
 
 // ===========================
@@ -70,33 +82,38 @@ function logout() {
 // ===========================
 function checkAuth() {
   const token = localStorage.getItem("token");
+  const username = localStorage.getItem("username");
+
   const loginPage = document.getElementById("loginPage");
   const mainApp = document.getElementById("mainApp");
   const userInfo = document.getElementById("userInfo");
 
   if (!token) {
-    // Belum login → tampilkan login page
     if (mainApp) mainApp.classList.add("hidden");
     if (loginPage) loginPage.classList.remove("hidden");
     return false;
   }
 
-  // Sudah login → tampilkan dashboard
   if (loginPage) loginPage.classList.add("hidden");
   if (mainApp) mainApp.classList.remove("hidden");
 
-  if (userInfo) {
-    const username = localStorage.getItem("username") || "User";
+  if (userInfo && username) {
     userInfo.textContent = `Selamat datang, ${username}`;
+  }
+
+  // Jalankan dashboard init
+  if (typeof initializeApp === "function") {
+    initializeApp();
   }
 
   return true;
 }
 
+// Jalankan proteksi otomatis saat halaman dimuat
 document.addEventListener("DOMContentLoaded", checkAuth);
 
 // ===========================
-// ✅ HELPER UI FUNCTION
+// ✅ UI HELPERS
 // ===========================
 function toggleLoading(show) {
   const overlay = document.getElementById("loadingOverlay");
