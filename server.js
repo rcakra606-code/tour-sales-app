@@ -1,4 +1,6 @@
-const express = require('express');
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 const http = require('http');
 const https = require('https');
 const path = require('path');
