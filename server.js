@@ -129,18 +129,15 @@ httpServer.listen(PORT, () => {
 // =====================
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Health check endpoint
+// =====================
+// ✅ Health check endpoint
+// =====================
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
-});
-
-// Fallback route for SPA (so React Router works)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // =====================
@@ -151,6 +148,13 @@ if (productionConfig.backup.enabled) {
   scheduler.scheduleBackup(productionConfig.backup.schedule);
   scheduler.scheduleHealthCheck();
 }
+
+// =====================
+// ✅ Fallback route (placed LAST)
+// =====================
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // =====================
 // ✅ Graceful shutdown
