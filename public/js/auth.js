@@ -2,8 +2,8 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// Gunakan dari config.js agar tidak duplikat
-const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:3000';
+// Base API otomatis sesuai environment
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || window.location.origin;
 
 // ===========================
 // ✅ Login Handler
@@ -21,13 +21,23 @@ async function handleLogin(event) {
 
   toggleLoading(true);
   try {
+    console.log("➡️ Login API:", `${API_BASE_URL}/api/auth/login`);
+
     const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
 
-    const data = await response.json();
+    // Cek jika bukan JSON valid
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("❌ Response bukan JSON:", text);
+      throw new Error("Server mengembalikan respons tidak valid (HTML)");
+    }
 
     if (!response.ok) {
       showErrorToast(data.message || "Login gagal.");
@@ -40,19 +50,21 @@ async function handleLogin(event) {
 
     showSuccessToast("Login berhasil!");
 
+    // Delay sedikit agar toast terlihat
     setTimeout(() => {
       window.location.href = "/dashboard.html";
     }, 700);
+
   } catch (err) {
     console.error("Login error:", err);
-    showErrorToast("Tidak dapat terhubung ke server.");
+    showErrorToast(err.message || "Tidak dapat terhubung ke server.");
   } finally {
     toggleLoading(false);
   }
 }
 
 // ===========================
-// ✅ Logout
+// ✅ Logout Handler
 // ===========================
 function logout() {
   localStorage.removeItem("token");
@@ -66,25 +78,30 @@ function logout() {
 // ===========================
 function checkAuth() {
   const token = localStorage.getItem("token");
-  const isLoginPage = window.location.pathname.endsWith("index.html") || window.location.pathname === "/";
+  const username = localStorage.getItem("username");
+  const loginPage = document.getElementById("loginPage");
+  const mainApp = document.getElementById("mainApp");
+  const userInfo = document.getElementById("userInfo");
 
-  if (!token && !isLoginPage) {
-    window.location.href = "/";
+  if (!token) {
+    // Belum login
+    if (mainApp) mainApp.classList.add("hidden");
+    if (loginPage) loginPage.classList.remove("hidden");
     return false;
   }
 
-  if (token && isLoginPage) {
-    window.location.href = "/dashboard.html";
-    return false;
-  }
-
+  // Sudah login
+  if (loginPage) loginPage.classList.add("hidden");
+  if (mainApp) mainApp.classList.remove("hidden");
+  if (userInfo && username) userInfo.textContent = `Selamat datang, ${username}`;
   return true;
 }
 
+// Jalankan proteksi otomatis saat halaman dimuat
 document.addEventListener("DOMContentLoaded", checkAuth);
 
 // ===========================
-// ✅ Helper UI
+// ✅ Helper UI Functions
 // ===========================
 function toggleLoading(show) {
   const overlay = document.getElementById("loadingOverlay");
