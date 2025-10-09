@@ -4,16 +4,17 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
 
 const helmet = require('helmet');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
 
 const productionConfig = require('./config/production');
 const { logger, httpLogger } = require('./config/logger');
 const BackupScheduler = require('./scripts/setup-cron');
+
+// ✅ Tambahkan middleware auth
+const authMiddleware = require('./middleware/authMiddleware');
 
 // =====================
 // ✅ Express app init
@@ -83,10 +84,13 @@ const tourRoutes = require('./routes/tours');
 const salesRoutes = require('./routes/sales');
 const uploadRoutes = require('./routes/upload');
 
+// Route login publik
 app.use('/api/auth', authRoutes);
-app.use('/api/tours', tourRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/uploads', uploadRoutes);
+
+// Route lain wajib login
+app.use('/api/tours', authMiddleware, tourRoutes);
+app.use('/api/sales', authMiddleware, salesRoutes);
+app.use('/api/uploads', authMiddleware, uploadRoutes);
 
 // =====================
 // ✅ Health check
