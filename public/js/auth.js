@@ -2,7 +2,7 @@
 // ✅ AUTH HANDLER (Frontend)
 // ===========================
 
-// Deteksi otomatis base URL (Render vs local)
+// Deteksi otomatis base URL (Render vs Local)
 const API_BASE = window.location.origin.includes("localhost")
   ? "http://localhost:3000"
   : window.location.origin;
@@ -41,10 +41,8 @@ async function handleLogin(event) {
     localStorage.setItem("username", data.username);
 
     showSuccessToast("Login berhasil!");
-
-    // Delay sedikit agar toast tampil
     setTimeout(() => {
-      window.location.reload();
+      window.location.reload(); // reload agar checkAuth berjalan
     }, 700);
   } catch (err) {
     console.error("Login error:", err);
@@ -65,7 +63,7 @@ function logout() {
 }
 
 // ===========================
-// ✅ Route Protection
+// ✅ Proteksi Route & Autentikasi
 // ===========================
 function checkAuth() {
   const token = localStorage.getItem("token");
@@ -75,14 +73,14 @@ function checkAuth() {
   const mainApp = document.getElementById("mainApp");
   const userInfo = document.getElementById("userInfo");
 
-  // Jika belum login → tampilkan form login
   if (!token) {
+    // Belum login → tampilkan login
     if (mainApp) mainApp.classList.add("hidden");
     if (loginPage) loginPage.classList.remove("hidden");
     return false;
   }
 
-  // Jika sudah login → tampilkan dashboard
+  // Sudah login → tampilkan dashboard
   if (loginPage) loginPage.classList.add("hidden");
   if (mainApp) mainApp.classList.remove("hidden");
 
@@ -93,8 +91,33 @@ function checkAuth() {
   return true;
 }
 
-// Jalankan proteksi otomatis saat halaman dimuat
-document.addEventListener("DOMContentLoaded", checkAuth);
+// ===========================
+// ✅ Wrapper Fetch (otomatis kirim token + handle 401/403)
+// ===========================
+async function secureFetch(url, options = {}) {
+  const token = localStorage.getItem("token");
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const response = await fetch(url, { ...options, headers });
+
+  // Jika token invalid atau expired → logout otomatis
+  if (response.status === 401 || response.status === 403) {
+    console.warn("Token tidak valid, user akan logout otomatis");
+    logout();
+    return Promise.reject(new Error("Unauthorized"));
+  }
+
+  return response;
+}
+
+// Contoh penggunaan secureFetch di modul lain:
+// const res = await secureFetch(`${API_BASE}/api/tours`);
 
 // ===========================
 // ✅ Helper UI
@@ -127,3 +150,8 @@ function showSuccessToast(message) {
     console.log(message);
   }
 }
+
+// ===========================
+// ✅ Jalankan proteksi otomatis
+// ===========================
+document.addEventListener("DOMContentLoaded", checkAuth);
