@@ -1,137 +1,148 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tour & Sales Management System</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { box-sizing: border-box; }
-    .sidebar-transition { transition: transform 0.3s ease-in-out; }
-    .chart-container { position: relative; height: 300px; }
-    .modal { backdrop-filter: blur(4px); }
-    .error-animation { animation: shake 0.5s ease-in-out; }
-    @keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
-    .loading-spinner {
-      border:3px solid #f3f3f3;
-      border-top:3px solid #3498db;
-      border-radius:50%;
-      width:30px;height:30px;
-      animation:spin 1s linear infinite;
-    }
-    @keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
-  </style>
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tour & Sales Management System</title>
 
-<body class="h-full bg-gray-50">
+    <!-- ✅ CDN Aman -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- ================= LOADING OVERLAY ================= -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-      <div class="loading-spinner mx-auto mb-4"></div>
-      <p class="text-gray-600">Memuat...</p>
-    </div>
-  </div>
-
-  <!-- ================= TOASTS ================= -->
-  <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
-    <div class="flex items-center">
-      <span class="mr-2">❌</span>
-      <span id="errorMessage">Terjadi kesalahan</span>
-      <button id="closeErrorToast" class="ml-4 text-white hover:text-gray-200">✕</button>
-    </div>
-  </div>
-
-  <div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
-    <div class="flex items-center">
-      <span class="mr-2">✅</span>
-      <span id="successMessage">Berhasil</span>
-      <button id="closeSuccessToast" class="ml-4 text-white hover:text-gray-200">✕</button>
-    </div>
-  </div>
-
-  <!-- ================= LOGIN PAGE ================= -->
-  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Masuk ke Sistem</h2>
-        <p class="mt-2 text-center text-sm text-gray-600">Tour & Sales Management System</p>
-      </div>
-
-      <form id="loginForm" class="mt-8 space-y-6">
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <input id="username" name="username" type="text" required 
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
-              placeholder="Username" />
-          </div>
-          <div>
-            <input id="password" name="password" type="password" required 
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" 
-              placeholder="Password" />
-          </div>
-        </div>
-
-        <div>
-          <button type="submit"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-            Masuk
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= DASHBOARD ================= -->
-  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-center bg-gray-100">
-    <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg text-center">
-      <h1 class="text-2xl font-bold text-gray-800 mb-4">Selamat Datang 👋</h1>
-      <p id="userInfo" class="text-gray-600 mb-6">Memuat...</p>
-      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
-        Logout
-      </button>
-    </div>
-  </div>
-
-  <!-- ================= JS SCRIPTS ================= -->
-  <script src="/js/config.js"></script>
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/tours.js"></script>
-  <script src="/js/sales.js"></script>
-  <script src="/js/app.js"></script>
-  <script src="/js/error-handler.js"></script>
-
-  <script>
-    // ✅ Event binding tanpa inline script (aman untuk CSP Helmet)
-    document.addEventListener('DOMContentLoaded', () => {
-      const token = localStorage.getItem('token');
-      const loginPage = document.getElementById('loginPage');
-      const mainApp = document.getElementById('mainApp');
-      const userInfo = document.getElementById('userInfo');
-      const loginForm = document.getElementById('loginForm');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const closeErrorToast = document.getElementById('closeErrorToast');
-      const closeSuccessToast = document.getElementById('closeSuccessToast');
-
-      // ✅ Bind actions
-      if (loginForm) loginForm.addEventListener('submit', handleLogin);
-      if (logoutBtn) logoutBtn.addEventListener('click', logout);
-      if (closeErrorToast) closeErrorToast.addEventListener('click', () => document.getElementById('errorToast').classList.add('hidden'));
-      if (closeSuccessToast) closeSuccessToast.addEventListener('click', () => document.getElementById('successToast').classList.add('hidden'));
-
-      // ✅ Auth state
-      if (token) {
-        loginPage.classList.add('hidden');
-        mainApp.classList.remove('hidden');
-        const username = localStorage.getItem('username') || 'User';
-        userInfo.textContent = `Selamat datang, ${username}`;
-      } else {
-        mainApp.classList.add('hidden');
-        loginPage.classList.remove('hidden');
+    <style>
+      body { box-sizing: border-box; }
+      .sidebar-transition { transition: transform 0.3s ease-in-out; }
+      .chart-container { position: relative; height: 300px; }
+      .modal { backdrop-filter: blur(4px); }
+      .error-animation { animation: shake 0.5s ease-in-out; }
+      @keyframes shake {
+        0%,100%{transform:translateX(0);}
+        25%{transform:translateX(-5px);}
+        75%{transform:translateX(5px);}
       }
-    });
-  </script>
-</body>
+      .loading-spinner {
+        border:3px solid #f3f3f3;
+        border-top:3px solid #3498db;
+        border-radius:50%;
+        width:30px;height:30px;
+        animation:spin 1s linear infinite;
+      }
+      @keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+    </style>
+  </head>
+
+  <body class="h-full bg-gray-50">
+
+    <!-- ================= LOADING OVERLAY ================= -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600">Memuat...</p>
+      </div>
+    </div>
+
+    <!-- ================= TOASTS ================= -->
+    <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
+      <div class="flex items-center">
+        <span class="mr-2">❌</span>
+        <span id="errorMessage">Terjadi kesalahan</span>
+        <button id="closeErrorToast" class="ml-4 text-white hover:text-gray-200">✕</button>
+      </div>
+    </div>
+
+    <div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+      <div class="flex items-center">
+        <span class="mr-2">✅</span>
+        <span id="successMessage">Berhasil</span>
+        <button id="closeSuccessToast" class="ml-4 text-white hover:text-gray-200">✕</button>
+      </div>
+    </div>
+
+    <!-- ================= LOGIN PAGE ================= -->
+    <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-md w-full space-y-8">
+        <div>
+          <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Masuk ke Sistem
+          </h2>
+          <p class="mt-2 text-center text-sm text-gray-600">
+            Tour & Sales Management System
+          </p>
+        </div>
+
+        <form id="loginForm" class="mt-8 space-y-6" novalidate>
+          <div class="rounded-md shadow-sm -space-y-px">
+            <div>
+              <input id="username" name="username" type="text" required
+                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Username" />
+            </div>
+            <div>
+              <input id="password" name="password" type="password" required
+                class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="Password" />
+            </div>
+          </div>
+
+          <div>
+            <button type="submit"
+              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              Masuk
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= DASHBOARD (SETELAH LOGIN) ================= -->
+    <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-center bg-gray-100">
+      <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg text-center">
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Selamat Datang 👋</h1>
+        <p id="userInfo" class="text-gray-600 mb-6">Memuat...</p>
+        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= JS FILES ================= -->
+    <script src="/js/config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/tours.js"></script>
+    <script src="/js/sales.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/error-handler.js"></script>
+
+    <!-- ================= SAFE EVENT BINDINGS ================= -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("token");
+        const loginPage = document.getElementById("loginPage");
+        const mainApp = document.getElementById("mainApp");
+        const userInfo = document.getElementById("userInfo");
+        const loginForm = document.getElementById("loginForm");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const closeErrorToast = document.getElementById("closeErrorToast");
+        const closeSuccessToast = document.getElementById("closeSuccessToast");
+
+        // ✅ Event listeners aman CSP
+        if (loginForm) loginForm.addEventListener("submit", handleLogin);
+        if (logoutBtn) logoutBtn.addEventListener("click", logout);
+        if (closeErrorToast) closeErrorToast.addEventListener("click", () => document.getElementById("errorToast").classList.add("hidden"));
+        if (closeSuccessToast) closeSuccessToast.addEventListener("click", () => document.getElementById("successToast").classList.add("hidden"));
+
+        // ✅ Auth state control
+        if (token) {
+          loginPage.classList.add("hidden");
+          mainApp.classList.remove("hidden");
+          const username = localStorage.getItem("username") || "User";
+          if (userInfo) userInfo.textContent = `Selamat datang, ${username}`;
+        } else {
+          mainApp.classList.add("hidden");
+          loginPage.classList.remove("hidden");
+        }
+      });
+    </script>
+  </body>
 </html>
