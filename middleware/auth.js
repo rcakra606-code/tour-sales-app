@@ -1,24 +1,37 @@
+// =====================================
+// ✅ AUTH MIDDLEWARE (JWT Verifier)
+// =====================================
 const jwt = require('jsonwebtoken');
-const pool = require('../config/database');
 
-const authenticateToken = async (req, res, next) => {
-  const h = req.headers['authorization'];
-  const token = h && h.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Access token required' });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const r = await pool.query('SELECT id,username,name,email,role FROM users WHERE id=$1', [decoded.userId]);
-    if (!r.rows.length) return res.status(401).json({ error: 'Invalid token' });
-    req.user = r.rows[0];
-    next();
-  } catch (e) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
+// Gunakan secret dari .env atau fallback
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+
+// ===========================
+// 🔹 Middleware autentikasi
+// ===========================
+exports.authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format: Bearer <token>
+
+  if (!token) {
+    return res.status(401).json({ message: 'Token tidak ditemukan. Silakan login kembali.' });
   }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      console.error('JWT verification error:', err.message);
+      return res.status(403).json({ message: 'Token tidak valid atau sudah kedaluwarsa.' });
+    }
+
+    // Simpan user di req.user agar bisa digunakan di controller
+    req.user = user;
+    next();
+  });
 };
 
-const requireRole = (roles) => (req,res,next) => {
-  if (!roles.includes(req.user.role)) return res.status(403).json({ error:'Insufficient permissions' });
-  next();
+// ===========================
+// 🔹 Helper: Membuat token baru
+// ===========================
+exports.generateToken = (userData) => {
+  return jwt.sign(userData, JWT_SECRET, { expiresIn: '12h' }); // berlaku 12 jam
 };
-
-module.exports = { authenticateToken, requireRole };
