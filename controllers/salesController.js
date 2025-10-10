@@ -1,18 +1,99 @@
-const pool = require('../config/database');
+// =====================================
+// ✅ SALES CONTROLLER
+// =====================================
+const path = require('path');
+const fs = require('fs');
 
-const getAllSales = async (req,res) => {
+// File database sederhana (pakai JSON di local)
+const DB_PATH = path.join(__dirname, '..', 'data', 'sales.json');
+
+// ==========================
+// 🔹 Helper untuk baca / tulis file JSON
+// ==========================
+function readSalesFile() {
+  if (!fs.existsSync(DB_PATH)) return [];
   try {
-    const r = await pool.query('SELECT * FROM sales_data ORDER BY created_at DESC');
-    res.json({ sales: r.rows });
-  } catch (e) { console.error(e); res.status(500).json({ error:'Internal error' }); }
+    const data = fs.readFileSync(DB_PATH, 'utf8');
+    return JSON.parse(data || '[]');
+  } catch (err) {
+    console.error('❌ Gagal membaca sales.json:', err);
+    return [];
+  }
+}
+
+function writeSalesFile(data) {
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error('❌ Gagal menulis sales.json:', err);
+  }
+}
+
+// ==========================
+// ✅ GET /api/sales
+// ==========================
+exports.getAllSales = (req, res) => {
+  try {
+    const sales = readSalesFile();
+
+    // Jika admin, tampilkan semua; jika staff, filter per staff_name
+    const user = req.user;
+    const filtered = user.role === 'admin'
+      ? sales
+      : sales.filter(s => s.staff_name === user.username);
+
+    res.json({ sales: filtered });
+  } catch (err) {
+    console.error('Gagal mengambil data sales:', err);
+    res.status(500).json({ message: 'Gagal mengambil data sales.' });
+  }
 };
 
-const createSales = async (req,res) => {
+// ==========================
+// ✅ POST /api/sales
+// ==========================
+exports.createSales = (req, res) => {
   try {
-    const f = req.body;
-    const r = await pool.query('INSERT INTO sales_data (transaction_date,invoice_number,sales_amount,profit_amount,discount_amount,discount_remarks,staff_name,input_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *', [f.transaction_date,f.invoice_number,f.sales_amount,f.profit_amount,f.discount_amount,f.discount_remarks,f.staff_name,req.user.name]);
-    res.status(201).json({ sales: r.rows[0] });
-  } catch (e) { console.error(e); res.status(500).json({ error:'Internal error' }); }
-};
+    const {
+      transaction_date,
+      invoice_number,
+      sales_amount,
+      profit_amount,
+      discount_amount,
+      discount_remarks,
+      staff_name
+    } = req.body;
 
-module.exports = { getAllSales, createSales };
+    if (!transaction_date || !invoice_number || !sales_amount) {
+      return res.status(400).json({ message: 'Data penjualan tidak lengkap.' });
+    }
+
+    const sales = readSalesFile();
+
+    // Buat ID baru otomatis
+    const newId = sales.length > 0 ? sales[sales.length - 1].id + 1 : 1;
+
+    const newSale = {
+      id: newId,
+      transaction_date,
+      invoice_number,
+      sales_amount: parseFloat(sales_amount),
+      profit_amount: parseFloat(profit_amount) || 0,
+      discount_amount: parseFloat(discount_amount) || 0,
+      discount_remarks: discount_remarks || '',
+      staff_name: staff_name || req.user.username,
+      created_at: new Date().toISOString()
+    };
+
+    sales.push(newSale);
+    writeSalesFile(sales);
+
+    res.status(201).json({
+      message: 'Data sales berhasil ditambahkan.',
+      sale: newSale
+    });
+  } catch (err) {
+    console.error('Gagal membuat data sales:', err);
+    res.status(500).json({ message: 'Gagal membuat data sales.' });
+  }
+};
