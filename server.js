@@ -44,6 +44,7 @@ app.use(
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'", "*"],
+        formAction: ["'self'"], // ✅ izinkan form
       },
     },
   })
@@ -55,7 +56,7 @@ app.use(
 app.use(httpLogger);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cors(productionConfig.cors));
+app.use(cors(productionConfig.cors || { origin: '*' }));
 
 // =====================
 // ✅ Static frontend (JS & assets)
@@ -73,19 +74,19 @@ app.use(
 app.use(express.static(path.join(__dirname, 'public')));
 
 // =====================
-// ✅ API ROUTES (must be BEFORE SPA fallback)
+// ✅ API ROUTES
 // =====================
 const authRoutes = require('./routes/auth');
 const tourRoutes = require('./routes/tours');
 const salesRoutes = require('./routes/sales');
 const uploadRoutes = require('./routes/upload');
-const dashboardRoutes = require('./routes/dashboard'); // ✅ Tambahan baru
+const dashboardRoutes = require('./routes/dashboard');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/uploads', uploadRoutes);
-app.use('/api/dashboard', dashboardRoutes); // ✅ Daftarkan di sini
+app.use('/api/dashboard', dashboardRoutes);
 
 // =====================
 // ✅ Health check
@@ -106,7 +107,7 @@ app.use('/api', (req, res) => {
 });
 
 // =====================
-// ✅ SPA fallback (AFTER all API routes)
+// ✅ SPA fallback
 // =====================
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -115,10 +116,14 @@ app.get('*', (req, res) => {
 // =====================
 // ✅ Backup scheduler (optional)
 // =====================
-const scheduler = new BackupScheduler();
-if (productionConfig.backup.enabled) {
-  scheduler.scheduleBackup(productionConfig.backup.schedule);
-  scheduler.scheduleHealthCheck();
+try {
+  const scheduler = new BackupScheduler();
+  if (productionConfig.backup?.enabled) {
+    scheduler.scheduleBackup(productionConfig.backup.schedule);
+    scheduler.scheduleHealthCheck();
+  }
+} catch (err) {
+  console.warn('⚠️ Backup scheduler disabled or misconfigured:', err.message);
 }
 
 // =====================
@@ -128,21 +133,16 @@ const PORT = process.env.PORT || 3000;
 const httpServer = http.createServer(app);
 
 httpServer.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  logger.info(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
 
 // =====================
 // ✅ Graceful shutdown
 // =====================
 const gracefulShutdown = (signal) => {
-  console.log(`${signal} received, shutting down gracefully`);
-  try {
-    scheduler.stopAll();
-  } catch (e) {
-    console.error('Scheduler stop failed:', e.message);
-  }
+  logger.info(`${signal} received, shutting down gracefully`);
   httpServer.close(() => {
-    console.log('HTTP server closed');
+    logger.info('HTTP server closed');
     process.exit(0);
   });
 };
