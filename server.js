@@ -6,17 +6,18 @@ const path = require("path");
 const helmet = require("helmet");
 const cors = require("cors");
 const http = require("http");
+const fs = require("fs");
 require("dotenv").config();
 
 // =====================================
-// ✅ Logging (tanpa crash jika modul opsional)
+// ✅ Optional Logging (no crash if missing)
 // =====================================
 let morgan, winston;
 try {
   morgan = require("morgan");
   winston = require("winston");
-} catch (err) {
-  console.warn("⚠️ Optional logging modules missing, using console only.");
+} catch {
+  console.warn("⚠️ Optional logging modules missing — using console only");
 }
 
 const logger =
@@ -28,31 +29,16 @@ const logger =
 const httpLogger = morgan ? morgan("dev") : (req, res, next) => next();
 
 // =====================================
-// ✅ Jalankan auto init database (scripts/init-db.js)
-// =====================================
-try {
-  const initDB = require("./scripts/init-db");
-  if (typeof initDB === "function") {
-    console.log("🧩 Running automatic database initialization...");
-    initDB()
-      .then(() => console.log("✅ Database initialized successfully"))
-      .catch((err) => console.error("❌ DB init failed:", err.message));
-  } else {
-    console.log("ℹ️ Skipping DB init (no export function found)");
-  }
-} catch (err) {
-  console.warn("⚠️ Could not auto-run init-db script:", err.message);
-}
-
-// =====================================
 // ✅ App Initialization
 // =====================================
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(httpLogger);
 
 // =====================================
-// ✅ Helmet Security (relaxed for CDN)
+// ✅ Helmet Security (Relaxed for CDN)
 // =====================================
 app.use(
   helmet({
@@ -65,55 +51,64 @@ app.use(
           "'unsafe-inline'",
           "https://cdn.tailwindcss.com",
           "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com"
+          "https://cdnjs.cloudflare.com",
         ],
         styleSrc: [
           "'self'",
           "'unsafe-inline'",
-          "https://cdn.jsdelivr.net",
           "https://cdn.tailwindcss.com",
-          "https://fonts.googleapis.com"
+          "https://cdn.jsdelivr.net",
+          "https://fonts.googleapis.com",
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "*"]
-      }
-    }
+        connectSrc: ["'self'", "*"],
+      },
+    },
   })
 );
 
 // =====================================
-// ✅ Middleware
+// ✅ Auto-detect Routes Directory
 // =====================================
-app.use(cors());
-app.use(httpLogger);
+let routesDir = path.join(__dirname, "routes");
+if (!fs.existsSync(routesDir)) {
+  const alt = path.join(__dirname, "src", "routes");
+  if (fs.existsSync(alt)) routesDir = alt;
+}
+
+console.log("📂 Using routes directory:", routesDir);
 
 // =====================================
-// ✅ Static Frontend
+// ✅ Serve Static Files (Frontend)
 // =====================================
+const publicDir = fs.existsSync(path.join(__dirname, "public"))
+  ? path.join(__dirname, "public")
+  : path.join(__dirname, "src", "public");
+
 app.use(
   "/js",
-  express.static(path.join(__dirname, "public", "js"), {
+  express.static(path.join(publicDir, "js"), {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith(".js")) {
         res.setHeader("Content-Type", "application/javascript");
       }
-    }
+    },
   })
 );
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(publicDir));
 
 // =====================================
 // ✅ API Routes
 // =====================================
 try {
-  app.use("/api/auth", require("./routes/auth"));
-  app.use("/api/tours", require("./routes/tours"));
-  app.use("/api/sales", require("./routes/sales"));
-  app.use("/api/dashboard", require("./routes/dashboard"));
-  app.use("/api/uploads", require("./routes/upload"));
+  app.use("/api/auth", require(path.join(routesDir, "auth")));
+  app.use("/api/tours", require(path.join(routesDir, "tours")));
+  app.use("/api/sales", require(path.join(routesDir, "sales")));
+  app.use("/api/dashboard", require(path.join(routesDir, "dashboard")));
+  app.use("/api/uploads", require(path.join(routesDir, "upload")));
 } catch (err) {
-  console.error("⚠️ Route load failed:", err.message);
+  console.error("⚠️ Failed to register routes:", err.message);
 }
 
 // =====================================
@@ -124,26 +119,26 @@ app.get("/api/health", (req, res) => {
     status: "OK",
     node: process.version,
     environment: process.env.NODE_ENV || "development",
-    time: new Date().toISOString()
+    time: new Date().toISOString(),
   });
 });
 
 // =====================================
-// ✅ 404 Handler for API
+// ✅ 404 for API
 // =====================================
 app.use("/api", (req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
 });
 
 // =====================================
-// ✅ SPA Fallback
+// ✅ SPA Fallback (index.html)
 // =====================================
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
 // =====================================
-// ✅ Start Server
+// ✅ Start Server (Render Compatible)
 // =====================================
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
@@ -156,10 +151,10 @@ server.listen(PORT, () => {
 // ✅ Graceful Shutdown
 // =====================================
 process.on("SIGTERM", () => {
-  logger.info("SIGTERM received: shutting down gracefully");
+  logger.info("SIGTERM received — shutting down gracefully");
   server.close(() => process.exit(0));
 });
 process.on("SIGINT", () => {
-  logger.info("SIGINT received: shutting down gracefully");
+  logger.info("SIGINT received — shutting down gracefully");
   server.close(() => process.exit(0));
 });
