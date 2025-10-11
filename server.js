@@ -79,11 +79,13 @@ const authRoutes = require('./routes/auth');
 const tourRoutes = require('./routes/tours');
 const salesRoutes = require('./routes/sales');
 const uploadRoutes = require('./routes/upload');
+const dashboardRoutes = require('./routes/dashboard'); // ✅ Tambahan baru
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tours', tourRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/dashboard', dashboardRoutes); // ✅ Daftarkan di sini
 
 // =====================
 // ✅ Health check
