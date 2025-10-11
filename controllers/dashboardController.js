@@ -1,28 +1,47 @@
-// controllers/dashboardController.js
-const db = require('../config/db'); // Pastikan file ini sesuai dengan koneksi SQLite kamu
+// =====================================
+// ✅ Dashboard Controller
+// =====================================
+const db = require("../config/db");
 
-exports.getDashboardSummary = async (req, res) => {
+exports.getDashboardData = async (req, res) => {
   try {
-    // Hitung total sales & tours
-    const salesResult = await db.all('SELECT COUNT(*) AS total FROM sales');
-    const toursResult = await db.all('SELECT COUNT(*) AS total FROM tours');
+    const totalSales = await new Promise((resolve, reject) => {
+      db.get("SELECT COUNT(*) AS total FROM sales", (err, row) => {
+        if (err) reject(err);
+        else resolve(row.total || 0);
+      });
+    });
 
-    const totalSales = salesResult?.[0]?.total || 0;
-    const totalTours = toursResult?.[0]?.total || 0;
+    const totalTours = await new Promise((resolve, reject) => {
+      db.get("SELECT COUNT(*) AS total FROM tours", (err, row) => {
+        if (err) reject(err);
+        else resolve(row.total || 0);
+      });
+    });
+
+    const pendingTours = await new Promise((resolve, reject) => {
+      db.get(
+        "SELECT COUNT(*) AS total FROM tours WHERE status = 'pending'",
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row.total || 0);
+        }
+      );
+    });
 
     res.json({
       success: true,
       data: {
         totalSales,
         totalTours,
+        pendingTours,
       },
     });
-  } catch (err) {
-    console.error('Dashboard Error:', err);
+  } catch (error) {
+    console.error("Dashboard Error:", error);
     res.status(500).json({
       success: false,
-      message: 'Gagal memuat data dashboard',
-      error: err.message,
+      message: "Gagal memuat data dashboard.",
     });
   }
 };
