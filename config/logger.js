@@ -1,59 +1,60 @@
-// ===================================
-// ✅ Logger Configuration (Root-safe)
-// ===================================
+/**
+ * ✅ LOGGER CONFIGURATION
+ * Menggunakan winston untuk logging + morgan untuk HTTP request log
+ */
 
 const fs = require('fs');
 const path = require('path');
 const winston = require('winston');
 const morgan = require('morgan');
 
-// Pastikan folder logs ada di root project
+// Buat folder logs jika belum ada
 const logDir = path.join(__dirname, '..', 'logs');
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir);
+}
 
-// Format waktu dan log
-const timestampFormat = winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' });
-const logFormat = winston.format.printf(({ timestamp, level, message, ...meta }) => {
-  const metaString = Object.keys(meta).length ? JSON.stringify(meta) : '';
-  return `[${timestamp}] ${level.toUpperCase()}: ${message} ${metaString}`;
+// ================================
+// ✅ Winston Logger setup
+// ================================
+const logFormat = winston.format.printf(({ level, message, timestamp }) => {
+  return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
 });
 
-// ==============================
-// ✅ Winston Logger
-// ==============================
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(timestampFormat, logFormat),
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    logFormat
+  ),
   transports: [
+    // Simpan ke file
+    new winston.transports.File({
+      filename: path.join(logDir, 'app.log'),
+      maxsize: 5 * 1024 * 1024, // 5MB
+      maxFiles: 5,
+      tailable: true,
+    }),
+    // Tampilkan di console
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        timestampFormat,
-        logFormat
+        winston.format.simple()
       ),
-    }),
-    new winston.transports.File({
-      filename: path.join(logDir, 'error.log'),
-      level: 'error',
-      maxsize: 5 * 1024 * 1024, // 5MB
-      maxFiles: 5,
-    }),
-    new winston.transports.File({
-      filename: path.join(logDir, 'combined.log'),
-      maxsize: 10 * 1024 * 1024, // 10MB
-      maxFiles: 5,
     }),
   ],
 });
 
-// ==============================
-// ✅ Morgan Middleware
-// ==============================
-const httpLogger = morgan('tiny', {
+// ================================
+// ✅ Morgan (HTTP request logger)
+// ================================
+const httpLogger = morgan('combined', {
   stream: {
     write: (message) => logger.info(message.trim()),
   },
 });
 
-// Export
+// ================================
+// ✅ Export
+// ================================
 module.exports = { logger, httpLogger };
