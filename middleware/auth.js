@@ -1,13 +1,23 @@
-const jwt = require('jsonwebtoken');
+// =====================================
+// ✅ JWT Authentication Middleware
+// =====================================
+const jwt = require("jsonwebtoken");
 
-exports.authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Akses ditolak. Token tidak ada.' });
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-  jwt.verify(token, process.env.JWT_SECRET || 'mysecretkey', (err, user) => {
-    if (err) return res.status(403).json({ message: 'Token tidak valid.' });
+  if (!token) {
+    return res.status(401).json({ message: "Akses ditolak. Token tidak ada." });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || "secretkey", (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Token tidak valid atau kedaluwarsa." });
+    }
     req.user = user;
     next();
   });
-};
+}
+
+module.exports = { authenticateToken };
