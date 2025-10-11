@@ -2,28 +2,25 @@
 // ✅ Core modules & setup
 // =====================
 const express = require('express');
-const http = require('http');
 const path = require('path');
-require('dotenv').config();
-
 const helmet = require('helmet');
 const cors = require('cors');
+require('dotenv').config();
 
 const productionConfig = require('./config/production');
 const { logger, httpLogger } = require('./config/logger');
 const BackupScheduler = require('./scripts/setup-cron');
 
-// ✅ Tambahkan middleware auth
-const authMiddleware = require('./middleware/authMiddleware');
-
 // =====================
 // ✅ Express app init
 // =====================
 const app = express();
+
+// Render membutuhkan trust proxy agar bisa membaca port & IP dengan benar
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 
 // =====================
-// ✅ Security headers (Helmet)
+// ✅ Security headers (Helmet CSP friendly)
 // =====================
 app.use(
   helmet({
@@ -62,8 +59,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors(productionConfig.cors));
 
 // =====================
-// ✅ Static frontend (JS & assets)
+// ✅ Static frontend
 // =====================
+
+// Pastikan semua file JS di-serve dengan benar (Render butuh header MIME)
 app.use(
   '/js',
   express.static(path.join(__dirname, 'public', 'js'), {
@@ -74,6 +73,8 @@ app.use(
     },
   })
 );
+
+// Serve semua static file (HTML, CSS, images, dll)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // =====================
@@ -84,16 +85,13 @@ const tourRoutes = require('./routes/tours');
 const salesRoutes = require('./routes/sales');
 const uploadRoutes = require('./routes/upload');
 
-// Route login publik
 app.use('/api/auth', authRoutes);
-
-// Route lain wajib login
-app.use('/api/tours', authMiddleware, tourRoutes);
-app.use('/api/sales', authMiddleware, salesRoutes);
-app.use('/api/uploads', authMiddleware, uploadRoutes);
+app.use('/api/tours', tourRoutes);
+app.use('/api/sales', salesRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // =====================
-// ✅ Health check
+// ✅ Health check (Render auto-detects port here)
 // =====================
 app.get('/api/health', (req, res) => {
   res.json({
@@ -106,45 +104,28 @@ app.get('/api/health', (req, res) => {
 // =====================
 // ✅ Backup scheduler (optional)
 // =====================
-const scheduler = new BackupScheduler();
-if (productionConfig.backup.enabled) {
-  scheduler.scheduleBackup(productionConfig.backup.schedule);
-  scheduler.scheduleHealthCheck();
+try {
+  const scheduler = new BackupScheduler();
+  if (productionConfig.backup?.enabled) {
+    scheduler.scheduleBackup(productionConfig.backup.schedule);
+    scheduler.scheduleHealthCheck();
+  }
+} catch (err) {
+  console.warn('⚠️ Backup scheduler not initialized:', err.message);
 }
 
 // =====================
-// ✅ SPA fallback (must be LAST route)
+// ✅ SPA fallback (React/Vue style routing support)
 // =====================
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // =====================
-// ✅ Start Server (Render compatible)
+// ✅ Start server (Render compatible)
 // =====================
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
-
-// =====================
-// ✅ Graceful shutdown
-// =====================
-const gracefulShutdown = (signal) => {
-  logger.info(`${signal} received, shutting down gracefully`);
-  try {
-    scheduler.stopAll();
-  } catch (e) {
-    logger.error('Scheduler stop failed', { error: e.message });
-  }
-  httpServer.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
-};
-
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-
-module.exports = app;
