@@ -1,8 +1,13 @@
-const express = require('express');
-const { getAllTours, createTour } = require('../controllers/tourController');
-const { authenticateToken } = require('../middleware/auth');
+// =====================================
+// ✅ Tours Routes
+// =====================================
+const express = require("express");
 const router = express.Router();
+const { authenticateToken } = require("../middleware/auth");
+const toursController = require("../controllers/toursController");
+
 router.use(authenticateToken);
-router.get('/', getAllTours);
-router.post('/', createTour);
+router.get("/", toursController.getAllTours);
+router.post("/", toursController.createTour);
+
 module.exports = router;
