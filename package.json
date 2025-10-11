@@ -18,6 +18,10 @@
     "jsonwebtoken": "^9.0.2",
     "better-sqlite3": "^9.4.0"
   },
+  "scripts": {
+  "start": "node server.js",
+  "init-db": "node scripts/init-db.js"
+}
   "engines": {
     "node": "22.13.1"
   },
