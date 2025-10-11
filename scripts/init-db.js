@@ -1,6 +1,6 @@
-// scripts/init-db.js
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
+const bcrypt = require("bcryptjs");
 
 async function initDB() {
   const dbPath = path.join(__dirname, "../data/database.sqlite");
@@ -32,9 +32,16 @@ async function initDB() {
       profit_amount REAL,
       staff_name TEXT
     )`);
+
+    // ✅ Tambahkan user admin default jika belum ada
+    const defaultPassword = bcrypt.hashSync("admin123", 10);
+    db.run(
+      `INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)`,
+      ["admin", defaultPassword, "admin"]
+    );
   });
 
-  db.close();
+  db.close(() => console.log("✅ Database ready with default admin user"));
 }
 
 module.exports = initDB;
