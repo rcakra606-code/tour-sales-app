@@ -1,26 +1,42 @@
-// =====================
-// ✅ Core modules & setup
-// =====================
-const express = require('express');
-const http = require('http');
-const path = require('path');
-require('dotenv').config();
+// =====================================
+// ✅ Core Setup
+// =====================================
+const express = require("express");
+const path = require("path");
+const helmet = require("helmet");
+const cors = require("cors");
+const http = require("http");
+require("dotenv").config();
 
-const helmet = require('helmet');
-const cors = require('cors');
-const { logger, httpLogger } = require('./config/logger');
-const productionConfig = require('./config/production');
-const BackupScheduler = require('./scripts/setup-cron');
+// =====================================
+// ✅ Logging (aman, tanpa crash jika modul opsional)
+// =====================================
+let morgan, winston;
+try {
+  morgan = require("morgan");
+  winston = require("winston");
+} catch (err) {
+  console.warn("⚠️ Optional logging modules missing, using console only.");
+}
 
-// =====================
-// ✅ Express app init
-// =====================
+const logger =
+  winston?.createLogger({
+    level: "info",
+    transports: [new winston.transports.Console()],
+  }) || console;
+
+const httpLogger = morgan ? morgan("dev") : (req, res, next) => next();
+
+// =====================================
+// ✅ App Initialization
+// =====================================
 const app = express();
-if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// =====================
-// ✅ Security Headers (Helmet)
-// =====================
+// =====================================
+// ✅ Helmet Security (Relaxed for CDN)
+// =====================================
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
@@ -44,110 +60,90 @@ app.use(
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'", "*"],
-        formAction: ["'self'"], // ✅ izinkan form
       },
     },
   })
 );
 
-// =====================
+// =====================================
 // ✅ Middleware
-// =====================
+// =====================================
+app.use(cors());
 app.use(httpLogger);
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cors(productionConfig.cors || { origin: '*' }));
 
-// =====================
-// ✅ Static frontend (JS & assets)
-// =====================
+// =====================================
+// ✅ Serve static frontend (public folder)
+// =====================================
 app.use(
-  '/js',
-  express.static(path.join(__dirname, 'public', 'js'), {
+  "/js",
+  express.static(path.join(__dirname, "public", "js"), {
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
+      if (filePath.endsWith(".js")) {
+        res.setHeader("Content-Type", "application/javascript");
       }
     },
   })
 );
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
-// =====================
-// ✅ API ROUTES
-// =====================
-const authRoutes = require('./routes/auth');
-const tourRoutes = require('./routes/tours');
-const salesRoutes = require('./routes/sales');
-const uploadRoutes = require('./routes/upload');
-const dashboardRoutes = require('./routes/dashboard');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/tours', tourRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/uploads', uploadRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-
-// =====================
-// ✅ Health check
-// =====================
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// =====================
-// ✅ 404 handler for API
-// =====================
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
-});
-
-// =====================
-// ✅ SPA fallback
-// =====================
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// =====================
-// ✅ Backup scheduler (optional)
-// =====================
+// =====================================
+// ✅ API Routes
+// =====================================
 try {
-  const scheduler = new BackupScheduler();
-  if (productionConfig.backup?.enabled) {
-    scheduler.scheduleBackup(productionConfig.backup.schedule);
-    scheduler.scheduleHealthCheck();
-  }
+  app.use("/api/auth", require("./routes/auth"));
+  app.use("/api/tours", require("./routes/tours"));
+  app.use("/api/sales", require("./routes/sales"));
+  app.use("/api/dashboard", require("./routes/dashboard"));
+  app.use("/api/uploads", require("./routes/upload"));
 } catch (err) {
-  console.warn('⚠️ Backup scheduler disabled or misconfigured:', err.message);
+  console.error("⚠️ Route load failed:", err.message);
 }
 
-// =====================
-// ✅ Start server (Render-compatible)
-// =====================
-const PORT = process.env.PORT || 3000;
-const httpServer = http.createServer(app);
-
-httpServer.listen(PORT, () => {
-  logger.info(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+// =====================================
+// ✅ Health Check
+// =====================================
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "OK",
+    node: process.version,
+    environment: process.env.NODE_ENV || "development",
+    time: new Date().toISOString(),
+  });
 });
 
-// =====================
-// ✅ Graceful shutdown
-// =====================
-const gracefulShutdown = (signal) => {
-  logger.info(`${signal} received, shutting down gracefully`);
-  httpServer.close(() => {
-    logger.info('HTTP server closed');
-    process.exit(0);
-  });
-};
+// =====================================
+// ✅ 404 Handler for API
+// =====================================
+app.use("/api", (req, res) => {
+  res.status(404).json({ error: "API endpoint not found" });
+});
 
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+// =====================================
+// ✅ SPA Fallback (after all API routes)
+// =====================================
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-module.exports = app;
+// =====================================
+// ✅ Start Server (Render Compatible)
+// =====================================
+const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+
+server.listen(PORT, () => {
+  logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
+});
+
+// =====================================
+// ✅ Graceful Shutdown
+// =====================================
+process.on("SIGTERM", () => {
+  logger.info("SIGTERM received: shutting down gracefully");
+  server.close(() => process.exit(0));
+});
+
+process.on("SIGINT", () => {
+  logger.info("SIGINT received: shutting down gracefully");
+  server.close(() => process.exit(0));
+});
