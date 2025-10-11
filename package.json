@@ -1,22 +1,23 @@
 {
   "name": "tour-sales-management",
-  "version": "1.0.1",
-  "description": "Tour & Sales Management System - Fullstack Express + SQLite + Tailwind frontend",
+  "version": "1.0.0",
+  "description": "Fullstack Tour & Sales Management System with Express + SQLite + JWT Auth",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "NODE_ENV=production node server.js",
     "dev": "NODE_ENV=development nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "morgan": "^1.10.0",
-    "helmet": "^7.0.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "sqlite3": "^5.1.6",
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",
-    "node-cron": "^3.0.3",
-    "winston": "^3.11.0"
+    "morgan": "^1.10.0",
+    "winston": "^3.10.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
@@ -31,7 +32,7 @@
     "tour",
     "sales",
     "management",
-    "render"
+    "render-deploy"
   ],
   "author": "Raden Cakra",
   "license": "MIT"
