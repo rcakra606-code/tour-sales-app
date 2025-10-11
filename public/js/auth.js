@@ -13,41 +13,47 @@
   // 🔹 Login Handler
   // ============================
   async function handleLogin(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    const username = document.getElementById("username")?.value.trim();
-    const password = document.getElementById("password")?.value.trim();
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-    if (!username || !password) {
-      showErrorToast("Masukkan username dan password.");
+  if (!username || !password) {
+    showErrorToast("Masukkan username dan password.");
+    return;
+  }
+
+  toggleLoading(true);
+  try {
+    const response = await fetch(`${window.APP_CONFIG.API_BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      showErrorToast(data.message || "Login gagal.");
       return;
     }
 
-    try {
-      toggleLoading(true);
-      const res = await AuthAPI.login(username, password);
+    // ✅ Simpan token + user
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user || {}));
 
-      if (!res || !res.token) {
-        showErrorToast("Login gagal. Periksa kembali username & password.");
-        return;
-      }
-
-      // Simpan data ke localStorage
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("username", res.username || username);
-
-      showSuccessToast("Login berhasil!");
-      setTimeout(() => {
-        window.location.href = "/dashboard.html";
-      }, 800);
-    } catch (err) {
-      console.error("Login error:", err);
-      showErrorToast(err.message || "Gagal login. Coba lagi.");
-    } finally {
-      toggleLoading(false);
-    }
+    showSuccessToast("Login berhasil!");
+    setTimeout(() => {
+      window.location.href = "/dashboard.html"; // arahkan ke dashboard
+    }, 700);
+  } catch (err) {
+    console.error("Login error:", err);
+    showErrorToast("Tidak dapat terhubung ke server.");
+  } finally {
+    toggleLoading(false);
   }
-
+}
+  
   // ============================
   // 🔹 Logout Handler
   // ============================
