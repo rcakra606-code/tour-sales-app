@@ -1,60 +1,40 @@
-// =====================================
-// ✅ Database Initialization Script
-// =====================================
-const db = require("../config/db");
-const bcrypt = require("bcryptjs");
+// scripts/init-db.js
+const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
 
-(async function initDatabase() {
-  console.log("🚀 Initializing database...");
+async function initDB() {
+  const dbPath = path.join(__dirname, "../data/database.sqlite");
+  const db = new sqlite3.Database(dbPath);
 
-  // USERS TABLE
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS users (
+  console.log("🔧 Initializing SQLite database...");
+
+  db.serialize(() => {
+    db.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT DEFAULT 'staff',
-      name TEXT
-    )
-  `);
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT DEFAULT 'admin'
+    )`);
 
-  // TOURS TABLE
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS tours (
+    db.run(`CREATE TABLE IF NOT EXISTS tours (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      date TEXT NOT NULL,
-      participants INTEGER DEFAULT 0,
-      status TEXT DEFAULT 'pending'
-    )
-  `);
+      name TEXT,
+      date TEXT,
+      status TEXT,
+      participants INTEGER
+    )`);
 
-  // SALES TABLE
-  await db.run(`
-    CREATE TABLE IF NOT EXISTS sales (
+    db.run(`CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      amount REAL NOT NULL,
-      date TEXT NOT NULL,
-      description TEXT
-    )
-  `);
-
-  // CEK ADMIN EXIST
-  db.get(`SELECT * FROM users WHERE username = ?`, ["admin"], async (err, user) => {
-    if (err) return console.error("❌ Query error:", err.message);
-    if (user) {
-      console.log("✅ Admin already exists");
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash("admin123", 10);
-    db.run(
-      `INSERT INTO users (username, password, role, name) VALUES (?, ?, ?, ?)`,
-      ["admin", hashedPassword, "admin", "Administrator"],
-      (err) => {
-        if (err) console.error("❌ Failed to create admin:", err.message);
-        else console.log("✅ Default admin created (username: admin, password: admin123)");
-      }
-    );
+      transaction_date TEXT,
+      invoice_number TEXT,
+      sales_amount REAL,
+      profit_amount REAL,
+      staff_name TEXT
+    )`);
   });
-})();
+
+  db.close();
+}
+
+module.exports = initDB;
