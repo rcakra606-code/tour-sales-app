@@ -120,13 +120,12 @@ app.get('*', (req, res) => {
 });
 
 // =====================
-// ✅ Start server (Render compatible)
+// ✅ Start Server (Render compatible)
 // =====================
-const PORT = parseInt(process.env.PORT || '3000', 10);
-const httpServer = http.createServer(app);
+const PORT = process.env.PORT || 3000;
 
-httpServer.listen(PORT, () => {
-  logger.info(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
 // =====================
