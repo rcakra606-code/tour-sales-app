@@ -1,20 +1,17 @@
 // =====================================
-// ✅ Database Configuration (SQLite3)
+// ✅ Database (SQLite3)
 // =====================================
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
-// Lokasi file database
-const dbPath = path.join(__dirname, "..", "models", "db.sqlite");
-
-// Inisialisasi database
+const dbPath = path.join(__dirname, "..", "data", "database.sqlite");
 const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error("❌ Failed to connect to SQLite:", err.message);
-  } else {
-    console.log("✅ SQLite connected at:", dbPath);
-  }
+  if (err) console.error("❌ Failed to connect database:", err.message);
+  else console.log("✅ SQLite database connected:", dbPath);
 });
+
+module.exports = db;
+
 
 // Buat tabel jika belum ada
 db.serialize(() => {
