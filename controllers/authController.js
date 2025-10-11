@@ -1,36 +1,92 @@
-const bcrypt = require('bcryptjs');
+// ===============================
+// ✅ Auth Controller
+// ===============================
 const jwt = require('jsonwebtoken');
-const pool = require('../config/database');
+const bcrypt = require('bcryptjs');
+const { generateToken } = require('../middleware/auth');
 
-function generateToken(userId){ return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }); }
+// Dummy users (nanti bisa diganti dengan database)
+const users = [
+  { id: 1, username: 'admin', password: bcrypt.hashSync('admin123', 8), role: 'admin' },
+  { id: 2, username: 'staff', password: bcrypt.hashSync('staff123', 8), role: 'staff' }
+];
 
-async function login(req,res){
-  try{
+// ===============================
+// ✅ Login
+// ===============================
+exports.login = (req, res) => {
+  try {
     const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error:'username & password' });
-    const r = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
-    if (!r.rows.length) return res.status(401).json({ error:'Invalid credentials' });
-    const user = r.rows[0];
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error:'Invalid credentials' });
-    const token = generateToken(user.id);
-    delete user.password;
-    res.json({ token, user });
-  }catch(e){ console.error(e); res.status(500).json({ error:'Internal error' }); }
-}
 
-async function register(req,res){
-  try{
-    const { username,password,name,email,role='basic' } = req.body;
-    if (!username||!password||!name||!email) return res.status(400).json({ error:'Missing fields' });
-    const exists = await pool.query('SELECT id FROM users WHERE username=$1 OR email=$2',[username,email]);
-    if (exists.rows.length) return res.status(409).json({ error:'Exists' });
-    const hashed = await bcrypt.hash(password, 10);
-    const r = await pool.query('INSERT INTO users (username,password,name,email,role) VALUES ($1,$2,$3,$4,$5) RETURNING id,username,name,email,role', [username,hashed,name,email,role]);
-    const user = r.rows[0];
-    const token = generateToken(user.id);
-    res.status(201).json({ token, user });
-  }catch(e){ console.error(e); res.status(500).json({ error:'Internal error' }); }
-}
+    if (!username || !password)
+      return res.status(400).json({ message: 'Username dan password wajib diisi.' });
 
-module.exports = { login, register };
+    const user = users.find(u => u.username === username);
+    if (!user)
+      return res.status(401).json({ message: 'Username tidak ditemukan.' });
+
+    const valid = bcrypt.compareSync(password, user.password);
+    if (!valid)
+      return res.status(401).json({ message: 'Password salah.' });
+
+    // ✅ Generate JWT token
+    const token = generateToken({ id: user.id, username: user.username, role: user.role });
+
+    res.json({
+      message: 'Login berhasil',
+      token,
+      username: user.username,
+      role: user.role
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan server.' });
+  }
+};
+
+// ===============================
+// ✅ Protected Profile Route
+// ===============================
+exports.profile = (req, res) => {
+  try {
+    const { user } = req; // dari middleware/auth.js
+    res.json({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      message: 'Profil berhasil dimuat'
+    });
+  } catch (err) {
+    console.error('Profile error:', err);
+    res.status(500).json({ message: 'Gagal memuat profil pengguna.' });
+  }
+};
+
+// ===============================
+// ✅ Optional: Register (untuk testing / future use)
+// ===============================
+exports.register = (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ message: 'Username dan password wajib diisi.' });
+
+    const exists = users.find(u => u.username === username);
+    if (exists)
+      return res.status(409).json({ message: 'Username sudah digunakan.' });
+
+    const hashed = bcrypt.hashSync(password, 8);
+    const newUser = {
+      id: users.length + 1,
+      username,
+      password: hashed,
+      role: role || 'staff'
+    };
+
+    users.push(newUser);
+    res.json({ message: 'Registrasi berhasil', user: { username, role: newUser.role } });
+  } catch (err) {
+    console.error('Register error:', err);
+    res.status(500).json({ message: 'Gagal registrasi pengguna.' });
+  }
+};
