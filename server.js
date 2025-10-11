@@ -1,22 +1,22 @@
-// =====================================
+// ===============================
 // ✅ Core Setup
-// =====================================
+// ===============================
 const express = require("express");
 const path = require("path");
 const helmet = require("helmet");
 const cors = require("cors");
-const http = require("http");
+const fs = require("fs");
 require("dotenv").config();
 
-// =====================================
-// ✅ Logging (aman, tanpa crash jika modul opsional)
-// =====================================
+// ===============================
+// ✅ Optional Logging
+// ===============================
 let morgan, winston;
 try {
   morgan = require("morgan");
   winston = require("winston");
 } catch (err) {
-  console.warn("⚠️ Optional logging modules missing, using console only.");
+  console.warn("⚠️ Logging modules missing — using console fallback");
 }
 
 const logger =
@@ -27,16 +27,16 @@ const logger =
 
 const httpLogger = morgan ? morgan("dev") : (req, res, next) => next();
 
-// =====================================
-// ✅ App Initialization
-// =====================================
+// ===============================
+// ✅ Express App
+// ===============================
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// =====================================
-// ✅ Helmet Security (Relaxed for CDN)
-// =====================================
+// ===============================
+// ✅ Helmet Security (relaxed for CDN)
+// ===============================
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
@@ -65,15 +65,15 @@ app.use(
   })
 );
 
-// =====================================
+// ===============================
 // ✅ Middleware
-// =====================================
+// ===============================
 app.use(cors());
 app.use(httpLogger);
 
-// =====================================
-// ✅ Serve static frontend (public folder)
-// =====================================
+// ===============================
+// ✅ Serve Static Frontend
+// ===============================
 app.use(
   "/js",
   express.static(path.join(__dirname, "public", "js"), {
@@ -86,9 +86,9 @@ app.use(
 );
 app.use(express.static(path.join(__dirname, "public")));
 
-// =====================================
+// ===============================
 // ✅ API Routes
-// =====================================
+// ===============================
 try {
   app.use("/api/auth", require("./routes/auth"));
   app.use("/api/tours", require("./routes/tours"));
@@ -96,12 +96,12 @@ try {
   app.use("/api/dashboard", require("./routes/dashboard"));
   app.use("/api/uploads", require("./routes/upload"));
 } catch (err) {
-  console.error("⚠️ Route load failed:", err.message);
+  console.error("⚠️ Route loading failed:", err.message);
 }
 
-// =====================================
+// ===============================
 // ✅ Health Check
-// =====================================
+// ===============================
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
@@ -111,39 +111,41 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// =====================================
+// ===============================
 // ✅ 404 Handler for API
-// =====================================
+// ===============================
 app.use("/api", (req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
 });
 
-// =====================================
-// ✅ SPA Fallback (after all API routes)
-// =====================================
+// ===============================
+// ✅ SPA Fallback
+// ===============================
+const indexPath = path.join(__dirname, "public", "index.html");
+if (!fs.existsSync(indexPath)) {
+  console.error("⚠️ index.html tidak ditemukan di folder public!");
+}
+
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(indexPath);
 });
 
-// =====================================
-// ✅ Start Server (Render Compatible)
-// =====================================
+// ===============================
+// ✅ Start Server (Render-compatible)
+// ===============================
 const PORT = process.env.PORT || 3000;
-const server = http.createServer(app);
-
-server.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
 });
 
-// =====================================
+// ===============================
 // ✅ Graceful Shutdown
-// =====================================
+// ===============================
 process.on("SIGTERM", () => {
   logger.info("SIGTERM received: shutting down gracefully");
-  server.close(() => process.exit(0));
+  process.exit(0);
 });
-
 process.on("SIGINT", () => {
   logger.info("SIGINT received: shutting down gracefully");
-  server.close(() => process.exit(0));
+  process.exit(0);
 });
