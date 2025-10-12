@@ -1,13 +1,9 @@
-// =====================================
-// ✅ Tours Routes
-// =====================================
 const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require("../middleware/auth");
-const toursController = require("../controllers/toursController");
+const controller = require("../controllers/tourController");
 
-router.use(authenticateToken);
-router.get("/", toursController.getAllTours);
-router.post("/", toursController.createTour);
+router.get("/", controller.getAllTours);
+router.post("/", controller.addTour);
+router.delete("/:id", controller.deleteTour);
 
 module.exports = router;
