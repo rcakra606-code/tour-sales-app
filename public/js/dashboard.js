@@ -1,8 +1,6 @@
 // ================================
-// ✅ Dashboard Frontend Script (Final Compatible)
+// ✅ Token & Login Check
 // ================================
-
-// Cek token login
 const token = localStorage.getItem("token");
 if (!token) {
   alert("Sesi login berakhir. Silakan login kembali.");
@@ -10,131 +8,98 @@ if (!token) {
 }
 
 // ================================
-// ✅ Utility Toast
+// ✅ Toast Utility
 // ================================
-function showToast(message, type = "error") {
+function showToast(msg, type = "error") {
   const color = type === "success" ? "bg-green-500" : "bg-red-500";
   const toast = document.createElement("div");
   toast.className = `${color} text-white px-4 py-2 rounded shadow-lg fixed top-4 right-4 z-50 animate-fadeIn`;
-  toast.textContent = message;
+  toast.textContent = msg;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
 
 // ================================
-// ✅ Load Dashboard Data
+// ✅ Load Dashboard
 // ================================
 async function loadDashboard() {
   try {
-    const response = await fetch("/api/dashboard", {
+    const res = await fetch("/api/dashboard", {
       headers: { Authorization: `Bearer ${token}` },
     });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
 
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        showToast("Sesi login sudah berakhir, silakan login ulang.");
-        localStorage.clear();
-        setTimeout(() => (window.location.href = "/"), 1200);
-        return;
-      }
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.success) throw new Error(data.message || "Gagal memuat dashboard");
-
+    // Render statistik
     renderSummary(data.data);
-    await Promise.all([loadRecentTours(), loadSalesChart()]);
+
+    // Load tabel dan chart
+    await loadRecentTours();
+    await loadSalesChart();
   } catch (err) {
     console.error("Dashboard Error:", err);
-    showToast(`Gagal memuat data dashboard: ${err.message}`);
+    showToast("Gagal memuat dashboard.");
   }
 }
 
 // ================================
-// ✅ Render Ringkasan Dashboard
+// ✅ Render Summary
 // ================================
 function renderSummary(data) {
-  document.getElementById("totalSales").textContent = data.totalSales ?? 0;
-  document.getElementById("totalTours").textContent = data.totalTours ?? 0;
-
-  if (document.getElementById("pendingTours"))
-    document.getElementById("pendingTours").textContent =
-      data.pendingTours ?? 0;
+  document.getElementById("totalSales").textContent = data.totalSales || 0;
+  document.getElementById("totalTours").textContent = data.totalTours || 0;
+  document.getElementById("pendingTours").textContent = data.pendingTours || 0;
 }
 
 // ================================
-// ✅ Load Recent Tours Table
+// ✅ Load Recent Tours
 // ================================
 async function loadRecentTours() {
   try {
     const res = await fetch("/api/tours", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const json = await res.json();
-    const tours = json?.tours || json?.data || [];
+    const data = await res.json();
+    const tours = data?.tours || [];
 
     const tbody = document.getElementById("tourTable");
-    if (!tbody) return;
-
     tbody.innerHTML = "";
 
-    tours
-      .slice(-5)
-      .reverse()
-      .forEach((t) => {
-        const tr = document.createElement("tr");
-        tr.className = "border-b hover:bg-gray-50 transition";
-        tr.innerHTML = `
-          <td class="py-2 px-4">${t.title || t.tour_name || "-"}</td>
-          <td class="py-2 px-4">${t.description || "-"}</td>
-          <td class="py-2 px-4">${t.date || "-"}</td>
-          <td class="py-2 px-4 text-right">Rp ${
-            (t.price || 0).toLocaleString("id-ID")
-          }</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    tours.slice(-5).reverse().forEach((t) => {
+      const tr = document.createElement("tr");
+      tr.className = "border-b hover:bg-gray-50";
+      tr.innerHTML = `
+        <td class="py-2 px-4">${t.lead_passenger || "-"}</td>
+        <td class="py-2 px-4">${t.tour_code || "-"}</td>
+        <td class="py-2 px-4">${t.region || "-"}</td>
+        <td class="py-2 px-4">${t.departure_date || "-"}</td>
+        <td class="py-2 px-4 text-right">Rp ${Number(t.price || 0).toLocaleString("id-ID")}</td>
+      `;
+      tbody.appendChild(tr);
+    });
   } catch (err) {
     console.error("Load tours error:", err);
-    showToast("Gagal memuat daftar tour.");
+    showToast("Gagal memuat data tour.");
   }
 }
 
 // ================================
-// ✅ Load Sales Chart (Chart.js)
+// ✅ Load Sales Chart
 // ================================
 async function loadSalesChart() {
   try {
     const res = await fetch("/api/sales", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const json = await res.json();
-    const sales = json?.sales || json?.data || [];
+    const data = await res.json();
+    const sales = data?.sales || [];
 
     const recent = sales.slice(-7).reverse();
-    const labels = recent.map(
-      (s) => s.sale_date || s.date || "Tidak diketahui"
-    );
-    const values = recent.map((s) => s.amount || s.total || 0);
+    const labels = recent.map((s) => s.sale_date || "N/A");
+    const values = recent.map((s) => s.amount || 0);
 
-    const canvas = document.getElementById("salesChart");
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-
-    // Hancurkan chart lama jika sudah ada
-    if (window.salesChartInstance) {
-      window.salesChartInstance.destroy();
-    }
-
-    window.salesChartInstance = new Chart(ctx, {
+    const ctx = document.getElementById("salesChart").getContext("2d");
+    new Chart(ctx, {
       type: "bar",
       data: {
         labels,
@@ -142,15 +107,13 @@ async function loadSalesChart() {
           {
             label: "Penjualan (Rp)",
             data: values,
-            backgroundColor: "rgba(37, 99, 235, 0.6)",
+            backgroundColor: "rgba(37, 99, 235, 0.5)",
             borderColor: "rgba(37, 99, 235, 1)",
             borderWidth: 1,
           },
         ],
       },
       options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
         scales: {
           y: {
             beginAtZero: true,
@@ -168,15 +131,13 @@ async function loadSalesChart() {
 }
 
 // ================================
-// ✅ Logout Handler
+// ✅ Logout
 // ================================
-document.getElementById("logout")?.addEventListener("click", () => {
-  localStorage.clear();
-  showToast("Berhasil logout", "success");
-  setTimeout(() => (window.location.href = "/"), 800);
+document.getElementById("logout").addEventListener("click", () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  showToast("Logout berhasil", "success");
+  setTimeout(() => (window.location.href = "/"), 1000);
 });
 
-// ================================
-// ✅ Init
-// ================================
 document.addEventListener("DOMContentLoaded", loadDashboard);
