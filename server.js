@@ -102,7 +102,7 @@ app.use(express.static(publicDir));
 // ✅ API Routes
 // =====================================
 try {
-  app.use("/api/auth", require(path.join(routesDir, "auth")));
+  app.use("/api/auth", require("./routes/auth"));
   app.use("/api/tours", require(path.join(routesDir, "tours")));
   app.use("/api/sales", require(path.join(routesDir, "sales")));
   app.use("/api/dashboard", require(path.join(routesDir, "dashboard")));
