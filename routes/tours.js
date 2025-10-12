@@ -1,22 +1,13 @@
 // routes/tours.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const controller = require('../controllers/tourController');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const controller = require("../controllers/tourController");
+const { verifyToken } = require("../middleware/authMiddleware");
 
-// Semua route butuh autentikasi
-router.use(authenticateToken);
-
-// GET /api/tours
-router.get('/', controller.getAll);
-
-// POST /api/tours  (boleh staff/admin)
-router.post('/', controller.create);
-
-// PUT /api/tours/:id  (hanya admin atau creator - untuk sederhana kita minta admin)
-router.put('/:id', requireRole('admin'), controller.update);
-
-// DELETE /api/tours/:id (hanya admin)
-router.delete('/:id', requireRole('admin'), controller.remove);
+router.get("/", verifyToken, controller.getAllTours);
+router.get("/:id", verifyToken, controller.getTourById);
+router.post("/", verifyToken, controller.createTour);
+router.put("/:id", verifyToken, controller.updateTour);
+router.delete("/:id", verifyToken, controller.deleteTour);
 
 module.exports = router;
