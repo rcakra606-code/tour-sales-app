@@ -3,7 +3,7 @@
 // =====================================
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const db = require("../config/db");
+const db = require("../config/database");
 const User = require("../models/userModel");
 
 exports.register = (req, res) => {
