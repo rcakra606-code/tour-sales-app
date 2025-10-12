@@ -36,7 +36,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 // =====================================
-// ✅ Optional Logging (no crash if missing)
+// ✅ Optional Logging
 // =====================================
 let morgan, winston;
 try {
@@ -64,7 +64,7 @@ app.use(cors());
 app.use(httpLogger);
 
 // =====================================
-// ✅ Helmet Security (Relaxed for CDN)
+// ✅ Helmet Security
 // =====================================
 app.use(
   helmet({
@@ -124,18 +124,34 @@ app.use(
 app.use(express.static(publicDir));
 
 // =====================================
-// ✅ Database Module Check
+// ✅ Database Auto-load & Admin Check
 // =====================================
 try {
   const dbPath = path.join(__dirname, "config", "database.js");
   if (fs.existsSync(dbPath)) {
-    require(dbPath);
+    const db = require(dbPath);
     console.log(`📦 Database module loaded successfully from: ${dbPath}`);
+
+    // Auto check admin account
+    const bcrypt = require("bcryptjs");
+    const admin = db.prepare("SELECT * FROM users WHERE username = ?").get("admin");
+
+    if (!admin) {
+      const hash = bcrypt.hashSync("admin123", 10);
+      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run(
+        "admin",
+        hash,
+        "admin"
+      );
+      console.log("✅ Default admin account recreated: admin / admin123");
+    } else {
+      console.log("ℹ️ Admin account exists, skipping auto-create.");
+    }
   } else {
     console.warn(`⚠️ Database module missing: ${dbPath}`);
   }
 } catch (e) {
-  console.error("❌ Database load failed:", e.message);
+  console.error("❌ Database load or admin check failed:", e.message);
 }
 
 // =====================================
