@@ -1,10 +1,10 @@
 // =====================================
-// ✅ Auth Controller (Final Fixed)
+// ✅ Auth Controller
 // =====================================
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const User = require("../models/userModels");
 const db = require("../config/database");
+const User = require("../models/userModels");
 
 console.log("📦 AuthController loaded, using database from:", require.resolve("../config/database"));
 
@@ -14,24 +14,33 @@ console.log("📦 AuthController loaded, using database from:", require.resolve(
 exports.register = (req, res) => {
   try {
     const { username, password, role } = req.body;
+
     if (!username || !password) {
       return res.status(400).json({ message: "Username dan password wajib diisi." });
     }
 
-    const existingUser = User.findByUsername(username);
-    if (existingUser) {
-      return res.status(400).json({ message: "Username sudah terdaftar." });
-    }
+    User.findByUsername(username, (err, existingUser) => {
+      if (err) {
+        console.error("❌ DB error:", err);
+        return res.status(500).json({ message: "Kesalahan database." });
+      }
 
-    const hashed = bcrypt.hashSync(password, 10);
-    const created = User.create(username, hashed, role || "staff");
+      if (existingUser) {
+        return res.status(400).json({ message: "Username sudah terdaftar." });
+      }
 
-    if (!created) {
-      return res.status(500).json({ message: "Gagal menambahkan pengguna." });
-    }
+      const hashed = bcrypt.hashSync(password, 10);
 
-    console.log(`✅ Pengguna baru terdaftar: ${username}`);
-    res.json({ success: true, message: "Registrasi berhasil." });
+      User.create(username, hashed, role || "staff", (createErr) => {
+        if (createErr) {
+          console.error("❌ Error creating user:", createErr);
+          return res.status(500).json({ message: "Gagal menambahkan pengguna." });
+        }
+
+        console.log(`👤 New user registered: ${username} (role: ${role || "staff"})`);
+        res.json({ success: true, message: "Registrasi berhasil." });
+      });
+    });
   } catch (e) {
     console.error("❌ Register crash:", e);
     res.status(500).json({ message: "Terjadi kesalahan server." });
@@ -47,31 +56,41 @@ exports.login = (req, res) => {
     if (!username || !password)
       return res.status(400).json({ message: "Username dan password wajib diisi." });
 
-    const user = User.findByUsername(username);
+    User.findByUsername(username, (err, user) => {
+      if (err) {
+        console.error("❌ DB error saat login:", err);
+        return res.status(500).json({ message: "Kesalahan server saat login." });
+      }
 
-    if (!user) {
-      console.warn("⚠️ Login gagal: user tidak ditemukan ->", username);
-      return res.status(401).json({ message: "Username atau password salah." });
-    }
+      if (!user) {
+        console.warn("⚠️ Login gagal: user tidak ditemukan ->", username);
+        return res.status(401).json({ message: "Username atau password salah." });
+      }
 
-    const validPass = bcrypt.compareSync(password, user.password);
-    if (!validPass) {
-      console.warn("⚠️ Login gagal: password salah untuk", username);
-      return res.status(401).json({ message: "Username atau password salah." });
-    }
+      const validPass = bcrypt.compareSync(password, user.password);
+      if (!validPass) {
+        console.warn("⚠️ Login gagal: password salah untuk", username);
+        return res.status(401).json({ message: "Username atau password salah." });
+      }
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET || "secretkey",
-      { expiresIn: "8h" }
-    );
+      const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        process.env.JWT_SECRET || "secretkey",
+        { expiresIn: "8h" }
+      );
 
-    console.log(`✅ Login sukses: ${username} (${user.role})`);
-    res.json({
-      success: true,
-      message: "Login berhasil.",
-      token,
-      user: { id: user.id, username: user.username, role: user.role },
+      console.log(`✅ Login sukses: ${username} (${user.role})`);
+
+      res.json({
+        success: true,
+        message: "Login berhasil.",
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+        },
+      });
     });
   } catch (e) {
     console.error("❌ Crash di login:", e);
