@@ -3,64 +3,73 @@
 // =====================================
 const db = require("../config/database");
 
-// ================================
-// ✅ GET ALL SALES
-// ================================
-exports.getAllSales = (req, res) => {
+// Ambil semua data penjualan
+exports.getAll = (req, res) => {
   try {
-    const sales = db
-      .prepare(
-        `SELECT s.*, t.title AS tour_title 
-         FROM sales s 
-         LEFT JOIN tours t ON s.tour_id = t.id 
-         ORDER BY s.id DESC`
-      )
-      .all();
+    const rows = db.prepare(`
+      SELECT s.id, s.customer_name, s.amount, s.sale_date, s.created_by, 
+             t.title AS tour_name
+      FROM sales s
+      LEFT JOIN tours t ON s.tour_id = t.id
+      ORDER BY s.id DESC
+    `).all();
 
-    res.json({ success: true, sales });
-  } catch (err) {
-    console.error("❌ Error loading sales:", err);
+    res.json({ success: true, sales: rows });
+  } catch (e) {
+    console.error("❌ Gagal mengambil data sales:", e);
     res.status(500).json({ success: false, message: "Gagal memuat data penjualan." });
   }
 };
 
-// ================================
-// ✅ ADD NEW SALE
-// ================================
-exports.addSale = (req, res) => {
+// Tambah data penjualan baru
+exports.create = (req, res) => {
   try {
-    const { tour_id, customer_name, amount, sale_date, created_by } = req.body;
+    const { tour_id, customer_name, amount, sale_date } = req.body;
+    const created_by = req.user.username;
 
-    if (!tour_id || !customer_name || !amount) {
-      return res.status(400).json({ message: "Data penjualan tidak lengkap." });
-    }
+    if (!tour_id || !customer_name || !amount)
+      return res.status(400).json({ success: false, message: "Semua kolom wajib diisi." });
 
-    db.prepare(
-      "INSERT INTO sales (tour_id, customer_name, amount, sale_date, created_by) VALUES (?, ?, ?, ?, ?)"
-    ).run(tour_id, customer_name, amount, sale_date || new Date().toISOString(), created_by || "admin");
+    const stmt = db.prepare(`
+      INSERT INTO sales (tour_id, customer_name, amount, sale_date, created_by)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(tour_id, customer_name, amount, sale_date || new Date().toISOString(), created_by);
 
-    res.json({ success: true, message: "Penjualan berhasil disimpan." });
-  } catch (err) {
-    console.error("❌ Error adding sale:", err);
-    res.status(500).json({ success: false, message: "Gagal menambahkan data penjualan." });
+    res.json({ success: true, message: "Penjualan berhasil ditambahkan." });
+  } catch (e) {
+    console.error("❌ Gagal menambah sales:", e);
+    res.status(500).json({ success: false, message: "Gagal menambah penjualan." });
   }
 };
 
-// ================================
-// ✅ DELETE SALE
-// ================================
-exports.deleteSale = (req, res) => {
+// Update data penjualan
+exports.update = (req, res) => {
   try {
     const { id } = req.params;
-    const result = db.prepare("DELETE FROM sales WHERE id = ?").run(id);
+    const { tour_id, customer_name, amount, sale_date } = req.body;
 
-    if (result.changes === 0) {
-      return res.status(404).json({ success: false, message: "Penjualan tidak ditemukan." });
-    }
+    const stmt = db.prepare(`
+      UPDATE sales SET tour_id = ?, customer_name = ?, amount = ?, sale_date = ?
+      WHERE id = ?
+    `);
+    stmt.run(tour_id, customer_name, amount, sale_date, id);
 
+    res.json({ success: true, message: "Data penjualan berhasil diperbarui." });
+  } catch (e) {
+    console.error("❌ Gagal update sales:", e);
+    res.status(500).json({ success: false, message: "Gagal memperbarui data penjualan." });
+  }
+};
+
+// Hapus data penjualan
+exports.remove = (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare("DELETE FROM sales WHERE id = ?").run(id);
     res.json({ success: true, message: "Penjualan berhasil dihapus." });
-  } catch (err) {
-    console.error("❌ Error deleting sale:", err);
-    res.status(500).json({ success: false, message: "Gagal menghapus penjualan." });
+  } catch (e) {
+    console.error("❌ Gagal hapus sales:", e);
+    res.status(500).json({ success: false, message: "Gagal menghapus data penjualan." });
   }
 };
