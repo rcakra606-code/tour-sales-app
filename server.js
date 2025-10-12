@@ -76,7 +76,6 @@ if (!fs.existsSync(routesDir)) {
   const alt = path.join(__dirname, "src", "routes");
   if (fs.existsSync(alt)) routesDir = alt;
 }
-
 console.log("📂 Using routes directory:", routesDir);
 
 // =====================================
@@ -99,13 +98,30 @@ app.use(
 app.use(express.static(publicDir));
 
 // =====================================
-// ✅ API Routes
+// ✅ Database Connection Check
 // =====================================
+try {
+  const dbPath = path.join(__dirname, "config", "database.js");
+  if (fs.existsSync(dbPath)) {
+    const db = require(dbPath);
+    console.log(`📦 Database module loaded successfully from: ${dbPath}`);
+  } else {
+    console.warn(`⚠️ Database module missing: ${dbPath}`);
+  }
+} catch (e) {
+  console.error("❌ Database load failed:", e.message);
+}
+
+// =====================================
+// ✅ API Routes (Auto Register)
+// =====================================
+const loadedRoutes = [];
 try {
   const useRoute = (endpoint, file) => {
     const routePath = path.join(routesDir, `${file}.js`);
     if (fs.existsSync(routePath)) {
       app.use(endpoint, require(routePath));
+      loadedRoutes.push(`${endpoint} → ${file}.js`);
       console.log(`✅ Route loaded: ${endpoint} → ${routePath}`);
     } else {
       console.warn(`⚠️ Route file not found: ${routePath}`);
@@ -117,10 +133,11 @@ try {
   useRoute("/api/sales", "sales");
   useRoute("/api/dashboard", "dashboard");
   useRoute("/api/uploads", "upload");
-
 } catch (err) {
   console.error("❌ Failed to register routes:", err);
 }
+
+console.log("🧭 Active routes:", loadedRoutes.length ? loadedRoutes.join(", ") : "None");
 
 // =====================================
 // ✅ Health Check
@@ -130,6 +147,7 @@ app.get("/api/health", (req, res) => {
     status: "OK",
     node: process.version,
     environment: process.env.NODE_ENV || "development",
+    routesLoaded: loadedRoutes.length,
     time: new Date().toISOString(),
   });
 });
@@ -155,7 +173,10 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
 server.listen(PORT, () => {
-  logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
+  logger.info(
+    `✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`
+  );
+  console.log(`🌍 Visit: http://localhost:${PORT}`);
 });
 
 // =====================================
