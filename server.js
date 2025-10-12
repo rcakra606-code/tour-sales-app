@@ -7,7 +7,33 @@ const helmet = require("helmet");
 const cors = require("cors");
 const http = require("http");
 const fs = require("fs");
+const crypto = require("crypto");
 require("dotenv").config();
+
+// =====================================
+// ✅ Auto-generate JWT Secret if missing
+// =====================================
+if (!process.env.JWT_SECRET) {
+  const secret = crypto.randomBytes(32).toString("hex");
+  process.env.JWT_SECRET = secret;
+
+  try {
+    const envPath = path.join(__dirname, ".env");
+    if (fs.existsSync(envPath)) {
+      fs.appendFileSync(envPath, `\nJWT_SECRET=${secret}`);
+      console.log("🔐 JWT_SECRET added to existing .env file");
+    } else {
+      fs.writeFileSync(envPath, `JWT_SECRET=${secret}`);
+      console.log("🔐 .env file created with JWT_SECRET");
+    }
+  } catch (err) {
+    console.warn("⚠️ Could not save JWT_SECRET to .env file:", err.message);
+  }
+
+  console.log(`✅ JWT secret generated automatically (${secret.slice(0, 8)}...)`);
+} else {
+  console.log("🔑 JWT_SECRET loaded from environment file.");
+}
 
 // =====================================
 // ✅ Optional Logging (no crash if missing)
@@ -69,7 +95,7 @@ app.use(
 );
 
 // =====================================
-// ✅ Auto-detect Routes Directory
+// ✅ Routes Directory Auto-detect
 // =====================================
 let routesDir = path.join(__dirname, "routes");
 if (!fs.existsSync(routesDir)) {
@@ -79,7 +105,7 @@ if (!fs.existsSync(routesDir)) {
 console.log("📂 Using routes directory:", routesDir);
 
 // =====================================
-// ✅ Serve Static Files (Frontend)
+// ✅ Static Frontend
 // =====================================
 const publicDir = fs.existsSync(path.join(__dirname, "public"))
   ? path.join(__dirname, "public")
@@ -98,12 +124,12 @@ app.use(
 app.use(express.static(publicDir));
 
 // =====================================
-// ✅ Database Connection Check
+// ✅ Database Module Check
 // =====================================
 try {
   const dbPath = path.join(__dirname, "config", "database.js");
   if (fs.existsSync(dbPath)) {
-    const db = require(dbPath);
+    require(dbPath);
     console.log(`📦 Database module loaded successfully from: ${dbPath}`);
   } else {
     console.warn(`⚠️ Database module missing: ${dbPath}`);
@@ -113,7 +139,7 @@ try {
 }
 
 // =====================================
-// ✅ API Routes (Auto Register)
+// ✅ API Route Loader
 // =====================================
 const loadedRoutes = [];
 try {
@@ -137,7 +163,7 @@ try {
   console.error("❌ Failed to register routes:", err);
 }
 
-console.log("🧭 Active routes:", loadedRoutes.length ? loadedRoutes.join(", ") : "None");
+console.log("🧭 Active routes:", loadedRoutes.join(", ") || "None");
 
 // =====================================
 // ✅ Health Check
@@ -147,6 +173,7 @@ app.get("/api/health", (req, res) => {
     status: "OK",
     node: process.version,
     environment: process.env.NODE_ENV || "development",
+    jwtLoaded: !!process.env.JWT_SECRET,
     routesLoaded: loadedRoutes.length,
     time: new Date().toISOString(),
   });
@@ -160,22 +187,19 @@ app.use("/api", (req, res) => {
 });
 
 // =====================================
-// ✅ SPA Fallback (index.html)
+// ✅ SPA Fallback
 // =====================================
 app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
 // =====================================
-// ✅ Start Server (Render Compatible)
+// ✅ Start Server
 // =====================================
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
-
 server.listen(PORT, () => {
-  logger.info(
-    `✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`
-  );
+  logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
   console.log(`🌍 Visit: http://localhost:${PORT}`);
 });
 
