@@ -1,5 +1,5 @@
 // ================================
-// ✅ Token & Login Check
+// ✅ Token & Auth
 // ================================
 const token = localStorage.getItem("token");
 if (!token) {
@@ -20,7 +20,7 @@ function showToast(msg, type = "error") {
 }
 
 // ================================
-// ✅ Load Dashboard
+// ✅ Load Dashboard Data
 // ================================
 async function loadDashboard() {
   try {
@@ -30,10 +30,7 @@ async function loadDashboard() {
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
 
-    // Render statistik
     renderSummary(data.data);
-
-    // Load tabel dan chart
     await loadRecentTours();
     await loadSalesChart();
   } catch (err) {
@@ -52,7 +49,7 @@ function renderSummary(data) {
 }
 
 // ================================
-// ✅ Load Recent Tours
+// ✅ Load Tours
 // ================================
 async function loadRecentTours() {
   try {
@@ -67,7 +64,7 @@ async function loadRecentTours() {
 
     tours.slice(-5).reverse().forEach((t) => {
       const tr = document.createElement("tr");
-      tr.className = "border-b hover:bg-gray-50";
+      tr.className = "border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700";
       tr.innerHTML = `
         <td class="py-2 px-4">${t.lead_passenger || "-"}</td>
         <td class="py-2 px-4">${t.tour_code || "-"}</td>
@@ -84,7 +81,7 @@ async function loadRecentTours() {
 }
 
 // ================================
-// ✅ Load Sales Chart
+// ✅ Sales Chart
 // ================================
 async function loadSalesChart() {
   try {
@@ -107,13 +104,14 @@ async function loadSalesChart() {
           {
             label: "Penjualan (Rp)",
             data: values,
-            backgroundColor: "rgba(37, 99, 235, 0.5)",
-            borderColor: "rgba(37, 99, 235, 1)",
+            backgroundColor: "rgba(59,130,246,0.6)",
+            borderColor: "rgba(37,99,235,1)",
             borderWidth: 1,
           },
         ],
       },
       options: {
+        responsive: true,
         scales: {
           y: {
             beginAtZero: true,
@@ -139,5 +137,18 @@ document.getElementById("logout").addEventListener("click", () => {
   showToast("Logout berhasil", "success");
   setTimeout(() => (window.location.href = "/"), 1000);
 });
+
+// ================================
+// 🌙 Theme Toggle
+// ================================
+document.getElementById("toggleTheme").addEventListener("click", () => {
+  document.documentElement.classList.toggle("dark");
+  localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+});
+
+// Restore theme preference
+if (localStorage.getItem("theme") === "dark") {
+  document.documentElement.classList.add("dark");
+}
 
 document.addEventListener("DOMContentLoaded", loadDashboard);
