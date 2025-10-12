@@ -1,81 +1,70 @@
 <!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard | Tour & Sales Management</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
-
-  <!-- Navbar -->
-  <header class="bg-blue-600 text-white shadow">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-2xl font-bold">Dashboard</h1>
-      <div class="flex items-center gap-4">
-        <span id="username" class="text-sm opacity-90"></span>
-        <button id="logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
-          Logout
-        </button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | Travel Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <!-- Header -->
+    <header class="flex justify-between items-center bg-blue-600 text-white px-6 py-4 shadow">
+      <h1 class="text-xl font-semibold">Dashboard</h1>
+      <div class="flex items-center gap-3">
+        <button id="toggleTheme" class="px-3 py-1 rounded bg-blue-500 hover:bg-blue-700">🌙</button>
+        <button id="logout" class="px-3 py-1 rounded bg-red-500 hover:bg-red-600">Logout</button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Main Content -->
-  <main class="flex-1 max-w-7xl mx-auto px-6 py-8">
-
-    <!-- Summary Cards -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-      <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-        <h2 class="text-gray-600 text-sm uppercase mb-2">Total Sales</h2>
-        <p id="totalSales" class="text-3xl font-bold text-blue-600">0</p>
+    <!-- Container -->
+    <main class="p-6 max-w-7xl mx-auto">
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+          <h2 class="text-sm text-gray-500 dark:text-gray-400">Total Penjualan</h2>
+          <p id="totalSales" class="text-3xl font-semibold text-blue-600 dark:text-blue-400">0</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+          <h2 class="text-sm text-gray-500 dark:text-gray-400">Total Tour</h2>
+          <p id="totalTours" class="text-3xl font-semibold text-green-600 dark:text-green-400">0</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+          <h2 class="text-sm text-gray-500 dark:text-gray-400">Tour Pending</h2>
+          <p id="pendingTours" class="text-3xl font-semibold text-yellow-500 dark:text-yellow-400">0</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+          <h2 class="text-sm text-gray-500 dark:text-gray-400">Total Pendapatan</h2>
+          <p id="totalRevenue" class="text-3xl font-semibold text-purple-600 dark:text-purple-400">Rp 0</p>
+        </div>
       </div>
-      <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-        <h2 class="text-gray-600 text-sm uppercase mb-2">Total Tours</h2>
-        <p id="totalTours" class="text-3xl font-bold text-green-600">0</p>
-      </div>
-      <div class="bg-white rounded-2xl shadow p-6 flex flex-col items-center">
-        <h2 class="text-gray-600 text-sm uppercase mb-2">Total Revenue</h2>
-        <p id="totalRevenue" class="text-3xl font-bold text-yellow-600">Rp 0</p>
-      </div>
-    </section>
 
-    <!-- Chart Section -->
-    <section class="bg-white rounded-2xl shadow p-6 mb-10">
-      <h3 class="text-lg font-semibold mb-4 text-gray-700">Grafik Penjualan Mingguan</h3>
-      <canvas id="salesChart" height="120"></canvas>
-    </section>
+      <!-- Chart Section -->
+      <section class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow mb-8">
+        <h3 class="text-lg font-semibold mb-4">Grafik Penjualan Mingguan</h3>
+        <canvas id="salesChart" height="120"></canvas>
+      </section>
 
-    <!-- Recent Tours -->
-    <section class="bg-white rounded-2xl shadow p-6">
-      <h3 class="text-lg font-semibold mb-4 text-gray-700">Tour Terbaru</h3>
-      <div class="overflow-x-auto">
-        <table class="w-full border-collapse">
-          <thead class="bg-gray-100">
-            <tr>
-              <th class="px-4 py-2 text-left">Lead Passenger</th>
-              <th class="px-4 py-2 text-left">Tour Code</th>
-              <th class="px-4 py-2 text-left">Region</th>
-              <th class="px-4 py-2 text-left">Departure</th>
-              <th class="px-4 py-2 text-right">Harga</th>
-            </tr>
-          </thead>
-          <tbody id="tourTable" class="text-sm text-gray-700"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+      <!-- Recent Tours -->
+      <section class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
+        <h3 class="text-lg font-semibold mb-4">Tour Terbaru</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+              <tr>
+                <th class="py-2 px-4 text-left">Lead Passenger</th>
+                <th class="py-2 px-4 text-left">Tour Code</th>
+                <th class="py-2 px-4 text-left">Region</th>
+                <th class="py-2 px-4 text-left">Tanggal Keberangkatan</th>
+                <th class="py-2 px-4 text-right">Harga</th>
+              </tr>
+            </thead>
+            <tbody id="tourTable" class="divide-y dark:divide-gray-700"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
 
-  <!-- Toast Animation -->
-  <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn { animation: fadeIn 0.4s ease-in-out; }
-  </style>
-
-  <script src="/js/dashboard.js"></script>
-</body>
+    <script src="/js/dashboard.js"></script>
+  </body>
 </html>
