@@ -1,4 +1,7 @@
-const db = require("../config/db");
+// =====================================
+// ✅ User Model (SQLite)
+// =====================================
+const db = require("../config/database");
 
 const User = {
   findByUsername(username, callback) {
