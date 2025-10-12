@@ -1,10 +1,11 @@
-// routes/dashboard.js
+// =====================================
+// ✅ Dashboard Routes
+// =====================================
 const express = require("express");
 const router = express.Router();
-const dashboardController = require("../controllers/dashboardController");
-const { verifyToken } = require("../middleware/authMiddleware");
+const controller = require("../controllers/dashboardController");
 
-// Semua route dashboard harus pakai token
-router.get("/", verifyToken, dashboardController.getDashboardSummary);
+// Jalur dashboard data
+router.get("/", controller.getDashboardData);
 
 module.exports = router;
