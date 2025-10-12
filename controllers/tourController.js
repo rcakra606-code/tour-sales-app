@@ -1,54 +1,46 @@
 // controllers/tourController.js
-const Tour = require('../models/tourModel');
+const Tour = require("../models/tourModel");
 
-exports.getAll = (req, res) => {
-  try {
-    const tours = Tour.all();
-    res.json({ success: true, tours });
-  } catch (e) {
-    console.error('Error getAll tours:', e);
-    res.status(500).json({ success: false, message: 'Gagal mengambil data tours.' });
-  }
+exports.getAllTours = (req, res) => {
+  Tour.getAll((err, rows) => {
+    if (err) return res.status(500).json({ success: false, message: "Gagal memuat tour" });
+    res.json({ success: true, tours: rows });
+  });
 };
 
-exports.create = (req, res) => {
-  try {
-    const payload = req.body;
-    const created = Tour.create(payload);
-    res.status(201).json({ success: true, tour: created });
-  } catch (e) {
-    console.error('Error create tour:', e);
-    res.status(500).json({ success: false, message: 'Gagal membuat tour.' });
-  }
+exports.getTourById = (req, res) => {
+  const { id } = req.params;
+  Tour.getById(id, (err, row) => {
+    if (err) return res.status(500).json({ success: false, message: "Gagal memuat tour" });
+    if (!row) return res.status(404).json({ success: false, message: "Tour tidak ditemukan" });
+    res.json({ success: true, tour: row });
+  });
 };
 
-exports.update = (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (!id) return res.status(400).json({ success: false, message: 'ID tidak valid.' });
+exports.createTour = (req, res) => {
+  const data = req.body;
+  if (!data.title || !data.price)
+    return res.status(400).json({ success: false, message: "Judul dan harga wajib diisi" });
 
-    const existing = Tour.findById(id);
-    if (!existing) return res.status(404).json({ success: false, message: 'Tour tidak ditemukan.' });
-
-    const updated = Tour.update(id, req.body);
-    res.json({ success: true, tour: updated });
-  } catch (e) {
-    console.error('Error update tour:', e);
-    res.status(500).json({ success: false, message: 'Gagal update tour.' });
-  }
+  Tour.create(data, (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: "Gagal menambah tour" });
+    res.json({ success: true, message: "Tour berhasil ditambahkan", id: result.id });
+  });
 };
 
-exports.remove = (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (!id) return res.status(400).json({ success: false, message: 'ID tidak valid.' });
+exports.updateTour = (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
+  Tour.update(id, data, (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: "Gagal memperbarui tour" });
+    res.json({ success: true, message: "Tour berhasil diperbarui", changes: result.changes });
+  });
+};
 
-    const ok = Tour.remove(id);
-    if (!ok) return res.status(404).json({ success: false, message: 'Tour tidak ditemukan.' });
-
-    res.json({ success: true, message: 'Tour dihapus.' });
-  } catch (e) {
-    console.error('Error delete tour:', e);
-    res.status(500).json({ success: false, message: 'Gagal menghapus tour.' });
-  }
+exports.deleteTour = (req, res) => {
+  const { id } = req.params;
+  Tour.delete(id, (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: "Gagal menghapus tour" });
+    res.json({ success: true, message: "Tour berhasil dihapus", changes: result.changes });
+  });
 };
