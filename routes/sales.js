@@ -1,13 +1,9 @@
-// =====================================
-// ✅ Sales Routes
-// =====================================
 const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require("../middleware/auth");
-const salesController = require("../controllers/salesController");
+const controller = require("../controllers/salesController");
 
-router.use(authenticateToken);
-router.get("/", salesController.getAllSales);
-router.post("/", salesController.createSales);
+router.get("/", controller.getAllSales);
+router.post("/", controller.addSale);
+router.delete("/:id", controller.deleteSale);
 
 module.exports = router;
