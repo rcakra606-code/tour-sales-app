@@ -1,22 +1,41 @@
-const express = require('express');
-const UploadValidator = require('../middleware/uploadValidator');
-const productionConfig = require('../config/production');
+// =====================================
+// ✅ Upload Routes (Render-compatible)
+// =====================================
+const express = require("express");
 const router = express.Router();
+const path = require("path");
+const fs = require("fs");
+const upload = require("../middleware/uploadValidator");
+const { authenticateToken } = require("../middleware/auth");
 
-const uploadValidator = new UploadValidator({
-  maxFileSize: productionConfig.upload.maxFileSize,
-  allowedTypes: productionConfig.upload.allowedTypes,
-  uploadDir: productionConfig.upload.uploadDir,
-  tempDir: productionConfig.upload.tempDir,
-  virusScanning: process.env.VIRUS_SCANNING === 'true'
-});
-const multerInstance = uploadValidator.createMulter();
+// Pastikan folder upload ada
+const uploadDir = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-router.post('/single', multerInstance.single('file'), (req, res, next) => {
-  uploadValidator.validateUploadedFile(req, res, (err) => {
-    if (err) return next(err);
-    res.json({ message: 'File uploaded', file: { filename: req.file.filename, path: req.file.path } });
+// ================================
+// ✅ Upload file (auth protected)
+// ================================
+router.post("/", authenticateToken, upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "Tidak ada file diunggah." });
+  }
+
+  res.json({
+    success: true,
+    message: "File berhasil diunggah.",
+    file: {
+      name: req.file.filename,
+      original: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      path: `/uploads/${req.file.filename}`,
+    },
   });
 });
+
+// ================================
+// ✅ Serve uploaded files (public)
+// ================================
+router.use("/", express.static(uploadDir));
 
 module.exports = router;
