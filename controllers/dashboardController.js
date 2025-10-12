@@ -1,47 +1,22 @@
-// =====================================
-// ✅ Dashboard Controller
-// =====================================
-const db = require("../config/db");
+// controllers/dashboardController.js
+const db = require("../config/database");
 
-exports.getDashboardData = async (req, res) => {
+exports.getDashboardSummary = (req, res) => {
   try {
-    const totalSales = await new Promise((resolve, reject) => {
-      db.get("SELECT COUNT(*) AS total FROM sales", (err, row) => {
-        if (err) reject(err);
-        else resolve(row.total || 0);
-      });
-    });
-
-    const totalTours = await new Promise((resolve, reject) => {
-      db.get("SELECT COUNT(*) AS total FROM tours", (err, row) => {
-        if (err) reject(err);
-        else resolve(row.total || 0);
-      });
-    });
-
-    const pendingTours = await new Promise((resolve, reject) => {
-      db.get(
-        "SELECT COUNT(*) AS total FROM tours WHERE status = 'pending'",
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row.total || 0);
-        }
-      );
-    });
+    const totalTours = db.prepare("SELECT COUNT(*) as count FROM tours").get()?.count || 0;
+    const totalSales = db.prepare("SELECT COUNT(*) as count FROM sales").get()?.count || 0;
+    const totalAmount = db.prepare("SELECT SUM(amount) as total FROM sales").get()?.total || 0;
 
     res.json({
       success: true,
       data: {
-        totalSales,
         totalTours,
-        pendingTours,
+        totalSales,
+        totalAmount,
       },
     });
-  } catch (error) {
-    console.error("Dashboard Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Gagal memuat data dashboard.",
-    });
+  } catch (err) {
+    console.error("❌ Dashboard error:", err.message);
+    res.status(500).json({ success: false, message: "Gagal memuat data dashboard" });
   }
 };
