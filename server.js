@@ -102,13 +102,24 @@ app.use(express.static(publicDir));
 // ✅ API Routes
 // =====================================
 try {
-  app.use("/api/auth", require("./routes/auth"));
-  app.use("/api/tours", require(path.join(routesDir, "tours")));
-  app.use("/api/sales", require(path.join(routesDir, "sales")));
-  app.use("/api/dashboard", require(path.join(routesDir, "dashboard")));
-  app.use("/api/uploads", require(path.join(routesDir, "upload")));
+  const useRoute = (endpoint, file) => {
+    const routePath = path.join(routesDir, `${file}.js`);
+    if (fs.existsSync(routePath)) {
+      app.use(endpoint, require(routePath));
+      console.log(`✅ Route loaded: ${endpoint} → ${routePath}`);
+    } else {
+      console.warn(`⚠️ Route file not found: ${routePath}`);
+    }
+  };
+
+  useRoute("/api/auth", "auth");
+  useRoute("/api/tours", "tours");
+  useRoute("/api/sales", "sales");
+  useRoute("/api/dashboard", "dashboard");
+  useRoute("/api/uploads", "upload");
+
 } catch (err) {
-  console.error("⚠️ Failed to register routes:", err.message);
+  console.error("❌ Failed to register routes:", err);
 }
 
 // =====================================
