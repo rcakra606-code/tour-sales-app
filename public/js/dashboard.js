@@ -2,8 +2,6 @@
 // ✅ Token & Auth
 // ================================
 const token = localStorage.getItem("token");
-const username = localStorage.getItem("username");
-
 if (!token) {
   alert("Sesi login berakhir. Silakan login kembali.");
   window.location.href = "/";
@@ -29,11 +27,9 @@ async function loadDashboard() {
     const res = await fetch("/api/dashboard", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) throw new Error("Gagal mengambil data dashboard");
     const data = await res.json();
-
     if (!data.success) throw new Error(data.message);
+
     renderSummary(data.data);
     await loadRecentTours();
     await loadSalesChart();
@@ -49,32 +45,23 @@ async function loadDashboard() {
 function renderSummary(data) {
   document.getElementById("totalSales").textContent = data.totalSales || 0;
   document.getElementById("totalTours").textContent = data.totalTours || 0;
-
-  // Hitung total revenue dari sales bila tersedia
-  if (data.totalRevenue !== undefined) {
-    document.getElementById("totalRevenue").textContent =
-      "Rp " + Number(data.totalRevenue).toLocaleString("id-ID");
-  } else {
-    document.getElementById("totalRevenue").textContent = "Rp 0";
-  }
+  document.getElementById("pendingTours").textContent = data.pendingTours || 0;
+  document.getElementById("totalRevenue").textContent =
+    "Rp " + Number(data.totalRevenue || 0).toLocaleString("id-ID");
 }
 
 // ================================
-// ✅ Load Recent Tours
+// ✅ Load Tours
 // ================================
 async function loadRecentTours() {
   try {
     const res = await fetch("/api/tours", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) throw new Error("Gagal memuat tour");
     const data = await res.json();
     const tours = data?.tours || [];
 
     const tbody = document.getElementById("tourTable");
-    if (!tbody) return;
-
     tbody.innerHTML = "";
 
     tours.slice(-5).reverse().forEach((t) => {
@@ -106,8 +93,6 @@ async function loadSalesChart() {
     const res = await fetch("/api/sales", {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) throw new Error("Gagal memuat data sales");
     const data = await res.json();
     const sales = data?.sales || [];
 
@@ -115,10 +100,8 @@ async function loadSalesChart() {
     const labels = recent.map((s) => s.sale_date || "N/A");
     const values = recent.map((s) => s.amount || 0);
 
-    const ctx = document.getElementById("salesChart");
-    if (!ctx) return;
-
-    new Chart(ctx.getContext("2d"), {
+    const ctx = document.getElementById("salesChart").getContext("2d");
+    new Chart(ctx, {
       type: "bar",
       data: {
         labels,
@@ -129,7 +112,6 @@ async function loadSalesChart() {
             backgroundColor: "rgba(59,130,246,0.6)",
             borderColor: "rgba(37,99,235,1)",
             borderWidth: 1,
-            borderRadius: 5,
           },
         ],
       },
@@ -143,9 +125,6 @@ async function loadSalesChart() {
             },
           },
         },
-        plugins: {
-          legend: { display: false },
-        },
       },
     });
   } catch (err) {
@@ -157,7 +136,7 @@ async function loadSalesChart() {
 // ================================
 // ✅ Logout
 // ================================
-document.getElementById("logout")?.addEventListener("click", () => {
+document.getElementById("logout").addEventListener("click", () => {
   localStorage.removeItem("token");
   localStorage.removeItem("username");
   showToast("Logout berhasil", "success");
@@ -167,7 +146,7 @@ document.getElementById("logout")?.addEventListener("click", () => {
 // ================================
 // 🌙 Theme Toggle
 // ================================
-document.getElementById("toggleTheme")?.addEventListener("click", () => {
+document.getElementById("toggleTheme").addEventListener("click", () => {
   document.documentElement.classList.toggle("dark");
   localStorage.setItem(
     "theme",
@@ -180,13 +159,4 @@ if (localStorage.getItem("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
 
-// ================================
-// 🚀 Init
-// ================================
-document.addEventListener("DOMContentLoaded", () => {
-  if (username) {
-    const el = document.getElementById("username");
-    if (el) el.textContent = username;
-  }
-  loadDashboard();
-});
+document.addEventListener("DOMContentLoaded", loadDashboard);
