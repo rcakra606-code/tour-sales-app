@@ -1,26 +1,59 @@
 // =====================================
 // ✅ Tours Controller
 // =====================================
-const db = require("../config/db");
+const db = require("../config/database");
 
+// ================================
+// ✅ GET ALL TOURS
+// ================================
 exports.getAllTours = (req, res) => {
-  db.all("SELECT * FROM tours ORDER BY date DESC", [], (err, rows) => {
-    if (err) return res.status(500).json({ message: err.message });
-    res.json(rows);
-  });
+  try {
+    const tours = db.prepare("SELECT * FROM tours ORDER BY id DESC").all();
+    res.json({ success: true, tours });
+  } catch (err) {
+    console.error("❌ Error loading tours:", err);
+    res.status(500).json({ success: false, message: "Gagal memuat data tour." });
+  }
 };
 
-exports.createTour = (req, res) => {
-  const { name, date, participants, status } = req.body;
-  if (!name || !date)
-    return res.status(400).json({ message: "Data tour tidak lengkap." });
+// ================================
+// ✅ ADD NEW TOUR
+// ================================
+exports.addTour = (req, res) => {
+  try {
+    const { title, description, price, date } = req.body;
 
-  db.run(
-    "INSERT INTO tours (name, date, participants, status) VALUES (?, ?, ?, ?)",
-    [name, date, participants || 0, status || "pending"],
-    function (err) {
-      if (err) return res.status(500).json({ message: err.message });
-      res.json({ id: this.lastID, message: "Tour berhasil ditambahkan." });
+    if (!title || !price || !date) {
+      return res.status(400).json({ message: "Data tour tidak lengkap." });
     }
-  );
+
+    const stmt = db.prepare(
+      "INSERT INTO tours (title, description, price, date) VALUES (?, ?, ?, ?)"
+    );
+    stmt.run(title, description, price, date);
+
+    res.json({ success: true, message: "Tour berhasil ditambahkan." });
+  } catch (err) {
+    console.error("❌ Error adding tour:", err);
+    res.status(500).json({ success: false, message: "Gagal menambahkan tour." });
+  }
+};
+
+// ================================
+// ✅ DELETE TOUR
+// ================================
+exports.deleteTour = (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.prepare("DELETE FROM tours WHERE id = ?").run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ success: false, message: "Tour tidak ditemukan." });
+    }
+
+    res.json({ success: true, message: "Tour berhasil dihapus." });
+  } catch (err) {
+    console.error("❌ Error deleting tour:", err);
+    res.status(500).json({ success: false, message: "Gagal menghapus tour." });
+  }
 };
