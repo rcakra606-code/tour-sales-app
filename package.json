@@ -1,25 +1,29 @@
 {
-  "name": "tour-sales-management",
+  "name": "tour-sales-app",
   "version": "1.0.0",
-  "description": "Tour & Sales Management System with SQLite",
+  "description": "Full-stack Tour & Sales Management App with SQLite + Express + React frontend",
   "main": "server.js",
- "scripts": {
-  "start": "NODE_ENV=production node server.js",
-  "dev": "nodemon server.js",
-  "init-db": "node scripts/init-db.js"
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node scripts/init-db.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "express": "^4.21.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.18.2",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "sqlite3": "^5.1.7",
+    "better-sqlite3": "^11.6.0",
+    "dotenv": "^16.4.5"
+  },
+  "optionalDependencies": {
     "morgan": "^1.10.0",
-    "winston": "^3.11.0",
-    "sqlite3": "^5.1.7"
+    "winston": "^3.14.2"
   },
   "engines": {
-    "node": ">=18"
-  }
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
 }
