@@ -1,9 +1,9 @@
 // =====================================
-// ✅ Auth Controller (Final Production Ready)
+// ✅ Auth Controller
 // =====================================
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const db = require("../config/database"); // ✅ FIXED PATH
+const db = require("../config/database");
 const User = require("../models/userModels");
 
 // Tambahan logging untuk diagnosa Render
