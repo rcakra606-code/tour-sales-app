@@ -1,46 +1,76 @@
-// controllers/tourController.js
-const Tour = require("../models/tourModel");
+// =====================================
+// ✅ Tour Controller
+// =====================================
+const db = require("../config/database");
 
-exports.getAllTours = (req, res) => {
-  Tour.getAll((err, rows) => {
-    if (err) return res.status(500).json({ success: false, message: "Gagal memuat tour" });
+// Ambil semua tour
+exports.getAll = (req, res) => {
+  try {
+    const rows = db.prepare("SELECT * FROM tours ORDER BY id DESC").all();
     res.json({ success: true, tours: rows });
-  });
+  } catch (e) {
+    console.error("❌ Gagal mengambil data tours:", e);
+    res.status(500).json({ success: false, message: "Gagal memuat data tour." });
+  }
 };
 
-exports.getTourById = (req, res) => {
-  const { id } = req.params;
-  Tour.getById(id, (err, row) => {
-    if (err) return res.status(500).json({ success: false, message: "Gagal memuat tour" });
-    if (!row) return res.status(404).json({ success: false, message: "Tour tidak ditemukan" });
-    res.json({ success: true, tour: row });
-  });
+// Ambil 1 tour berdasarkan ID
+exports.getById = (req, res) => {
+  try {
+    const tour = db.prepare("SELECT * FROM tours WHERE id = ?").get(req.params.id);
+    if (!tour) return res.status(404).json({ success: false, message: "Tour tidak ditemukan." });
+    res.json({ success: true, tour });
+  } catch (e) {
+    console.error("❌ Gagal mengambil tour:", e);
+    res.status(500).json({ success: false, message: "Gagal memuat data tour." });
+  }
 };
 
-exports.createTour = (req, res) => {
-  const data = req.body;
-  if (!data.title || !data.price)
-    return res.status(400).json({ success: false, message: "Judul dan harga wajib diisi" });
+// Tambah tour baru
+exports.create = (req, res) => {
+  try {
+    const { title, description, price, date } = req.body;
+    if (!title || !price)
+      return res.status(400).json({ success: false, message: "Judul dan harga wajib diisi." });
 
-  Tour.create(data, (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: "Gagal menambah tour" });
-    res.json({ success: true, message: "Tour berhasil ditambahkan", id: result.id });
-  });
+    const stmt = db.prepare(
+      "INSERT INTO tours (title, description, price, date) VALUES (?, ?, ?, ?)"
+    );
+    const result = stmt.run(title, description, price, date);
+
+    res.json({ success: true, message: "Tour berhasil ditambahkan.", id: result.lastInsertRowid });
+  } catch (e) {
+    console.error("❌ Gagal menambah tour:", e);
+    res.status(500).json({ success: false, message: "Gagal menambah tour." });
+  }
 };
 
-exports.updateTour = (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
-  Tour.update(id, data, (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: "Gagal memperbarui tour" });
-    res.json({ success: true, message: "Tour berhasil diperbarui", changes: result.changes });
-  });
+// Update tour
+exports.update = (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, price, date } = req.body;
+
+    const stmt = db.prepare(
+      "UPDATE tours SET title = ?, description = ?, price = ?, date = ? WHERE id = ?"
+    );
+    stmt.run(title, description, price, date, id);
+
+    res.json({ success: true, message: "Tour berhasil diperbarui." });
+  } catch (e) {
+    console.error("❌ Gagal update tour:", e);
+    res.status(500).json({ success: false, message: "Gagal memperbarui tour." });
+  }
 };
 
-exports.deleteTour = (req, res) => {
-  const { id } = req.params;
-  Tour.delete(id, (err, result) => {
-    if (err) return res.status(500).json({ success: false, message: "Gagal menghapus tour" });
-    res.json({ success: true, message: "Tour berhasil dihapus", changes: result.changes });
-  });
+// Hapus tour
+exports.remove = (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare("DELETE FROM tours WHERE id = ?").run(id);
+    res.json({ success: true, message: "Tour berhasil dihapus." });
+  } catch (e) {
+    console.error("❌ Gagal hapus tour:", e);
+    res.status(500).json({ success: false, message: "Gagal menghapus tour." });
+  }
 };
