@@ -1,39 +1,22 @@
-// ===============================
-// ✅ API HELPER
-// ===============================
-const token = localStorage.getItem("token");
-const headers = {
-  "Content-Type": "application/json",
-  ...(token ? { Authorization: `Bearer ${token}` } : {}),
-};
+import { API_BASE, getToken } from "./config.js";
 
-async function apiGet(url) {
-  const res = await fetch(url, { headers });
-  return res.json();
-}
+// Wrapper fetch
+async function apiFetch(endpoint, method = "GET", data = null) {
+  const headers = { "Content-Type": "application/json" };
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
-async function apiPost(url, data) {
-  const res = await fetch(url, {
-    method: "POST",
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method,
     headers,
-    body: JSON.stringify(data),
+    body: data ? JSON.stringify(data) : undefined,
   });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.message || `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
-async function apiPut(url, data) {
-  const res = await fetch(url, {
-    method: "PUT",
-    headers,
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-async function apiDelete(url) {
-  const res = await fetch(url, {
-    method: "DELETE",
-    headers,
-  });
-  return res.json();
-}
+export { apiFetch };
