@@ -1,58 +1,53 @@
 const express = require("express");
 const path = require("path");
-const helmet = require("helmet");
 const cors = require("cors");
-const http = require("http");
+const helmet = require("helmet");
 const fs = require("fs");
+const http = require("http");
 require("dotenv").config();
 
+// DB Setup
+const Database = require("better-sqlite3");
+const dbFile = path.join(__dirname, "data", "travel.db");
+if (!fs.existsSync(path.join(__dirname, "data"))) fs.mkdirSync(path.join(__dirname, "data"));
+const db = new Database(dbFile);
+
+// Create default admin if not exist
+db.prepare(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, password TEXT, role TEXT)`).run();
+const admin = db.prepare(`SELECT * FROM users WHERE username=?`).get("admin");
+if (!admin) {
+  const bcrypt = require("bcryptjs");
+  const hash = bcrypt.hashSync("admin123", 10);
+  db.prepare(`INSERT INTO users (username,password,role) VALUES (?,?,?)`).run("admin", hash, "admin");
+  console.log("🧩 Admin default dibuat → username: admin | password: admin123");
+}
+
+// Express
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-
-// Helmet CSP relaxed
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: false // CSP handled in frontend
   })
 );
 
-// ================= Serve Static =================
-const publicDir = path.join(__dirname, "public");
-app.use(express.static(publicDir));
+// Static files
+app.use(express.static(path.join(__dirname, "public")));
 
-// Upload folder
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-app.use("/uploads", express.static(uploadDir));
+// Routes
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/tours", require("./routes/tours"));
+app.use("/api/sales", require("./routes/sales"));
 
-// ================= Routes =================
-const routes = [
-  ["auth", "/api/auth"],
-  ["tours", "/api/tours"],
-  ["sales", "/api/sales"],
-  ["dashboard", "/api/dashboard"],
-  ["upload", "/api/uploads"],
-];
-
-routes.forEach(([file, endpoint]) => {
-  const routePath = path.join(__dirname, "routes", `${file}.js`);
-  if (fs.existsSync(routePath)) {
-    app.use(endpoint, require(routePath));
-    console.log(`✅ Route loaded: ${endpoint}`);
-  } else console.warn(`⚠️ Route file not found: ${routePath}`);
-});
-
-// Health check
-app.get("/api/health", (_, res) => res.json({ status: "OK", time: new Date() }));
+// Health
+app.get("/api/health", (req, res) => res.json({ status: "OK", node: process.version }));
 
 // SPA fallback
-app.get("*", (_, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
-});
+app.get("*", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 // Start server
 const PORT = process.env.PORT || 3000;
-http.createServer(app).listen(PORT, () => console.log(`🌍 Server running on port ${PORT}`));
+http.createServer(app).listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
