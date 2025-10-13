@@ -1,4 +1,6 @@
+// middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 module.exports = function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -7,12 +9,12 @@ module.exports = function authMiddleware(req, res, next) {
   }
 
   const token = authHeader.split(" ")[1];
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
-    req.user = decoded; // bisa dipakai di controller
+    req.user = decoded;
     next();
   } catch (err) {
-    console.error("❌ Token verification failed:", err.message);
-    return res.status(403).json({ message: "Token tidak valid." });
+    return res.status(403).json({ message: "Token tidak valid atau kadaluarsa." });
   }
 };
