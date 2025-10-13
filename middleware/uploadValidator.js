@@ -1,49 +1,47 @@
-// =====================================
-// ✅ Upload Middleware (Validator)
-// =====================================
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+// middleware/uploadValidator.js
+'use strict';
 
-// Pastikan folder upload tersedia
-const uploadDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("📂 Created upload directory:", uploadDir);
+let multer;
+try {
+  multer = require('multer');
+} catch (e) {
+  // multer not installed
+  multer = null;
 }
 
-// =====================================
-// ✅ Storage Configuration
-// =====================================
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-// =====================================
-// ✅ File Filter
-// =====================================
-const allowedTypes = [".png", ".jpg", ".jpeg", ".pdf", ".docx"];
-const fileFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname).toLowerCase();
-  if (!allowedTypes.includes(ext)) {
-    return cb(new Error("Tipe file tidak diizinkan."), false);
+/**
+ * getUploadMiddleware()
+ * - jika multer tersedia: return middleware multer untuk single file 'file'
+ * - jika tidak: return middleware yang menolak dengan pesan instruktif
+ */
+function getUploadMiddleware() {
+  if (!multer) {
+    return (req, res, next) => {
+      res.status(501).json({
+        success: false,
+        message: 'Upload disabled: dependency "multer" belum terpasang. Jalankan `npm install multer` dan deploy ulang.'
+      });
+    };
   }
-  cb(null, true);
-};
 
-// =====================================
-// ✅ Upload Middleware Export
-// =====================================
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Maks 5MB
-  fileFilter,
-});
+  // konfigurasi sederhana: simpan ke folder uploads/
+  const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+      // bersihkan nama file dan tambahkan timestamp
+      const safeName = file.originalname.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_.-]/g, '');
+      cb(null, `${Date.now()}_${safeName}`);
+    }
+  });
 
-module.exports = upload;
+  const upload = multer({
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  });
+
+  return upload.single('file');
+}
+
+module.exports = { getUploadMiddleware, hasMulter: !!multer };
