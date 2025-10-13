@@ -1,17 +1,27 @@
+// src/routes/sales.js
 const express = require("express");
 const router = express.Router();
-const salesController = require("../controllers/salesController");
 const authMiddleware = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
+const {
+  getAllSales,
+  createSale,
+  updateSale,
+  deleteSale,
+} = require("../controllers/salesController");
 
-// Semua route sales memerlukan autentikasi
+// Semua route butuh autentikasi
 router.use(authMiddleware);
 
-// CRUD Sales
-router.get("/", salesController.getAllSales);
-router.post("/", roleCheck("admin"), salesController.createSale); // Hanya admin bisa input
-router.get("/:id", salesController.getSaleById);
-router.put("/:id", roleCheck("admin"), salesController.updateSale); // Hanya admin
-router.delete("/:id", roleCheck("admin"), salesController.deleteSale);
+// GET /api/sales → ambil semua sales
+router.get("/", getAllSales);
+
+// POST /api/sales → tambah sales baru
+router.post("/", createSale);
+
+// PUT /api/sales → update sales
+router.put("/", updateSale);
+
+// DELETE /api/sales/:id → hapus sales
+router.delete("/:id", deleteSale);
 
 module.exports = router;
