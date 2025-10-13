@@ -1,13 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const tourController = require("../controllers/tourController");
-const authMiddleware = require("../middlewares/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
 
+// Semua route tours memerlukan autentikasi
 router.use(authMiddleware);
 
-router.get("/", tourController.getAll);
-router.post("/", tourController.create);
-router.put("/", tourController.update);
-router.delete("/", tourController.delete);
+// CRUD Tours
+router.get("/", tourController.getAllTours);
+router.post("/", tourController.createTour);
+router.get("/:id", tourController.getTourById);
+router.put("/:id", tourController.updateTour);
+router.delete("/:id", tourController.deleteTour);
 
 module.exports = router;
