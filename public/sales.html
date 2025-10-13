@@ -1,142 +1,18 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Manajemen Sales</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-gray-100">
-  <div class="max-w-5xl mx-auto mt-10 bg-white p-6 rounded-xl shadow">
-    <h1 class="text-2xl font-bold mb-4">💼 Manajemen Sales</h1>
+window.Sales = {
+  loadSales: async function() {
+    const data = await window.Api.get("/sales");
+    return data.sales || [];
+  },
 
-    <!-- Form Tambah/Edit -->
-    <form id="salesForm" class="mb-6 space-y-3">
-      <input type="hidden" id="salesId">
-      <input type="text" id="customer" placeholder="Nama Customer" class="border p-2 w-full rounded">
-      <input type="text" id="product" placeholder="Produk" class="border p-2 w-full rounded">
-      <input type="number" id="amount" placeholder="Jumlah Penjualan (Rp)" class="border p-2 w-full rounded">
-      <input type="date" id="salesDate" class="border p-2 w-full rounded">
-      <div class="flex justify-end gap-2">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
-        <button type="button" id="resetSalesBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
-      </div>
-    </form>
+  createSale: async function(sale) {
+    return await window.Api.post("/sales", sale);
+  },
 
-    <!-- Tabel Data -->
-    <table class="w-full border">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="p-2 text-left">Customer</th>
-          <th class="p-2 text-left">Produk</th>
-          <th class="p-2 text-left">Jumlah</th>
-          <th class="p-2 text-left">Tanggal</th>
-          <th class="p-2 text-center">Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="salesTable"></tbody>
-    </table>
-  </div>
+  updateSale: async function(id, sale) {
+    return await window.Api.put(`/sales/${id}`, sale);
+  },
 
-  <!-- Chart Dashboard -->
-  <div class="max-w-5xl mx-auto mt-10 bg-white p-6 rounded-xl shadow">
-    <h2 class="text-2xl font-bold mb-4">📊 Statistik Penjualan</h2>
-    <canvas id="salesChart" height="100"></canvas>
-  </div>
-
-  <script src="/js/config.js"></script>
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/sales.js"></script>
-  <script src="/js/app.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const salesForm = document.getElementById('salesForm');
-      const resetBtn = document.getElementById('resetSalesBtn');
-
-      salesForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('salesId').value;
-        const customer = document.getElementById('customer').value;
-        const product = document.getElementById('product').value;
-        const amount = parseFloat(document.getElementById('amount').value);
-        const salesDate = document.getElementById('salesDate').value;
-
-        try {
-          if (id) {
-            await apiRequest(`/sales/${id}`, {
-              method: "PUT",
-              body: JSON.stringify({ customer, product, amount, salesDate })
-            });
-            showSuccessToast("Data sales diperbarui");
-          } else {
-            await apiRequest(`/sales`, {
-              method: "POST",
-              body: JSON.stringify({ customer, product, amount, salesDate })
-            });
-            showSuccessToast("Data sales ditambahkan");
-          }
-          salesForm.reset();
-          loadSales();
-          loadSalesChart();
-        } catch (err) {
-          showErrorToast(err.message);
-        }
-      });
-
-      resetBtn?.addEventListener('click', () => {
-        salesForm.reset();
-        document.getElementById('salesId').value = "";
-      });
-
-      // Load data awal
-      loadSales();
-      loadSalesChart();
-    });
-
-    // =========================
-    // Chart.js Sales
-    // =========================
-    let salesChartInstance = null;
-
-    async function loadSalesChart() {
-      try {
-        const data = await apiRequest('/sales');
-        const labels = data.map(item => item.salesDate);
-        const amounts = data.map(item => item.amount);
-
-        const ctx = document.getElementById('salesChart').getContext('2d');
-        if (salesChartInstance) salesChartInstance.destroy();
-
-        salesChartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Jumlah Penjualan (Rp)',
-              data: amounts,
-              borderColor: 'rgba(59, 130, 246, 1)',
-              backgroundColor: 'rgba(59, 130, 246, 0.2)',
-              fill: true,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: true },
-            },
-            scales: {
-              x: { title: { display: true, text: 'Tanggal' } },
-              y: { title: { display: true, text: 'Jumlah (Rp)' }, beginAtZero: true }
-            }
-          }
-        });
-      } catch (err) {
-        showErrorToast("Gagal memuat chart: " + err.message);
-      }
-    }
-  </script>
-</body>
-</html>
+  deleteSale: async function(id) {
+    return await window.Api.delete(`/sales/${id}`);
+  }
+};
