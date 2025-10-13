@@ -1,120 +1,68 @@
-// =====================================
-// ✅ Auth Controller
-// =====================================
+// controllers/authController.js
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const db = require("../config/database");
-const User = require("../models/userModels");
+require("dotenv").config();
 
-console.log("📦 AuthController loaded, using database from:", require.resolve("../config/database"));
+console.log("📦 AuthController loaded");
 
-// =====================================
-// ✅ REGISTER USER
-// =====================================
 exports.register = (req, res) => {
-  try {
-    const { username, password, role } = req.body;
+  const { username, password, role } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username dan password wajib diisi." });
-    }
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username dan password wajib diisi." });
+  }
 
-    User.findByUsername(username, (err, existingUser) => {
-      if (err) {
-        console.error("❌ DB error:", err);
-        return res.status(500).json({ message: "Kesalahan database." });
-      }
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    if (err) return res.status(500).json({ message: "Kesalahan database." });
+    if (user) return res.status(400).json({ message: "Username sudah digunakan." });
 
-      if (existingUser) {
-        return res.status(400).json({ message: "Username sudah terdaftar." });
-      }
-
-      const hashed = bcrypt.hashSync(password, 10);
-
-      User.create(username, hashed, role || "staff", (createErr) => {
-        if (createErr) {
-          console.error("❌ Error creating user:", createErr);
-          return res.status(500).json({ message: "Gagal menambahkan pengguna." });
-        }
-
-        console.log(`👤 New user registered: ${username} (role: ${role || "staff"})`);
+    const hashed = bcrypt.hashSync(password, 10);
+    db.run(
+      "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+      [username, hashed, role || "staff"],
+      (err2) => {
+        if (err2) return res.status(500).json({ message: "Gagal membuat pengguna." });
         res.json({ success: true, message: "Registrasi berhasil." });
-      });
-    });
-  } catch (e) {
-    console.error("❌ Register crash:", e);
-    res.status(500).json({ message: "Terjadi kesalahan server." });
-  }
+      }
+    );
+  });
 };
 
-// =====================================
-// ✅ LOGIN USER
-// =====================================
 exports.login = (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password)
-      return res.status(400).json({ message: "Username dan password wajib diisi." });
+  const { username, password } = req.body;
 
-    User.findByUsername(username, (err, user) => {
-      if (err) {
-        console.error("❌ DB error saat login:", err);
-        return res.status(500).json({ message: "Kesalahan server saat login." });
-      }
+  if (!username || !password)
+    return res.status(400).json({ message: "Username dan password wajib diisi." });
 
-      if (!user) {
-        console.warn("⚠️ Login gagal: user tidak ditemukan ->", username);
-        return res.status(401).json({ message: "Username atau password salah." });
-      }
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    if (err) return res.status(500).json({ message: "Kesalahan database." });
+    if (!user) return res.status(401).json({ message: "Username atau password salah." });
 
-      const validPass = bcrypt.compareSync(password, user.password);
-      if (!validPass) {
-        console.warn("⚠️ Login gagal: password salah untuk", username);
-        return res.status(401).json({ message: "Username atau password salah." });
-      }
+    const valid = bcrypt.compareSync(password, user.password);
+    if (!valid) return res.status(401).json({ message: "Username atau password salah." });
 
-      const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
-        process.env.JWT_SECRET || "secretkey",
-        { expiresIn: "8h" }
-      );
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET || "secretkey",
+      { expiresIn: "8h" }
+    );
 
-      console.log(`✅ Login sukses: ${username} (${user.role})`);
-
-      res.json({
-        success: true,
-        message: "Login berhasil.",
-        token,
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-        },
-      });
+    res.json({
+      success: true,
+      message: "Login berhasil.",
+      token,
+      user: { id: user.id, username: user.username, role: user.role },
     });
-  } catch (e) {
-    console.error("❌ Crash di login:", e);
-    res.status(500).json({ message: "Terjadi kesalahan server." });
-  }
+  });
 };
 
-// =====================================
-// ✅ VERIFY TOKEN
-// =====================================
 exports.verifyToken = (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ valid: false, message: "Token tidak ditemukan." });
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ valid: false, message: "Token tidak ditemukan." });
 
-    jwt.verify(token, process.env.JWT_SECRET || "secretkey", (err, decoded) => {
-      if (err) {
-        console.warn("⚠️ Token invalid:", err.message);
-        return res.status(403).json({ valid: false, message: "Token tidak valid." });
-      }
-      res.json({ valid: true, user: decoded });
-    });
-  } catch (e) {
-    console.error("❌ VerifyToken crash:", e);
-    res.status(500).json({ valid: false, message: "Kesalahan server." });
-  }
+  jwt.verify(token, process.env.JWT_SECRET || "secretkey", (err, decoded) => {
+    if (err) return res.status(403).json({ valid: false, message: "Token tidak valid." });
+    res.json({ valid: true, user: decoded });
+  });
 };
