@@ -9,11 +9,8 @@ const http = require("http");
 const fs = require("fs");
 require("dotenv").config();
 
-console.log("🕐 Starting server...");
-const startTime = Date.now();
-
 // =====================================
-// ✅ Optional Logging
+// ✅ Optional Logging (no crash if missing)
 // =====================================
 let morgan, winston;
 try {
@@ -72,7 +69,7 @@ app.use(
 );
 
 // =====================================
-// ✅ Auto-detect Routes Directory
+// ✅ Determine Routes Directory
 // =====================================
 let routesDir = path.join(__dirname, "routes");
 if (!fs.existsSync(routesDir)) {
@@ -82,12 +79,13 @@ if (!fs.existsSync(routesDir)) {
 console.log("📂 Using routes directory:", routesDir);
 
 // =====================================
-// ✅ Serve Static Files (Frontend)
+// ✅ Serve Static Files (Frontend + Uploads)
 // =====================================
 const publicDir = fs.existsSync(path.join(__dirname, "public"))
   ? path.join(__dirname, "public")
   : path.join(__dirname, "src", "public");
 
+// Static untuk JS, CSS, dan Assets
 app.use(
   "/js",
   express.static(path.join(publicDir, "js"), {
@@ -100,21 +98,25 @@ app.use(
 );
 app.use(express.static(publicDir));
 
-// =====================================
-// ✅ Dynamic Route Loader
-// =====================================
-const activeRoutes = [];
-const useRoute = (endpoint, file) => {
-  const routePath = path.join(routesDir, `${file}.js`);
-  if (fs.existsSync(routePath)) {
-    app.use(endpoint, require(routePath));
-    activeRoutes.push({ endpoint, file });
-  } else {
-    console.warn(`⚠️ Route file not found: ${routePath}`);
-  }
-};
+// ✅ Folder uploads agar file bisa diakses publik
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+app.use("/uploads", express.static(uploadDir));
 
+// =====================================
+// ✅ Dynamic Route Loader (Robust)
+// =====================================
 try {
+  const useRoute = (endpoint, file) => {
+    const routePath = path.join(routesDir, `${file}.js`);
+    if (fs.existsSync(routePath)) {
+      app.use(endpoint, require(routePath));
+      console.log(`✅ Route loaded: ${endpoint} → ${routePath}`);
+    } else {
+      console.warn(`⚠️ Route file not found: ${routePath}`);
+    }
+  };
+
   useRoute("/api/auth", "auth");
   useRoute("/api/tours", "tours");
   useRoute("/api/sales", "sales");
@@ -157,12 +159,8 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
 server.listen(PORT, () => {
-  const duration = Date.now() - startTime;
   logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
-  console.log("🧭 Active routes:");
-  activeRoutes.forEach((r) => console.log(`   • ${r.endpoint} → ${r.file}.js`));
-  console.log(`🚀 Startup completed in ${duration} ms`);
-  console.log(`🌍 Visit: http://localhost:${PORT}`);
+  console.log("🌍 Visit:", `http://localhost:${PORT}`);
 });
 
 // =====================================
