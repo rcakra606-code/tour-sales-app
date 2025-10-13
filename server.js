@@ -9,8 +9,11 @@ const http = require("http");
 const fs = require("fs");
 require("dotenv").config();
 
+console.log("🕐 Starting server...");
+const startTime = Date.now();
+
 // =====================================
-// ✅ Optional Logging (safe fallback)
+// ✅ Optional Logging
 // =====================================
 let morgan, winston;
 try {
@@ -69,7 +72,7 @@ app.use(
 );
 
 // =====================================
-// ✅ Detect Routes Directory
+// ✅ Auto-detect Routes Directory
 // =====================================
 let routesDir = path.join(__dirname, "routes");
 if (!fs.existsSync(routesDir)) {
@@ -79,7 +82,7 @@ if (!fs.existsSync(routesDir)) {
 console.log("📂 Using routes directory:", routesDir);
 
 // =====================================
-// ✅ Public Folder (Frontend)
+// ✅ Serve Static Files (Frontend)
 // =====================================
 const publicDir = fs.existsSync(path.join(__dirname, "public"))
   ? path.join(__dirname, "public")
@@ -89,34 +92,29 @@ app.use(
   "/js",
   express.static(path.join(publicDir, "js"), {
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js")) res.setHeader("Content-Type", "application/javascript");
+      if (filePath.endsWith(".js")) {
+        res.setHeader("Content-Type", "application/javascript");
+      }
     },
   })
 );
 app.use(express.static(publicDir));
 
 // =====================================
-// ✅ Uploads Folder (static serve)
-// =====================================
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-app.use("/uploads", express.static(uploadsDir));
-
-// =====================================
 // ✅ Dynamic Route Loader
 // =====================================
-const loadedRoutes = [];
-try {
-  const useRoute = (endpoint, file) => {
-    const routePath = path.join(routesDir, `${file}.js`);
-    if (fs.existsSync(routePath)) {
-      app.use(endpoint, require(routePath));
-      loadedRoutes.push(`${endpoint} → ${file}.js`);
-    } else {
-      console.warn(`⚠️ Route file not found: ${routePath}`);
-    }
-  };
+const activeRoutes = [];
+const useRoute = (endpoint, file) => {
+  const routePath = path.join(routesDir, `${file}.js`);
+  if (fs.existsSync(routePath)) {
+    app.use(endpoint, require(routePath));
+    activeRoutes.push({ endpoint, file });
+  } else {
+    console.warn(`⚠️ Route file not found: ${routePath}`);
+  }
+};
 
+try {
   useRoute("/api/auth", "auth");
   useRoute("/api/tours", "tours");
   useRoute("/api/sales", "sales");
@@ -134,46 +132,47 @@ app.get("/api/health", (req, res) => {
     status: "OK",
     node: process.version,
     environment: process.env.NODE_ENV || "development",
-    routes: loadedRoutes,
     time: new Date().toISOString(),
   });
 });
 
 // =====================================
-// ✅ 404 Handler for APIs
+// ✅ 404 for API
 // =====================================
 app.use("/api", (req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
 });
 
 // =====================================
-// ✅ SPA Fallback
+// ✅ SPA Fallback (index.html)
 // =====================================
 app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
 // =====================================
-// ✅ Start Server
+// ✅ Start Server (Render Compatible)
 // =====================================
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 
 server.listen(PORT, () => {
+  const duration = Date.now() - startTime;
   logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
-  logger.info(`🧭 Active routes (${loadedRoutes.length}):`);
-  loadedRoutes.forEach((r) => console.log("   •", r));
-  logger.info("🌍 Visit: http://localhost:" + PORT);
+  console.log("🧭 Active routes:");
+  activeRoutes.forEach((r) => console.log(`   • ${r.endpoint} → ${r.file}.js`));
+  console.log(`🚀 Startup completed in ${duration} ms`);
+  console.log(`🌍 Visit: http://localhost:${PORT}`);
 });
 
 // =====================================
 // ✅ Graceful Shutdown
 // =====================================
 process.on("SIGTERM", () => {
-  logger.info("🛑 SIGTERM received — shutting down gracefully");
+  logger.info("SIGTERM received — shutting down gracefully");
   server.close(() => process.exit(0));
 });
 process.on("SIGINT", () => {
-  logger.info("🛑 SIGINT received — shutting down gracefully");
+  logger.info("SIGINT received — shutting down gracefully");
   server.close(() => process.exit(0));
 });
