@@ -1,45 +1,20 @@
-// ✅ Helper Fetch API
+// ===============================
+// ✅ API Helper (CSP-Safe)
+// ===============================
 window.Api = {
-  get: async function(endpoint) {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${window.AppConfig.apiBase}${endpoint}`, {
-      headers: { "Authorization": token ? `Bearer ${token}` : "" }
-    });
-    return res.json();
-  },
+  request: async function (endpoint, method = "GET", data = null, auth = true) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth) {
+      const token = localStorage.getItem(Config.tokenKey);
+      if (token) headers["Authorization"] = "Bearer " + token;
+    }
 
-  post: async function(endpoint, data) {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${window.AppConfig.apiBase}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": token ? `Bearer ${token}` : ""
-      },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  },
+    const options = { method, headers };
+    if (data) options.body = JSON.stringify(data);
 
-  put: async function(endpoint, data) {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${window.AppConfig.apiBase}${endpoint}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": token ? `Bearer ${token}` : ""
-      },
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  },
-
-  delete: async function(endpoint) {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${window.AppConfig.apiBase}${endpoint}`, {
-      method: "DELETE",
-      headers: { "Authorization": token ? `Bearer ${token}` : "" }
-    });
-    return res.json();
+    const response = await fetch(Config.apiBase + endpoint, options);
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || "Terjadi kesalahan API");
+    return json;
   }
 };
