@@ -1,68 +1,84 @@
 // ===============================
-// ✅ Main App Handler
+// ✅ App Main Handler (Frontend SPA)
 // ===============================
-window.App = {
-  init: function() {
-    this.loginPage = document.getElementById("loginPage");
-    this.mainApp = document.getElementById("mainApp");
-    this.userInfo = document.getElementById("userInfo");
+function initializeApp() {
+  const token = localStorage.getItem("token");
+  const username = localStorage.getItem("username") || "User";
+  const role = localStorage.getItem("role") || "staff";
 
-    document.getElementById("closeErrorToast")?.addEventListener("click", () => this.hideToast("error"));
-    document.getElementById("closeSuccessToast")?.addEventListener("click", () => this.hideToast("success"));
+  if (!token) return showPage("login");
 
-    const token = localStorage.getItem(Config.tokenKey);
-    if (token) this.initializeApp();
-  },
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("mainApp").classList.remove("hidden");
 
-  initializeApp: async function() {
-    const username = localStorage.getItem(Config.usernameKey) || "User";
-    this.userInfo.textContent = `Selamat datang, ${username}`;
-    this.loginPage.classList.add("hidden");
-    this.mainApp.classList.remove("hidden");
+  // tampilkan info user
+  const userInfo = document.getElementById("userInfo");
+  if (userInfo) userInfo.textContent = `Selamat datang, ${username} (${role})`;
 
-    try {
-      this.toggleLoading(true);
-      await Promise.all([window.Tours.loadTours(), window.Sales.loadSales()]);
-    } catch(err) {
-      this.showErrorToast(err.message);
-    } finally {
-      this.toggleLoading(false);
-    }
-  },
+  // load data SPA
+  toggleLoading(true);
+  Promise.all([loadTours(), loadSales()])
+    .catch(err => showErrorToast(err.message || "Gagal memuat data"))
+    .finally(() => toggleLoading(false));
 
-  toggleLoading: function(show) {
-    const overlay = document.getElementById("loadingOverlay");
-    if (overlay) overlay.classList.toggle("hidden", !show);
-  },
+  // menu admin-only
+  const salesMenu = document.getElementById("salesMenuItems");
+  if (salesMenu) salesMenu.classList.toggle("hidden", role !== "admin");
+}
 
-  showErrorToast: function(msg) {
-    const toast = document.getElementById("errorToast");
-    const msgEl = document.getElementById("errorMessage");
-    if (toast && msgEl) {
-      msgEl.textContent = msg;
-      toast.classList.remove("hidden");
-      setTimeout(() => toast.classList.add("hidden"), 4000);
-    } else alert(msg);
-  },
+// ===============================
+// ✅ Page Navigation
+// ===============================
+function showPage(page) {
+  const pages = {
+    login: "loginPage",
+    dashboard: "mainApp"
+  };
+  Object.values(pages).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("hidden");
+  });
+  const current = document.getElementById(pages[page]);
+  if (current) current.classList.remove("hidden");
+}
 
-  showSuccessToast: function(msg) {
-    const toast = document.getElementById("successToast");
-    const msgEl = document.getElementById("successMessage");
-    if (toast && msgEl) {
-      msgEl.textContent = msg;
-      toast.classList.remove("hidden");
-      setTimeout(() => toast.classList.add("hidden"), 3000);
-    } else console.log(msg);
-  },
+// ===============================
+// ✅ Helper: Toast & Loading
+// ===============================
+function toggleLoading(show) {
+  const overlay = document.getElementById("loadingOverlay");
+  if (overlay) overlay.classList.toggle("hidden", !show);
+}
 
-  hideToast: function(type) {
-    if (type === "error") document.getElementById("errorToast")?.classList.add("hidden");
-    if (type === "success") document.getElementById("successToast")?.classList.add("hidden");
-  },
-
-  showPage: function(page) {
-    const pages = { tours: "toursPage", sales: "salesPage" };
-    Object.values(pages).forEach(id => document.getElementById(id)?.classList.add("hidden"));
-    document.getElementById(pages[page])?.classList.remove("hidden");
+function showErrorToast(message) {
+  const toast = document.getElementById("errorToast");
+  const msg = document.getElementById("errorMessage");
+  if (toast && msg) {
+    msg.textContent = message;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 4000);
+  } else {
+    alert(message);
   }
-};
+}
+
+function showSuccessToast(message) {
+  const toast = document.getElementById("successToast");
+  const msg = document.getElementById("successMessage");
+  if (toast && msg) {
+    msg.textContent = message;
+    toast.classList.remove("hidden");
+    setTimeout(() => toast.classList.add("hidden"), 3000);
+  } else {
+    console.log(message);
+  }
+}
+
+// ===============================
+// ✅ Auto Init SPA on Load
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+  if (localStorage.getItem("token")) {
+    initializeApp();
+  }
+});
