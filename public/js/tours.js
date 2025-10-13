@@ -1,105 +1,90 @@
 // ===============================
-// ✅ Tours CRUD
+// ✅ Tours Frontend Handler
 // ===============================
-window.Tours = {
-  list: async function() {
-    const res = await Api.request("/tours");
-    return res.data || [];
-  },
-  create: async function(data) {
-    return await Api.request("/tours", "POST", data);
-  },
-  update: async function(id, data) {
-    return await Api.request("/tours/" + id, "PUT", data);
-  },
-  remove: async function(id) {
-    return await Api.request("/tours/" + id, "DELETE");
+const tourTable = document.getElementById("tourTable");
+const tourForm = document.getElementById("tourForm");
+const resetBtn = document.getElementById("resetBtn");
+
+async function loadTours() {
+  try {
+    const tours = await apiGet("/tours");
+    renderTours(tours);
+  } catch (err) {
+    console.error(err);
+    showErrorToast("Gagal memuat data tours");
   }
-};
+}
 
-// DOM Binding
-document.addEventListener("DOMContentLoaded", function() {
-  const tourForm = document.getElementById("tourForm");
-  const tourTable = document.getElementById("tourTable");
-  const resetBtn = document.getElementById("resetBtn");
-
-  async function loadTours() {
-    if (!tourTable) return;
-    tourTable.innerHTML = "";
-    const tours = await window.Tours.list();
-    tours.forEach(t => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="p-2">${t.title}</td>
-        <td class="p-2">${t.description}</td>
-        <td class="p-2">${t.price}</td>
-        <td class="p-2">${t.date}</td>
-        <td class="p-2 text-center">
-          <button onclick="window.Tours.edit(${t.id})" class="bg-yellow-400 px-2 py-1 rounded">Edit</button>
-          <button onclick="window.Tours.delete(${t.id})" class="bg-red-600 px-2 py-1 rounded text-white">Hapus</button>
-        </td>
-      `;
-      tourTable.appendChild(tr);
-    });
-  }
-
-  tourForm && tourForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const id = document.getElementById("tourId").value;
-    const data = {
-      title: document.getElementById("title").value.trim(),
-      description: document.getElementById("description").value.trim(),
-      price: parseFloat(document.getElementById("price").value),
-      date: document.getElementById("date").value
-    };
-    try {
-      window.App.toggleLoading(true);
-      if (id) await window.Tours.update(id, data);
-      else await window.Tours.create(data);
-      window.App.showSuccessToast("Data tersimpan");
-      resetForm();
-      loadTours();
-    } catch(err) {
-      window.App.showErrorToast(err.message);
-    } finally {
-      window.App.toggleLoading(false);
-    }
+function renderTours(tours) {
+  if (!tourTable) return;
+  tourTable.innerHTML = "";
+  tours.forEach(tour => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="p-2">${tour.title}</td>
+      <td class="p-2">${tour.description}</td>
+      <td class="p-2">${tour.price}</td>
+      <td class="p-2">${tour.date}</td>
+      <td class="p-2 text-center">
+        <button onclick="editTour(${tour.id})" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+        <button onclick="deleteTour(${tour.id})" class="bg-red-600 text-white px-2 py-1 rounded">Hapus</button>
+      </td>
+    `;
+    tourTable.appendChild(tr);
   });
+}
 
-  resetBtn && resetBtn.addEventListener("click", resetForm);
+async function submitTour(event) {
+  event.preventDefault();
+  const id = document.getElementById("tourId").value;
+  const title = document.getElementById("title").value;
+  const description = document.getElementById("description").value;
+  const price = parseFloat(document.getElementById("price").value);
+  const date = document.getElementById("date").value;
 
-  function resetForm() {
-    document.getElementById("tourId").value = "";
-    document.getElementById("title").value = "";
-    document.getElementById("description").value = "";
-    document.getElementById("price").value = "";
-    document.getElementById("date").value = "";
-  }
-
-  window.Tours.edit = function(id) {
-    const row = Array.from(tourTable.children).find(r => r.children[0].textContent && r.children[0].textContent === id);
-    const tour = Array.from(tourTable.children).find(r => r.dataset.id == id);
-    if (!tour) return;
-    document.getElementById("tourId").value = id;
-    document.getElementById("title").value = tour.children[0].textContent;
-    document.getElementById("description").value = tour.children[1].textContent;
-    document.getElementById("price").value = tour.children[2].textContent;
-    document.getElementById("date").value = tour.children[3].textContent;
-  }
-
-  window.Tours.delete = async function(id) {
-    if (!confirm("Hapus data ini?")) return;
-    try {
-      window.App.toggleLoading(true);
-      await window.Tours.remove(id);
-      window.App.showSuccessToast("Data dihapus");
-      loadTours();
-    } catch(err) {
-      window.App.showErrorToast(err.message);
-    } finally {
-      window.App.toggleLoading(false);
+  try {
+    if (id) {
+      await apiPut("/tours", { id, title, description, price, date });
+      showSuccessToast("Tour diperbarui");
+    } else {
+      await apiPost("/tours", { title, description, price, date });
+      showSuccessToast("Tour ditambahkan");
     }
+    resetTourForm();
+    loadTours();
+  } catch (err) {
+    console.error(err);
+    showErrorToast("Gagal menyimpan data tour");
   }
+}
 
-  window.Tours.loadTours = loadTours;
-});
+function editTour(id) {
+  const row = Array.from(tourTable.children).find(tr => tr.querySelector("button")?.onclick.toString().includes(`editTour(${id})`));
+  if (!row) return;
+  document.getElementById("tourId").value = id;
+  document.getElementById("title").value = row.children[0].textContent;
+  document.getElementById("description").value = row.children[1].textContent;
+  document.getElementById("price").value = row.children[2].textContent;
+  document.getElementById("date").value = row.children[3].textContent;
+}
+
+async function deleteTour(id) {
+  if (!confirm("Yakin ingin menghapus tour ini?")) return;
+  try {
+    await apiDelete("/tours", { id });
+    showSuccessToast("Tour dihapus");
+    loadTours();
+  } catch (err) {
+    console.error(err);
+    showErrorToast("Gagal menghapus tour");
+  }
+}
+
+function resetTourForm() {
+  if (!tourForm) return;
+  tourForm.reset();
+  document.getElementById("tourId").value = "";
+}
+
+if (tourForm) tourForm.addEventListener("submit", submitTour);
+if (resetBtn) resetBtn.addEventListener("click", resetTourForm);
