@@ -1,49 +1,50 @@
 // public/js/api.js
-const API_BASE_URL = "/api";
+const API_BASE = "/api";
 
 // Ambil token dari localStorage
 function getToken() {
   return localStorage.getItem("token");
 }
 
-// Helper untuk memanggil API
-async function apiRequest(endpoint, method = "GET", body = null, requiresAuth = true) {
-  const headers = { "Content-Type": "application/json" };
-
-  if (requiresAuth) {
-    const token = getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const options = {
-    method,
-    headers,
-  };
-
-  if (body) options.body = JSON.stringify(body);
-
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
-
-  // Jika token invalid → logout otomatis
-  if (res.status === 401 || res.status === 403) {
-    console.warn("Unauthorized, logging out...");
-    localStorage.removeItem("token");
-    window.location.href = "/index.html";
-    return null;
-  }
-
-  try {
-    return await res.json();
-  } catch (err) {
-    console.error("Failed to parse JSON:", err);
-    return null;
-  }
+// Helper fetch GET
+async function apiGet(endpoint) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  return res.json();
 }
 
-// Ekspor helper API
-window.api = {
-  get: (endpoint, auth = true) => apiRequest(endpoint, "GET", null, auth),
-  post: (endpoint, body, auth = true) => apiRequest(endpoint, "POST", body, auth),
-  put: (endpoint, body, auth = true) => apiRequest(endpoint, "PUT", body, auth),
-  del: (endpoint, auth = true) => apiRequest(endpoint, "DELETE", null, auth),
-};
+// Helper fetch POST
+async function apiPost(endpoint, data) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// Helper fetch PUT
+async function apiPut(endpoint, data) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// Helper fetch DELETE
+async function apiDelete(endpoint) {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+  return res.json();
+}
