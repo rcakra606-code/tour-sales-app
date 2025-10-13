@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const tourController = require("../controllers/tourController");
-const authMiddleware = require("../middleware/authMiddleware");
+const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get("/", authMiddleware, tourController.getAllTours);
-router.get("/:id", authMiddleware, tourController.getTourById);
-router.post("/", authMiddleware, tourController.createTour);
-router.put("/:id", authMiddleware, tourController.updateTour);
-router.delete("/:id", authMiddleware, tourController.deleteTour);
+router.use(authMiddleware);
+
+router.get("/", tourController.getAll);
+router.post("/", tourController.create);
+router.put("/", tourController.update);
+router.delete("/", tourController.delete);
 
 module.exports = router;
