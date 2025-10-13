@@ -1,44 +1,30 @@
 const db = require("../config/database");
 
-exports.getSales = (req, res) => {
-  try {
-    const rows = db.prepare(`
-      SELECT s.*, t.title AS tour_title
-      FROM sales s
-      LEFT JOIN tours t ON s.tour_id = t.id
-      ORDER BY s.date DESC
-    `).all();
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ Error fetching sales:", err);
-    res.status(500).json({ message: "Gagal mengambil data sales." });
-  }
+exports.listSales = (req, res) => {
+  const sales = db.prepare("SELECT * FROM sales").all();
+  res.json({ success: true, sales });
 };
 
-exports.addSale = (req, res) => {
-  try {
-    const { tour_id, amount, created_by } = req.body;
-    if (!tour_id || !amount)
-      return res.status(400).json({ message: "Data tidak lengkap." });
+exports.getSaleById = (req, res) => {
+  const sale = db.prepare("SELECT * FROM sales WHERE id=?").get(req.params.id);
+  if (!sale) return res.status(404).json({ success: false, message: "Data sales tidak ditemukan" });
+  res.json({ success: true, sale });
+};
 
-    const result = db
-      .prepare("INSERT INTO sales (tour_id, amount, created_by) VALUES (?, ?, ?)")
-      .run(tour_id, amount, created_by || "system");
+exports.createSale = (req, res) => {
+  const { customer, tourId, amount } = req.body;
+  if (!customer || !tourId || !amount) return res.status(400).json({ success: false, message: "Semua field wajib diisi" });
+  db.prepare("INSERT INTO sales (customer, tourId, amount) VALUES (?, ?, ?)").run(customer, tourId, amount);
+  res.json({ success: true, message: "Sales berhasil ditambahkan" });
+};
 
-    res.json({ success: true, id: result.lastInsertRowid });
-  } catch (err) {
-    console.error("❌ Error adding sale:", err);
-    res.status(500).json({ message: "Gagal menambah data sales." });
-  }
+exports.updateSale = (req, res) => {
+  const { customer, tourId, amount } = req.body;
+  db.prepare("UPDATE sales SET customer=?, tourId=?, amount=? WHERE id=?").run(customer, tourId, amount, req.params.id);
+  res.json({ success: true, message: "Sales berhasil diperbarui" });
 };
 
 exports.deleteSale = (req, res) => {
-  try {
-    const id = req.params.id;
-    db.prepare("DELETE FROM sales WHERE id = ?").run(id);
-    res.json({ success: true, message: "Data sales dihapus." });
-  } catch (err) {
-    console.error("❌ Error deleting sale:", err);
-    res.status(500).json({ message: "Gagal menghapus data sales." });
-  }
+  db.prepare("DELETE FROM sales WHERE id=?").run(req.params.id);
+  res.json({ success: true, message: "Sales berhasil dihapus" });
 };
