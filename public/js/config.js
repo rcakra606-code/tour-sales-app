@@ -1,7 +1,4 @@
-// config.js
-window.API_CONFIG = {
-  BASE_URL: "", // kosong berarti sama origin
-  TIMEOUT: 5000
+// ✅ Config API Base URL
+window.AppConfig = {
+  apiBase: "/api"
 };
-
-console.log("✅ Config loaded:", window.API_CONFIG);
