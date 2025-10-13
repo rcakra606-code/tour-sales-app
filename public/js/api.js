@@ -1,22 +1,15 @@
-import { API_BASE, getToken } from "./config.js";
+// ===============================
+// ✅ Helper fetch API
+// ===============================
+window.apiRequest = async function(endpoint, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...getAuthHeader(),
+    ...(options.headers || {}),
+  };
 
-// Wrapper fetch
-async function apiFetch(endpoint, method = "GET", data = null) {
-  const headers = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-  });
-
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.message || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-export { apiFetch };
+  const res = await fetch(API_BASE + endpoint, { ...options, headers });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Terjadi kesalahan API");
+  return data;
+};
