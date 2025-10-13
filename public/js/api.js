@@ -1,55 +1,41 @@
-// ===============================
-// ✅ API Helper
-// ===============================
-const API_BASE = "/api";
+const API_URL = "/api";
 
 function getToken() {
   return localStorage.getItem("token");
 }
 
-async function apiGet(path) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Authorization": `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error(await res.text());
+function getAuthHeaders() {
+  const token = getToken();
+  return token ? { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
+}
+
+async function apiGet(endpoint) {
+  const res = await fetch(`${API_URL}${endpoint}`, { headers: getAuthHeaders() });
   return res.json();
 }
 
-async function apiPost(path, data) {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function apiPost(endpoint, data) {
+  const res = await fetch(`${API_URL}${endpoint}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${getToken()}`
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
-async function apiPut(path, data) {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function apiPut(endpoint, data) {
+  const res = await fetch(`${API_URL}${endpoint}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${getToken()}`
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
-async function apiDelete(path, data) {
-  const res = await fetch(`${API_BASE}${path}`, {
+async function apiDelete(endpoint) {
+  const res = await fetch(`${API_URL}${endpoint}`, {
     method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${getToken()}`
-    },
-    body: JSON.stringify(data),
+    headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
