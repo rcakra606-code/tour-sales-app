@@ -1,13 +1,7 @@
-// ===============================
-// ✅ Config Global
-// ===============================
-window.API_BASE = "/api";
-
-window.getToken = function() {
-  return localStorage.getItem("token") || "";
+// config.js
+window.API_CONFIG = {
+  BASE_URL: "", // kosong berarti sama origin
+  TIMEOUT: 5000
 };
 
-window.getAuthHeader = function() {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+console.log("✅ Config loaded:", window.API_CONFIG);
