@@ -1,50 +1,39 @@
-// public/js/api.js
-const API_BASE = "/api";
+// ===============================
+// ✅ API HELPER
+// ===============================
+const token = localStorage.getItem("token");
+const headers = {
+  "Content-Type": "application/json",
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+};
 
-// Ambil token dari localStorage
-function getToken() {
-  return localStorage.getItem("token");
-}
-
-// Helper fetch GET
-async function apiGet(endpoint) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
+async function apiGet(url) {
+  const res = await fetch(url, { headers });
   return res.json();
 }
 
-// Helper fetch POST
-async function apiPost(endpoint, data) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+async function apiPost(url, data) {
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers,
     body: JSON.stringify(data),
   });
   return res.json();
 }
 
-// Helper fetch PUT
-async function apiPut(endpoint, data) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+async function apiPut(url, data) {
+  const res = await fetch(url, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
+    headers,
     body: JSON.stringify(data),
   });
   return res.json();
 }
 
-// Helper fetch DELETE
-async function apiDelete(endpoint) {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+async function apiDelete(url) {
+  const res = await fetch(url, {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${getToken()}` },
+    headers,
   });
   return res.json();
 }
