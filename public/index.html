@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tour & Sales Management System</title>
+
+  <!-- Tailwind & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     body { box-sizing: border-box; }
     .error-animation { animation: shake 0.5s ease-in-out; }
@@ -20,10 +23,12 @@
     @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
   </style>
 </head>
+
 <body class="h-full bg-gray-50">
 
   <!-- LOADING OVERLAY -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div id="loadingOverlay"
+    class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white p-6 rounded-lg shadow-xl text-center">
       <div class="loading-spinner mx-auto mb-4"></div>
       <p class="text-gray-600">Memuat...</p>
@@ -31,7 +36,8 @@
   </div>
 
   <!-- TOASTS -->
-  <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
+  <div id="errorToast"
+    class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
     <div class="flex items-center">
       <span class="mr-2">❌</span>
       <span id="errorMessage">Terjadi kesalahan</span>
@@ -39,7 +45,8 @@
     </div>
   </div>
 
-  <div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+  <div id="successToast"
+    class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
     <div class="flex items-center">
       <span class="mr-2">✅</span>
       <span id="successMessage">Berhasil</span>
@@ -48,7 +55,8 @@
   </div>
 
   <!-- LOGIN PAGE -->
-  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+  <div id="loginPage"
+    class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Masuk ke Sistem</h2>
@@ -85,9 +93,9 @@
     </div>
   </div>
 
-  <!-- DASHBOARD -->
-  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-center bg-gray-100">
-    <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg text-center">
+  <!-- MAIN DASHBOARD -->
+  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-start bg-gray-100 pt-10">
+    <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-5xl text-center mb-8">
       <h1 class="text-2xl font-bold text-gray-800 mb-4">Selamat Datang 👋</h1>
       <p id="userInfo" class="text-gray-600 mb-6">Memuat...</p>
       <button id="logoutBtn"
@@ -95,54 +103,44 @@
         Logout
       </button>
     </div>
+
+    <!-- FORM & TABLE TOUR -->
+    <div class="bg-white shadow-lg rounded-lg p-6 w-full max-w-5xl">
+      <h2 class="text-xl font-bold mb-4">📅 Manajemen Tour</h2>
+      <form id="tourForm" class="mb-6 space-y-3">
+        <input type="hidden" id="tourId">
+        <input type="text" id="title" placeholder="Judul Tour" class="border p-2 w-full rounded">
+        <input type="text" id="description" placeholder="Deskripsi" class="border p-2 w-full rounded">
+        <input type="number" id="price" placeholder="Harga (Rp)" class="border p-2 w-full rounded">
+        <input type="date" id="date" class="border p-2 w-full rounded">
+        <div class="flex justify-end gap-2">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+          <button type="button" id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
+        </div>
+      </form>
+
+      <table class="w-full border">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 text-left">Judul</th>
+            <th class="p-2 text-left">Deskripsi</th>
+            <th class="p-2 text-left">Harga</th>
+            <th class="p-2 text-left">Tanggal</th>
+            <th class="p-2 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tourTable"></tbody>
+      </table>
+    </div>
   </div>
 
-  <!-- JS FILES -->
+  <!-- JS FILES (CSP-safe) -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/tours.js"></script>
   <script src="/js/sales.js"></script>
   <script src="/js/app.js"></script>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const loginPage = document.getElementById('loginPage');
-      const mainApp = document.getElementById('mainApp');
-      const loginForm = document.getElementById('loginForm');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const closeErrorToast = document.getElementById('closeErrorToast');
-      const closeSuccessToast = document.getElementById('closeSuccessToast');
-
-      loginForm?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        try {
-          await loginUser(username, password);
-          loginPage.classList.add('hidden');
-          mainApp.classList.remove('hidden');
-          initializeApp();
-        } catch (err) {
-          showErrorToast(err.message);
-        }
-      });
-
-      logoutBtn?.addEventListener('click', () => {
-        logoutUser();
-      });
-
-      closeErrorToast?.addEventListener('click', () => document.getElementById('errorToast').classList.add('hidden'));
-      closeSuccessToast?.addEventListener('click', () => document.getElementById('successToast').classList.add('hidden'));
-
-      // Auto login if token exists
-      if (localStorage.getItem("token")) {
-        loginPage.classList.add('hidden');
-        mainApp.classList.remove('hidden');
-        initializeApp();
-      }
-    });
-  </script>
 
 </body>
 </html>
