@@ -36,4 +36,9 @@ exports.deleteSale = (req, res) => {
   try {
     const id = req.params.id;
     db.prepare("DELETE FROM sales WHERE id = ?").run(id);
-    res.json({ success: true, message
+    res.json({ success: true, message: "Data sales dihapus." });
+  } catch (err) {
+    console.error("❌ Error deleting sale:", err);
+    res.status(500).json({ message: "Gagal menghapus data sales." });
+  }
+};
