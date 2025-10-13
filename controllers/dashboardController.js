@@ -1,28 +1,13 @@
 const db = require("../config/database");
 
-exports.getDashboardStats = (req, res) => {
-  try {
-    const totalTours = db.prepare("SELECT COUNT(*) AS total FROM tours").get().total;
-    const totalSales = db.prepare("SELECT COUNT(*) AS total FROM sales").get().total;
-    const totalRevenue = db.prepare("SELECT SUM(amount) AS total FROM sales").get().total || 0;
+exports.summary = (req, res) => {
+  const totalTours = db.prepare("SELECT COUNT(*) as count FROM tours").get().count;
+  const totalSales = db.prepare("SELECT COUNT(*) as count FROM sales").get().count;
+  res.json({ success: true, summary: { totalTours, totalSales } });
+};
 
-    const latestSales = db
-      .prepare(`
-        SELECT s.*, t.title AS tour_title 
-        FROM sales s
-        LEFT JOIN tours t ON s.tour_id = t.id
-        ORDER BY s.date DESC LIMIT 5
-      `)
-      .all();
-
-    res.json({
-      totalTours,
-      totalSales,
-      totalRevenue,
-      latestSales,
-    });
-  } catch (err) {
-    console.error("❌ Dashboard stats error:", err);
-    res.status(500).json({ message: "Gagal mengambil statistik dashboard." });
-  }
+exports.charts = (req, res) => {
+  const tours = db.prepare("SELECT title, price FROM tours").all();
+  const sales = db.prepare("SELECT tourId, SUM(amount) as total FROM sales GROUP BY tourId").all();
+  res.json({ success: true, charts: { tours, sales } });
 };
