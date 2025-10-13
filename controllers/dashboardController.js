@@ -1,22 +1,25 @@
 // controllers/dashboardController.js
 const db = require("../config/database");
 
-exports.getStats = (req, res) => {
-  const stats = {};
-  db.get("SELECT COUNT(*) AS totalTours FROM tours", (err, row1) => {
-    if (err) return res.status(500).json({ message: "Gagal menghitung tours." });
-    stats.totalTours = row1.totalTours;
+exports.getDashboardStats = (req, res) => {
+  const totalTours = db.prepare("SELECT COUNT(*) AS count FROM tours").get().count;
+  const totalSales = db.prepare("SELECT COUNT(*) AS count FROM sales").get().count;
+  const totalRevenue = db.prepare("SELECT SUM(total_amount) AS total FROM sales").get().total || 0;
 
-    db.get("SELECT COUNT(*) AS totalSales FROM sales", (err2, row2) => {
-      if (err2) return res.status(500).json({ message: "Gagal menghitung sales." });
-      stats.totalSales = row2.totalSales;
+  const recentSales = db
+    .prepare(`
+      SELECT s.*, t.title AS tour_title
+      FROM sales s
+      LEFT JOIN tours t ON s.tour_id = t.id
+      ORDER BY s.sale_date DESC
+      LIMIT 5
+    `)
+    .all();
 
-      db.get("SELECT SUM(amount) AS totalRevenue FROM sales", (err3, row3) => {
-        if (err3) return res.status(500).json({ message: "Gagal menghitung pendapatan." });
-        stats.totalRevenue = row3.totalRevenue || 0;
-
-        res.json(stats);
-      });
-    });
+  res.json({
+    totalTours,
+    totalSales,
+    totalRevenue,
+    recentSales,
   });
 };
