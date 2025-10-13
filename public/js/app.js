@@ -2,27 +2,54 @@
 // ✅ APP MAIN HANDLER (Frontend)
 // ===============================
 
-// Fungsi utama dipanggil setelah login sukses atau reload dengan session aktif
+/**
+ * Inisialisasi aplikasi: dipanggil setelah login sukses atau reload dengan session aktif
+ */
 async function initializeApp() {
   console.log("🟢 initializeApp dijalankan");
 
-  const username = localStorage.getItem("username") || "User";
-  const userInfo = document.getElementById("userInfo");
-  if (userInfo) userInfo.textContent = `Selamat datang, ${username}`;
-
-  // Tampilkan menu khusus admin jika ada hak akses lebih
-  const salesMenuItems = document.getElementById("salesMenuItems");
-  if (salesMenuItems && username.toLowerCase() === "admin") {
-    salesMenuItems.classList.remove("hidden");
+  const token = localStorage.getItem("token");
+  if (!token) {
+    // Token tidak ada → tampilkan login
+    localStorage.removeItem("username");
+    showPage("loginPage");
+    return;
   }
 
   try {
     toggleLoading(true);
+
+    // Verifikasi token ke backend
+    const res = await fetch("/api/auth/verify", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+
+    if (!data.valid) throw new Error("Token tidak valid");
+
+    const username = data.user.username || "User";
+    localStorage.setItem("username", username);
+
+    const userInfo = document.getElementById("userInfo");
+    if (userInfo) userInfo.textContent = `Selamat datang, ${username}`;
+
+    // Tampilkan menu admin jika role admin
+    if (data.user.role === "admin") {
+      const salesMenuItems = document.getElementById("salesMenuItems");
+      if (salesMenuItems) salesMenuItems.classList.remove("hidden");
+    }
+
+    // Load data tours dan sales secara paralel
     await Promise.all([loadTours(), loadSales()]);
+
+    // Tampilkan halaman dashboard
     showPage("dashboard");
-  } catch (error) {
-    console.error("initializeApp error:", error);
-    showErrorToast(error.message || "Gagal memuat data aplikasi");
+  } catch (err) {
+    console.error("initializeApp error:", err);
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    showPage("loginPage");
+    showErrorToast(err.message || "Sesi berakhir, silakan login ulang");
   } finally {
     toggleLoading(false);
   }
@@ -33,6 +60,7 @@ async function initializeApp() {
 // ===============================
 function showPage(page) {
   const pages = {
+    loginPage: "loginPage",
     dashboard: "dashboardPage",
     dataEntry: "dataEntryPage",
     salesDashboard: "salesDashboardPage",
@@ -96,25 +124,56 @@ function showSuccessToast(message) {
   }
 }
 
+// Buat global helper agar bisa dipanggil dari tours.js & sales.js
+window.toggleLoading = toggleLoading;
+window.showErrorToast = showErrorToast;
+window.showSuccessToast = showSuccessToast;
+
 // ===============================
-// ✅ HELPER: Sidebar Navigation
+// ✅ LOGOUT HANDLER
+// ===============================
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  showPage("loginPage");
+}
+
+// ===============================
+// ✅ EVENT BINDINGS
 // ===============================
 document.addEventListener("DOMContentLoaded", () => {
+  // Sidebar navigation
   const navItems = document.querySelectorAll(".nav-item");
   navItems.forEach((item) => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
       const target = e.currentTarget.getAttribute("onclick") || "";
       const pageMatch = target.match(/showPage\(['"](.+?)['"]\)/);
-      if (pageMatch && pageMatch[1]) {
-        showPage(pageMatch[1]);
-      }
+      if (pageMatch && pageMatch[1]) showPage(pageMatch[1]);
     });
   });
 
-  // Jika user sudah login, langsung tampilkan dashboard
+  // Login form
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm) loginForm.addEventListener("submit", handleLogin);
+
+  // Logout button
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) logoutBtn.addEventListener("click", logout);
+
+  // Toast close buttons
+  const closeErrorToast = document.getElementById("closeErrorToast");
+  if (closeErrorToast)
+    closeErrorToast.addEventListener("click", () =>
+      document.getElementById("errorToast").classList.add("hidden")
+    );
+  const closeSuccessToast = document.getElementById("closeSuccessToast");
+  if (closeSuccessToast)
+    closeSuccessToast.addEventListener("click", () =>
+      document.getElementById("successToast").classList.add("hidden")
+    );
+
+  // Jika token ada, langsung inisialisasi app
   const token = localStorage.getItem("token");
-  if (token) {
-    initializeApp();
-  }
+  if (token) initializeApp();
 });
