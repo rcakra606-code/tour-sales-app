@@ -1,31 +1,27 @@
-// ===============================
-// ✅ LOGIN HANDLER
-// ===============================
-async function handleLogin(e) {
-  e.preventDefault();
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+import { apiFetch } from "./api.js";
+import { setToken, removeToken } from "./config.js";
 
-  if (!username || !password) {
-    showErrorToast("Username & password wajib diisi");
-    return;
-  }
+async function login(username, password) {
+  const res = await apiFetch("/auth/login", "POST", { username, password });
+  setToken(res.token);
+  localStorage.setItem("username", res.user.username);
+  return res.user;
+}
 
+function logout() {
+  removeToken();
+  localStorage.removeItem("username");
+  location.reload();
+}
+
+async function verifyToken() {
   try {
-    toggleLoading(true);
-    const res = await apiPost("/api/auth/login", { username, password });
-    if (res.success) {
-      localStorage.setItem("token", res.token);
-      localStorage.setItem("username", res.user.username);
-      showSuccessToast(res.message || "Login berhasil");
-      initializeApp();
-    } else {
-      showErrorToast(res.message || "Login gagal");
-    }
-  } catch (err) {
-    console.error(err);
-    showErrorToast(err.message || "Terjadi kesalahan saat login");
-  } finally {
-    toggleLoading(false);
+    const res = await apiFetch("/auth/verify");
+    return res.valid;
+  } catch {
+    logout();
+    return false;
   }
 }
+
+export { login, logout, verifyToken };
