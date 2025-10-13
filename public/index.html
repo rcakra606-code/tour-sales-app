@@ -1,14 +1,11 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tour & Sales Management System</title>
-
-  <!-- Tailwind CSS & Chart.js -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
   <style>
     body { box-sizing: border-box; }
     .error-animation { animation: shake 0.5s ease-in-out; }
@@ -23,10 +20,9 @@
     @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
   </style>
 </head>
-
 <body class="h-full bg-gray-50">
 
-  <!-- ================= LOADING OVERLAY ================= -->
+  <!-- LOADING OVERLAY -->
   <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white p-6 rounded-lg shadow-xl text-center">
       <div class="loading-spinner mx-auto mb-4"></div>
@@ -34,7 +30,7 @@
     </div>
   </div>
 
-  <!-- ================= TOASTS ================= -->
+  <!-- TOASTS -->
   <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
     <div class="flex items-center">
       <span class="mr-2">❌</span>
@@ -51,7 +47,7 @@
     </div>
   </div>
 
-  <!-- ================= LOGIN PAGE ================= -->
+  <!-- LOGIN PAGE -->
   <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full space-y-8">
       <div>
@@ -62,16 +58,18 @@
       <form id="loginForm" class="mt-8 space-y-6">
         <div class="rounded-md shadow-sm -space-y-px">
           <div>
-            <input id="username" name="username" type="text" required placeholder="Username"
+            <input id="username" name="username" type="text" required
               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
               placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500
-              focus:border-blue-500 focus:z-10 sm:text-sm" />
+              focus:border-blue-500 focus:z-10 sm:text-sm"
+              placeholder="Username" />
           </div>
           <div>
-            <input id="password" name="password" type="password" required placeholder="Password"
+            <input id="password" name="password" type="password" required
               class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
               placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500
-              focus:border-blue-500 focus:z-10 sm:text-sm" />
+              focus:border-blue-500 focus:z-10 sm:text-sm"
+              placeholder="Password" />
           </div>
         </div>
 
@@ -87,85 +85,64 @@
     </div>
   </div>
 
-  <!-- ================= DASHBOARD ================= -->
-  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-start bg-gray-100 p-6">
-
-    <!-- Header -->
-    <div class="w-full max-w-6xl mb-6 flex justify-between items-center">
-      <h1 class="text-3xl font-bold">Dashboard Tour & Sales</h1>
-      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">Logout</button>
+  <!-- DASHBOARD -->
+  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-center bg-gray-100">
+    <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-lg text-center">
+      <h1 class="text-2xl font-bold text-gray-800 mb-4">Selamat Datang 👋</h1>
+      <p id="userInfo" class="text-gray-600 mb-6">Memuat...</p>
+      <button id="logoutBtn"
+        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">
+        Logout
+      </button>
     </div>
-
-    <!-- User Info -->
-    <p id="userInfo" class="mb-6 text-gray-700"></p>
-
-    <!-- ================= TOUR MANAGEMENT ================= -->
-    <div class="w-full max-w-6xl bg-white p-6 rounded-xl shadow mb-6">
-      <h2 class="text-2xl font-bold mb-4">📅 Manajemen Tour</h2>
-      <form id="tourForm" class="mb-4 space-y-3">
-        <input type="hidden" id="tourId">
-        <input type="text" id="title" placeholder="Judul Tour" class="border p-2 w-full rounded">
-        <input type="text" id="description" placeholder="Deskripsi" class="border p-2 w-full rounded">
-        <input type="number" id="price" placeholder="Harga (Rp)" class="border p-2 w-full rounded">
-        <input type="date" id="date" class="border p-2 w-full rounded">
-        <div class="flex justify-end gap-2">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
-          <button type="button" id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
-        </div>
-      </form>
-
-      <table class="w-full border">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 text-left">Judul</th>
-            <th class="p-2 text-left">Deskripsi</th>
-            <th class="p-2 text-left">Harga</th>
-            <th class="p-2 text-left">Tanggal</th>
-            <th class="p-2 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tourTable"></tbody>
-      </table>
-    </div>
-
-    <!-- ================= SALES MANAGEMENT ================= -->
-    <div class="w-full max-w-6xl bg-white p-6 rounded-xl shadow">
-      <h2 class="text-2xl font-bold mb-4">💰 Manajemen Sales</h2>
-      <form id="salesForm" class="mb-4 space-y-3">
-        <input type="hidden" id="salesId">
-        <input type="text" id="customer" placeholder="Nama Customer" class="border p-2 w-full rounded">
-        <input type="text" id="tourName" placeholder="Nama Tour" class="border p-2 w-full rounded">
-        <input type="number" id="amount" placeholder="Jumlah (Rp)" class="border p-2 w-full rounded">
-        <input type="date" id="salesDate" class="border p-2 w-full rounded">
-        <div class="flex justify-end gap-2">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
-          <button type="button" id="salesResetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
-        </div>
-      </form>
-
-      <table class="w-full border">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 text-left">Customer</th>
-            <th class="p-2 text-left">Tour</th>
-            <th class="p-2 text-left">Jumlah</th>
-            <th class="p-2 text-left">Tanggal</th>
-            <th class="p-2 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="salesTable"></tbody>
-      </table>
-    </div>
-
   </div>
 
-  <!-- ================= JS ================= -->
+  <!-- JS FILES -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/tours.js"></script>
   <script src="/js/sales.js"></script>
   <script src="/js/app.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const loginPage = document.getElementById('loginPage');
+      const mainApp = document.getElementById('mainApp');
+      const loginForm = document.getElementById('loginForm');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const closeErrorToast = document.getElementById('closeErrorToast');
+      const closeSuccessToast = document.getElementById('closeSuccessToast');
+
+      loginForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        try {
+          await loginUser(username, password);
+          loginPage.classList.add('hidden');
+          mainApp.classList.remove('hidden');
+          initializeApp();
+        } catch (err) {
+          showErrorToast(err.message);
+        }
+      });
+
+      logoutBtn?.addEventListener('click', () => {
+        logoutUser();
+      });
+
+      closeErrorToast?.addEventListener('click', () => document.getElementById('errorToast').classList.add('hidden'));
+      closeSuccessToast?.addEventListener('click', () => document.getElementById('successToast').classList.add('hidden'));
+
+      // Auto login if token exists
+      if (localStorage.getItem("token")) {
+        loginPage.classList.add('hidden');
+        mainApp.classList.remove('hidden');
+        initializeApp();
+      }
+    });
+  </script>
 
 </body>
 </html>
