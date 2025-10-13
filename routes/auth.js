@@ -1,14 +1,11 @@
-// =====================================
-// ✅ Auth Routes (Final - Render Compatible)
-// =====================================
+// routes/auth.js
 const express = require("express");
 const router = express.Router();
-
-// Gunakan path absolut agar tidak error di Render
 const path = require("path");
+
+// Pastikan path controller sesuai struktur kamu
 const controllerPath = path.join(__dirname, "../controllers/authController");
 
-// Coba require dengan fallback (antisipasi error path)
 let authController;
 try {
   authController = require(controllerPath);
@@ -20,20 +17,11 @@ try {
   return;
 }
 
-// =====================================
-// ✅ Routes Definition
-// =====================================
-
-// Register user baru
+// ==========================
+// ✅ Auth Routes
+// ==========================
 router.post("/register", authController.register);
-
-// Login user
 router.post("/login", authController.login);
-
-// Verifikasi token JWT
 router.get("/verify", authController.verifyToken);
 
-// =====================================
-// ✅ Export router
-// =====================================
 module.exports = router;
