@@ -1,16 +1,58 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Manajemen Tour</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .error-animation { animation: shake 0.5s ease-in-out; }
+    @keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      width: 30px; height: 30px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+  </style>
 </head>
 <body class="bg-gray-100">
+
+  <!-- ================= LOADING OVERLAY ================= -->
+  <div id="loadingOverlay"
+    class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+      <div class="loading-spinner mx-auto mb-4"></div>
+      <p class="text-gray-600">Memuat...</p>
+    </div>
+  </div>
+
+  <!-- ================= TOASTS ================= -->
+  <div id="errorToast"
+    class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
+    <div class="flex items-center">
+      <span class="mr-2">❌</span>
+      <span id="errorMessage">Terjadi kesalahan</span>
+      <button id="closeErrorToast" class="ml-4 text-white hover:text-gray-200">✕</button>
+    </div>
+  </div>
+
+  <div id="successToast"
+    class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center">
+      <span class="mr-2">✅</span>
+      <span id="successMessage">Berhasil</span>
+      <button id="closeSuccessToast" class="ml-4 text-white hover:text-gray-200">✕</button>
+    </div>
+  </div>
+
+  <!-- ================= FORM & TABLE ================= -->
   <div class="max-w-5xl mx-auto mt-10 bg-white p-6 rounded-xl shadow">
     <h1 class="text-2xl font-bold mb-4">📅 Manajemen Tour</h1>
 
-    <!-- ✅ Form Tambah/Edit -->
+    <!-- Form Tambah/Edit -->
     <form id="tourForm" class="mb-6 space-y-3">
       <input type="hidden" id="tourId">
       <input type="text" id="title" placeholder="Judul Tour" class="border p-2 w-full rounded">
@@ -23,7 +65,7 @@
       </div>
     </form>
 
-    <!-- ✅ Tabel Data -->
+    <!-- Tabel Data -->
     <table class="w-full border">
       <thead class="bg-gray-200">
         <tr>
@@ -38,6 +80,138 @@
     </table>
   </div>
 
-  <script src="/js/tours.js"></script>
+  <!-- ================= JS FILES ================= -->
+  <script type="module" src="/js/api.js"></script>
+  <script type="module" src="/js/tours.js"></script>
+
+  <script type="module">
+    import { apiGet, apiPost, apiPut, apiDelete } from '/js/api.js';
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/'; // Redirect ke login jika tidak ada token
+    }
+
+    const form = document.getElementById("tourForm");
+    const resetBtn = document.getElementById("resetBtn");
+    const tableBody = document.getElementById("tourTable");
+    const idInput = document.getElementById("tourId");
+    const titleInput = document.getElementById("title");
+    const descInput = document.getElementById("description");
+    const priceInput = document.getElementById("price");
+    const dateInput = document.getElementById("date");
+
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
+    function showLoading(show) {
+      loadingOverlay.classList.toggle('hidden', !show);
+    }
+
+    function showToast(msg, type='success') {
+      const toast = type==='error'?document.getElementById('errorToast'):document.getElementById('successToast');
+      const message = type==='error'?document.getElementById('errorMessage'):document.getElementById('successMessage');
+      message.textContent = msg;
+      toast.classList.remove('hidden');
+      setTimeout(()=>toast.classList.add('hidden'),3000);
+    }
+
+    // ================= LOAD TOURS =================
+    async function loadTours() {
+      try {
+        showLoading(true);
+        const data = await apiGet('/tours', token);
+        tableBody.innerHTML = "";
+        if (!data.success) return showToast(data.message || 'Gagal memuat', 'error');
+
+        data.tours.forEach(t=>{
+          const tr = document.createElement('tr');
+          tr.className = 'border-b';
+          tr.innerHTML = `
+            <td class="p-2">${t.title}</td>
+            <td class="p-2">${t.description||'-'}</td>
+            <td class="p-2">Rp ${t.price?.toLocaleString('id-ID')}</td>
+            <td class="p-2">${t.date||'-'}</td>
+            <td class="p-2 text-center">
+              <button class="text-blue-500 hover:underline" data-id="${t.id}" data-action="edit">Edit</button>
+              <button class="text-red-500 hover:underline ml-2" data-id="${t.id}" data-action="delete">Hapus</button>
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // ================= FORM SUBMIT =================
+    form.addEventListener('submit', async e=>{
+      e.preventDefault();
+      const id = idInput.value;
+      const payload = {
+        title: titleInput.value.trim(),
+        description: descInput.value.trim(),
+        price: parseFloat(priceInput.value),
+        date: dateInput.value
+      };
+
+      try {
+        showLoading(true);
+        let res;
+        if (id) res = await apiPut(`/tours/${id}`, payload, token);
+        else res = await apiPost('/tours', payload, token);
+
+        if (!res.success) return showToast(res.message || 'Gagal menyimpan', 'error');
+
+        showToast(res.message || 'Berhasil disimpan');
+        form.reset(); idInput.value="";
+        loadTours();
+      } catch(err){
+        showToast(err.message,'error');
+      } finally { showLoading(false); }
+    });
+
+    // ================= RESET =================
+    resetBtn.addEventListener('click', ()=>{form.reset(); idInput.value='';});
+
+    // ================= EDIT / DELETE =================
+    tableBody.addEventListener('click', async e=>{
+      const btn = e.target;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if (!id || !action) return;
+
+      if (action==='edit') {
+        try {
+          showLoading(true);
+          const res = await apiGet(`/tours/${id}`, token);
+          if (!res.success) return showToast(res.message || 'Gagal ambil data', 'error');
+          const t = res.tour;
+          idInput.value = t.id;
+          titleInput.value = t.title;
+          descInput.value = t.description;
+          priceInput.value = t.price;
+          dateInput.value = t.date;
+        } catch(err){ showToast(err.message,'error'); }
+        finally { showLoading(false); }
+      }
+
+      if (action==='delete') {
+        if (!confirm('Yakin ingin menghapus tour ini?')) return;
+        try {
+          showLoading(true);
+          const res = await apiDelete(`/tours/${id}`, token);
+          if (!res.success) return showToast(res.message || 'Gagal hapus', 'error');
+          showToast('Tour dihapus');
+          loadTours();
+        } catch(err){ showToast(err.message,'error'); }
+        finally { showLoading(false); }
+      }
+    });
+
+    // ================= INIT =================
+    document.addEventListener('DOMContentLoaded', loadTours);
+  </script>
 </body>
 </html>
