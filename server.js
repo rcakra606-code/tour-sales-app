@@ -1,251 +1,107 @@
-// =====================================
-// ✅ Core Setup
-// =====================================
+/**
+ * Travel Dashboard Server
+ * Backend API untuk manajemen Auth, Tours, Sales, Dashboard, dan Upload
+ * Menggunakan: Express + Better-SQLite3 + JWT Auth
+ */
+
 const express = require("express");
-const path = require("path");
+const dotenv = require("dotenv");
 const helmet = require("helmet");
 const cors = require("cors");
-const http = require("http");
+const morgan = require("morgan");
+const winston = require("winston");
+const path = require("path");
 const fs = require("fs");
-const bcrypt = require("bcryptjs");
-require("dotenv").config();
 
-// =====================================
-// ✅ Optional Logging (no crash if missing)
-// =====================================
-let morgan, winston;
-try {
-  morgan = require("morgan");
-  winston = require("winston");
-} catch {
-  console.warn("⚠️ Optional logging modules missing — using console only");
+// Load environment variables
+dotenv.config();
+
+// ==============================
+// 1️⃣ Inisialisasi Express App
+// ==============================
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+// ==============================
+// 2️⃣ Konfigurasi Logger (Winston + Morgan)
+// ==============================
+const logDir = path.join(__dirname, "logs");
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: path.join(logDir, "error.log"), level: "error" }),
+    new winston.transports.File({ filename: path.join(logDir, "combined.log") }),
+  ],
+});
+if (process.env.NODE_ENV !== "production") {
+  logger.add(new winston.transports.Console({ format: winston.format.simple() }));
 }
 
-const logger =
-  winston?.createLogger({
-    level: "info",
-    transports: [new winston.transports.Console()],
-  }) || console;
+// Middleware logger HTTP
+app.use(morgan("dev"));
 
-const httpLogger = morgan ? morgan("dev") : (req, res, next) => next();
-
-// =====================================
-// ✅ App Initialization
-// =====================================
-const app = express();
+// ==============================
+// 3️⃣ Middleware Utama
+// ==============================
+app.use(helmet());
+app.use(cors({ origin: "*", methods: "GET,POST,PUT,DELETE", allowedHeaders: "Content-Type,Authorization" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(httpLogger);
 
-// =====================================
-// ✅ Helmet Security (Relaxed for CDN)
-// =====================================
-app.use(
-  helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com",
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-          "https://fonts.googleapis.com",
-        ],
-        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "*"],
-      },
-    },
-  })
-);
+// ==============================
+// 4️⃣ Static Files
+// ==============================
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// =====================================
-// ✅ Auto Initialize Database (better-sqlite3)
-// =====================================
-try {
-  const Database = require("better-sqlite3");
-  const dbPath = path.join(__dirname, "data", "database.sqlite");
-  const dataDir = path.dirname(dbPath);
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+// ==============================
+// 5️⃣ Import Routes
+// ==============================
+const authRoutes = require("./routes/auth");
+const tourRoutes = require("./routes/tours");
+const salesRoutes = require("./routes/sales");
+const dashboardRoutes = require("./routes/dashboard");
+const uploadRoutes = require("./routes/upload");
 
-  const db = new Database(dbPath);
-  console.log("🗄️ Connected to SQLite:", dbPath);
+// ==============================
+// 6️⃣ Pasang Routes
+// ==============================
+app.use("/api/auth", authRoutes);
+app.use("/api/tours", tourRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/uploads", uploadRoutes);
 
-  // Create tables if not exist
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT,
-      role TEXT DEFAULT 'staff'
-    )
-  `).run();
-
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS tours (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      location TEXT,
-      price REAL,
-      start_date TEXT,
-      end_date TEXT
-    )
-  `).run();
-
-  db.prepare(`
-    CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tour_id INTEGER,
-      customer_name TEXT,
-      amount REAL,
-      date TEXT,
-      FOREIGN KEY (tour_id) REFERENCES tours(id)
-    )
-  `).run();
-
-  // Default admin user
-  const admin = db.prepare("SELECT * FROM users WHERE username = ?").get("admin");
-  if (!admin) {
-    const hashed = bcrypt.hashSync("admin123", 10);
-    db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run(
-      "admin",
-      hashed,
-      "admin"
-    );
-    console.log("✅ Default admin created → username: admin | password: admin123");
-  } else {
-    console.log("ℹ️ Admin user already exists.");
-  }
-
-  db.close();
-} catch (err) {
-  console.error("❌ Database initialization error:", err.message);
-}
-
-// =====================================
-// ✅ Determine Routes Directory
-// =====================================
-let routesDir = path.join(__dirname, "routes");
-if (!fs.existsSync(routesDir)) {
-  const alt = path.join(__dirname, "src", "routes");
-  if (fs.existsSync(alt)) routesDir = alt;
-}
-console.log("📂 Using routes directory:", routesDir);
-
-// =====================================
-// ✅ Serve Static Files (Frontend + Uploads)
-// =====================================
-const publicDir = fs.existsSync(path.join(__dirname, "public"))
-  ? path.join(__dirname, "public")
-  : path.join(__dirname, "src", "public");
-
-// Static assets (js/css)
-app.use(
-  "/js",
-  express.static(path.join(publicDir, "js"), {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js")) {
-        res.setHeader("Content-Type", "application/javascript");
-      }
-    },
-  })
-);
-app.use(express.static(publicDir));
-
-// ✅ Serve uploaded files
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-app.use("/uploads", express.static(uploadDir));
-
-// =====================================
-// ✅ Dynamic Route Loader
-// =====================================
-try {
-  const useRoute = (endpoint, file) => {
-    const routePath = path.join(routesDir, `${file}.js`);
-    if (fs.existsSync(routePath)) {
-      app.use(endpoint, require(routePath));
-      console.log(`✅ Route loaded: ${endpoint} → ${routePath}`);
-    } else {
-      console.warn(`⚠️ Route file not found: ${routePath}`);
-    }
-  };
-
-  useRoute("/api/auth", "auth");
-  useRoute("/api/tours", "tours");
-  useRoute("/api/sales", "sales");
-  useRoute("/api/dashboard", "dashboard");
-  useRoute("/api/uploads", "upload");
-} catch (err) {
-  console.error("❌ Failed to register routes:", err);
-}
-
-// =====================================
-// ✅ Health Check (with DB status)
-// =====================================
-app.get("/api/health", (req, res) => {
-  let dbStatus = "Unknown";
-  try {
-    const Database = require("better-sqlite3");
-    const db = new Database(path.join(__dirname, "data", "database.sqlite"));
-    db.prepare("SELECT 1").get();
-    dbStatus = "OK";
-    db.close();
-  } catch {
-    dbStatus = "Error";
-  }
-  res.json({
-    status: "OK",
-    db: dbStatus,
-    node: process.version,
-    environment: process.env.NODE_ENV || "development",
-    time: new Date().toISOString(),
+// ==============================
+// 7️⃣ Middleware Error Handler
+// ==============================
+app.use((err, req, res, next) => {
+  logger.error(`${req.method} ${req.url} - ${err.message}`);
+  console.error("❌ ERROR:", err.stack);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
   });
 });
 
-// =====================================
-// ✅ 404 for API
-// =====================================
-app.use("/api", (req, res) => {
-  res.status(404).json({ error: "API endpoint not found" });
+// ==============================
+// 8️⃣ Route Not Found Handler
+// ==============================
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "API route not found" });
 });
 
-// =====================================
-// ✅ SPA Fallback
-// =====================================
-app.get("*", (req, res) => {
-  res.sendFile(path.join(publicDir, "index.html"));
+// ==============================
+// 9️⃣ Jalankan Server
+// ==============================
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
+  console.log(`🌍 Visit: http://localhost:${PORT}`);
 });
 
-// =====================================
-// ✅ Start Server (Render Compatible)
-// =====================================
-const PORT = process.env.PORT || 3000;
-const server = http.createServer(app);
-
-server.listen(PORT, () => {
-  logger.info(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
-  console.log("🌍 Visit:", `http://localhost:${PORT}`);
-});
-
-// =====================================
-// ✅ Graceful Shutdown
-// =====================================
-process.on("SIGTERM", () => {
-  logger.info("SIGTERM received — shutting down gracefully");
-  server.close(() => process.exit(0));
-});
-process.on("SIGINT", () => {
-  logger.info("SIGINT received — shutting down gracefully");
-  server.close(() => process.exit(0));
-});
+module.exports = app;
