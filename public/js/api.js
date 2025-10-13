@@ -1,20 +1,55 @@
 // ===============================
-// ✅ API Helper (CSP-Safe)
+// ✅ API Helper
 // ===============================
-window.Api = {
-  request: async function (endpoint, method = "GET", data = null, auth = true) {
-    const headers = { "Content-Type": "application/json" };
-    if (auth) {
-      const token = localStorage.getItem(Config.tokenKey);
-      if (token) headers["Authorization"] = "Bearer " + token;
-    }
+const API_BASE = "/api";
 
-    const options = { method, headers };
-    if (data) options.body = JSON.stringify(data);
+function getToken() {
+  return localStorage.getItem("token");
+}
 
-    const response = await fetch(Config.apiBase + endpoint, options);
-    const json = await response.json();
-    if (!response.ok) throw new Error(json.message || "Terjadi kesalahan API");
-    return json;
-  }
-};
+async function apiGet(path) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "Authorization": `Bearer ${getToken()}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPost(path, data) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${getToken()}`
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPut(path, data) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${getToken()}`
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiDelete(path, data) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${getToken()}`
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
