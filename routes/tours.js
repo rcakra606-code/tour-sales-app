@@ -1,7 +1,7 @@
 // routes/tours.js
 const express = require("express");
 const router = express.Router();
-const { verifyToken, isAdmin } = require("../middlewares/authMiddleware");
+const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
 const db = require("../config/database");
 
 // 📍 GET semua tours (bisa diakses semua user yang login)
