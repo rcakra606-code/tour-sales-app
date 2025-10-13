@@ -1,30 +1,33 @@
-const db = require("../config/database");
+const Database = require("better-sqlite3");
+const db = new Database("./data/travel.db");
 
-exports.listSales = (req, res) => {
+db.prepare(`CREATE TABLE IF NOT EXISTS sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer TEXT,
+  tour_id INTEGER,
+  amount REAL,
+  date TEXT
+)`).run();
+
+exports.getAll = (req, res) => {
   const sales = db.prepare("SELECT * FROM sales").all();
-  res.json({ success: true, sales });
+  res.json(sales);
 };
 
-exports.getSaleById = (req, res) => {
-  const sale = db.prepare("SELECT * FROM sales WHERE id=?").get(req.params.id);
-  if (!sale) return res.status(404).json({ success: false, message: "Data sales tidak ditemukan" });
-  res.json({ success: true, sale });
+exports.create = (req, res) => {
+  const { customer, tour_id, amount, date } = req.body;
+  db.prepare("INSERT INTO sales (customer,tour_id,amount,date) VALUES (?,?,?,?)").run(customer, tour_id, amount, date);
+  res.json({ success: true });
 };
 
-exports.createSale = (req, res) => {
-  const { customer, tourId, amount } = req.body;
-  if (!customer || !tourId || !amount) return res.status(400).json({ success: false, message: "Semua field wajib diisi" });
-  db.prepare("INSERT INTO sales (customer, tourId, amount) VALUES (?, ?, ?)").run(customer, tourId, amount);
-  res.json({ success: true, message: "Sales berhasil ditambahkan" });
+exports.update = (req, res) => {
+  const { id, customer, tour_id, amount, date } = req.body;
+  db.prepare("UPDATE sales SET customer=?, tour_id=?, amount=?, date=? WHERE id=?").run(customer, tour_id, amount, date, id);
+  res.json({ success: true });
 };
 
-exports.updateSale = (req, res) => {
-  const { customer, tourId, amount } = req.body;
-  db.prepare("UPDATE sales SET customer=?, tourId=?, amount=? WHERE id=?").run(customer, tourId, amount, req.params.id);
-  res.json({ success: true, message: "Sales berhasil diperbarui" });
-};
-
-exports.deleteSale = (req, res) => {
-  db.prepare("DELETE FROM sales WHERE id=?").run(req.params.id);
-  res.json({ success: true, message: "Sales berhasil dihapus" });
+exports.delete = (req, res) => {
+  const { id } = req.body;
+  db.prepare("DELETE FROM sales WHERE id=?").run(id);
+  res.json({ success: true });
 };
