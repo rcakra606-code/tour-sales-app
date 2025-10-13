@@ -3,7 +3,7 @@ const router = express.Router();
 const tourController = require("../controllers/tourController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-// Proteksi semua endpoint
+// Semua endpoint di bawah ini wajib token JWT
 router.use(authMiddleware);
 
 router.get("/", tourController.getAllTours);
