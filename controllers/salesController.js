@@ -1,53 +1,27 @@
 // controllers/salesController.js
 const db = require("../config/database");
 
-exports.getAll = (req, res) => {
-  db.all(
-    `SELECT sales.*, tours.name AS tour_name 
-     FROM sales 
-     LEFT JOIN tours ON sales.tour_id = tours.id
-     ORDER BY sales.id DESC`,
-    (err, rows) => {
-      if (err) return res.status(500).json({ message: "Gagal mengambil data penjualan." });
-      res.json(rows);
-    }
-  );
+exports.getAllSales = (req, res) => {
+  const sales = db.prepare(`
+    SELECT s.*, t.title AS tour_title
+    FROM sales s
+    LEFT JOIN tours t ON s.tour_id = t.id
+  `).all();
+  res.json(sales);
 };
 
-exports.create = (req, res) => {
-  const { tour_id, customer_name, amount, date } = req.body;
-  if (!tour_id || !customer_name || !amount) {
-    return res.status(400).json({ message: "Data tidak lengkap." });
-  }
+exports.createSale = (req, res) => {
+  const { tour_id, customer_name, total_amount, sale_date } = req.body;
 
-  db.run(
-    "INSERT INTO sales (tour_id, customer_name, amount, date) VALUES (?, ?, ?, ?)",
-    [tour_id, customer_name, amount, date || new Date().toISOString()],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Gagal menambah data penjualan." });
-      res.json({ success: true, id: this.lastID });
-    }
-  );
+  const result = db
+    .prepare("INSERT INTO sales (tour_id, customer_name, total_amount, sale_date) VALUES (?, ?, ?, ?)")
+    .run(tour_id, customer_name, total_amount, sale_date);
+
+  res.status(201).json({ message: "Penjualan berhasil ditambahkan", id: result.lastInsertRowid });
 };
 
-exports.update = (req, res) => {
-  const { id } = req.params;
-  const { tour_id, customer_name, amount, date } = req.body;
-
-  db.run(
-    "UPDATE sales SET tour_id=?, customer_name=?, amount=?, date=? WHERE id=?",
-    [tour_id, customer_name, amount, date, id],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Gagal memperbarui data." });
-      res.json({ success: true, changes: this.changes });
-    }
-  );
-};
-
-exports.remove = (req, res) => {
-  const { id } = req.params;
-  db.run("DELETE FROM sales WHERE id = ?", [id], function (err) {
-    if (err) return res.status(500).json({ message: "Gagal menghapus data." });
-    res.json({ success: true, deleted: this.changes });
-  });
+exports.deleteSale = (req, res) => {
+  const result = db.prepare("DELETE FROM sales WHERE id = ?").run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ message: "Penjualan tidak ditemukan" });
+  res.json({ message: "Penjualan berhasil dihapus" });
 };
