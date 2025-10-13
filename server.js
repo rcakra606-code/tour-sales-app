@@ -7,6 +7,7 @@ const helmet = require("helmet");
 const cors = require("cors");
 const http = require("http");
 const fs = require("fs");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
 // =====================================
@@ -69,23 +70,99 @@ app.use(
 );
 
 // =====================================
-// ✅ Static & Upload Directory Setup
+// ✅ Auto Initialize Database (better-sqlite3)
+// =====================================
+try {
+  const Database = require("better-sqlite3");
+  const dbPath = path.join(__dirname, "data", "database.sqlite");
+  const dataDir = path.dirname(dbPath);
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
+  const db = new Database(dbPath);
+  console.log("🗄️ Connected to SQLite:", dbPath);
+
+  // Create tables if not exist
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT,
+      role TEXT DEFAULT 'staff'
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS tours (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      location TEXT,
+      price REAL,
+      start_date TEXT,
+      end_date TEXT
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tour_id INTEGER,
+      customer_name TEXT,
+      amount REAL,
+      date TEXT,
+      FOREIGN KEY (tour_id) REFERENCES tours(id)
+    )
+  `).run();
+
+  // Default admin user
+  const admin = db.prepare("SELECT * FROM users WHERE username = ?").get("admin");
+  if (!admin) {
+    const hashed = bcrypt.hashSync("admin123", 10);
+    db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run(
+      "admin",
+      hashed,
+      "admin"
+    );
+    console.log("✅ Default admin created → username: admin | password: admin123");
+  } else {
+    console.log("ℹ️ Admin user already exists.");
+  }
+
+  db.close();
+} catch (err) {
+  console.error("❌ Database initialization error:", err.message);
+}
+
+// =====================================
+// ✅ Determine Routes Directory
+// =====================================
+let routesDir = path.join(__dirname, "routes");
+if (!fs.existsSync(routesDir)) {
+  const alt = path.join(__dirname, "src", "routes");
+  if (fs.existsSync(alt)) routesDir = alt;
+}
+console.log("📂 Using routes directory:", routesDir);
+
+// =====================================
+// ✅ Serve Static Files (Frontend + Uploads)
 // =====================================
 const publicDir = fs.existsSync(path.join(__dirname, "public"))
   ? path.join(__dirname, "public")
   : path.join(__dirname, "src", "public");
 
+// Static assets (js/css)
 app.use(
   "/js",
   express.static(path.join(publicDir, "js"), {
     setHeaders: (res, filePath) => {
-      if (filePath.endsWith(".js")) res.setHeader("Content-Type", "application/javascript");
+      if (filePath.endsWith(".js")) {
+        res.setHeader("Content-Type", "application/javascript");
+      }
     },
   })
 );
 app.use(express.static(publicDir));
 
-// ✅ Ensure uploads folder exists
+// ✅ Serve uploaded files
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 app.use("/uploads", express.static(uploadDir));
@@ -93,58 +170,65 @@ app.use("/uploads", express.static(uploadDir));
 // =====================================
 // ✅ Dynamic Route Loader
 // =====================================
-const routesDir = path.join(__dirname, "routes");
-
-const routeMap = {
-  "/api/auth": "auth",
-  "/api/tours": "tours",
-  "/api/sales": "sales",
-  "/api/dashboard": "dashboard",
-  "/api/uploads": "upload",
-};
-
-for (const [endpoint, file] of Object.entries(routeMap)) {
-  const routePath = path.join(routesDir, `${file}.js`);
-  if (fs.existsSync(routePath)) {
-    try {
-      const routeModule = require(routePath);
-      app.use(endpoint, routeModule);
+try {
+  const useRoute = (endpoint, file) => {
+    const routePath = path.join(routesDir, `${file}.js`);
+    if (fs.existsSync(routePath)) {
+      app.use(endpoint, require(routePath));
       console.log(`✅ Route loaded: ${endpoint} → ${routePath}`);
-    } catch (err) {
-      console.error(`❌ Gagal load route ${file}:`, err.message);
+    } else {
+      console.warn(`⚠️ Route file not found: ${routePath}`);
     }
-  } else {
-    console.warn(`⚠️ Route file not found: ${routePath}`);
-  }
+  };
+
+  useRoute("/api/auth", "auth");
+  useRoute("/api/tours", "tours");
+  useRoute("/api/sales", "sales");
+  useRoute("/api/dashboard", "dashboard");
+  useRoute("/api/uploads", "upload");
+} catch (err) {
+  console.error("❌ Failed to register routes:", err);
 }
 
 // =====================================
-// ✅ Health Check
+// ✅ Health Check (with DB status)
 // =====================================
 app.get("/api/health", (req, res) => {
+  let dbStatus = "Unknown";
+  try {
+    const Database = require("better-sqlite3");
+    const db = new Database(path.join(__dirname, "data", "database.sqlite"));
+    db.prepare("SELECT 1").get();
+    dbStatus = "OK";
+    db.close();
+  } catch {
+    dbStatus = "Error";
+  }
   res.json({
     status: "OK",
+    db: dbStatus,
+    node: process.version,
     environment: process.env.NODE_ENV || "development",
     time: new Date().toISOString(),
   });
 });
 
 // =====================================
-// ✅ 404 for API routes
+// ✅ 404 for API
 // =====================================
 app.use("/api", (req, res) => {
   res.status(404).json({ error: "API endpoint not found" });
 });
 
 // =====================================
-// ✅ SPA Fallback (index.html)
+// ✅ SPA Fallback
 // =====================================
 app.get("*", (req, res) => {
   res.sendFile(path.join(publicDir, "index.html"));
 });
 
 // =====================================
-// ✅ Start Server
+// ✅ Start Server (Render Compatible)
 // =====================================
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
