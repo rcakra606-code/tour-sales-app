@@ -1,107 +1,58 @@
-/**
- * Travel Dashboard Server
- * Backend API untuk manajemen Auth, Tours, Sales, Dashboard, dan Upload
- * Menggunakan: Express + Better-SQLite3 + JWT Auth
- */
-
 const express = require("express");
-const dotenv = require("dotenv");
+const path = require("path");
 const helmet = require("helmet");
 const cors = require("cors");
-const morgan = require("morgan");
-const winston = require("winston");
-const path = require("path");
+const http = require("http");
 const fs = require("fs");
+require("dotenv").config();
 
-// Load environment variables
-dotenv.config();
-
-// ==============================
-// 1️⃣ Inisialisasi Express App
-// ==============================
 const app = express();
-const PORT = process.env.PORT || 10000;
-
-// ==============================
-// 2️⃣ Konfigurasi Logger (Winston + Morgan)
-// ==============================
-const logDir = path.join(__dirname, "logs");
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
-
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.File({ filename: path.join(logDir, "error.log"), level: "error" }),
-    new winston.transports.File({ filename: path.join(logDir, "combined.log") }),
-  ],
-});
-if (process.env.NODE_ENV !== "production") {
-  logger.add(new winston.transports.Console({ format: winston.format.simple() }));
-}
-
-// Middleware logger HTTP
-app.use(morgan("dev"));
-
-// ==============================
-// 3️⃣ Middleware Utama
-// ==============================
-app.use(helmet());
-app.use(cors({ origin: "*", methods: "GET,POST,PUT,DELETE", allowedHeaders: "Content-Type,Authorization" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
-// ==============================
-// 4️⃣ Static Files
-// ==============================
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Helmet CSP relaxed
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false,
+  })
+);
 
-// ==============================
-// 5️⃣ Import Routes
-// ==============================
-const authRoutes = require("./routes/auth");
-const tourRoutes = require("./routes/tours");
-const salesRoutes = require("./routes/sales");
-const dashboardRoutes = require("./routes/dashboard");
-const uploadRoutes = require("./routes/upload");
+// ================= Serve Static =================
+const publicDir = path.join(__dirname, "public");
+app.use(express.static(publicDir));
 
-// ==============================
-// 6️⃣ Pasang Routes
-// ==============================
-app.use("/api/auth", authRoutes);
-app.use("/api/tours", tourRoutes);
-app.use("/api/sales", salesRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/uploads", uploadRoutes);
+// Upload folder
+const uploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+app.use("/uploads", express.static(uploadDir));
 
-// ==============================
-// 7️⃣ Middleware Error Handler
-// ==============================
-app.use((err, req, res, next) => {
-  logger.error(`${req.method} ${req.url} - ${err.message}`);
-  console.error("❌ ERROR:", err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-  });
+// ================= Routes =================
+const routes = [
+  ["auth", "/api/auth"],
+  ["tours", "/api/tours"],
+  ["sales", "/api/sales"],
+  ["dashboard", "/api/dashboard"],
+  ["upload", "/api/uploads"],
+];
+
+routes.forEach(([file, endpoint]) => {
+  const routePath = path.join(__dirname, "routes", `${file}.js`);
+  if (fs.existsSync(routePath)) {
+    app.use(endpoint, require(routePath));
+    console.log(`✅ Route loaded: ${endpoint}`);
+  } else console.warn(`⚠️ Route file not found: ${routePath}`);
 });
 
-// ==============================
-// 8️⃣ Route Not Found Handler
-// ==============================
-app.use((req, res) => {
-  res.status(404).json({ success: false, message: "API route not found" });
+// Health check
+app.get("/api/health", (_, res) => res.json({ status: "OK", time: new Date() }));
+
+// SPA fallback
+app.get("*", (_, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
 });
 
-// ==============================
-// 9️⃣ Jalankan Server
-// ==============================
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT} (${process.env.NODE_ENV || "development"})`);
-  console.log(`🌍 Visit: http://localhost:${PORT}`);
-});
-
-module.exports = app;
+// Start server
+const PORT = process.env.PORT || 3000;
+http.createServer(app).listen(PORT, () => console.log(`🌍 Server running on port ${PORT}`));
