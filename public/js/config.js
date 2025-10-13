@@ -1,21 +1,18 @@
 // ===============================
-// ✅ Global Configuration
+// ✅ Config dasar
 // ===============================
+const API_BASE = "/api"; // bisa ganti jika di deploy berbeda
 
-// Gunakan Immediately Invoked Function Expression (IIFE) agar aman dari duplikasi global
-(() => {
-  // Deteksi environment otomatis
-  const isLocal = window.location.origin.includes("localhost");
+function getToken() {
+  return localStorage.getItem("token");
+}
 
-  // Cegah duplikasi definisi APP_CONFIG
-  if (!window.APP_CONFIG) {
-    window.APP_CONFIG = {
-      API_BASE_URL: isLocal ? "http://localhost:3000" : window.location.origin,
-      ENV: isLocal ? "development" : "production",
-    };
+function setToken(token) {
+  localStorage.setItem("token", token);
+}
 
-    console.log(`✅ Config initialized for ${window.APP_CONFIG.ENV} mode`);
-  } else {
-    console.log("⚠️ APP_CONFIG already exists — skipping redefine");
-  }
-})();
+function removeToken() {
+  localStorage.removeItem("token");
+}
+
+export { API_BASE, getToken, setToken, removeToken };
