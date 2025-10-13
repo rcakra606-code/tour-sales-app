@@ -1,55 +1,30 @@
 const db = require("../config/database");
 
 exports.getAllTours = (req, res) => {
-  try {
-    const tours = db.prepare("SELECT * FROM tours ORDER BY id DESC").all();
-    res.json(tours);
-  } catch (err) {
-    console.error("❌ Error fetching tours:", err);
-    res.status(500).json({ message: "Gagal mengambil data tours." });
-  }
+  const tours = db.prepare("SELECT * FROM tours").all();
+  res.json({ success: true, tours });
+};
+
+exports.getTourById = (req, res) => {
+  const tour = db.prepare("SELECT * FROM tours WHERE id=?").get(req.params.id);
+  if (!tour) return res.status(404).json({ success: false, message: "Tour tidak ditemukan" });
+  res.json({ success: true, tour });
 };
 
 exports.createTour = (req, res) => {
-  try {
-    const { title, location, price, description, image } = req.body;
-    if (!title || !location || !price)
-      return res.status(400).json({ message: "Data tidak lengkap." });
-
-    const result = db
-      .prepare("INSERT INTO tours (title, location, price, description, image) VALUES (?, ?, ?, ?, ?)")
-      .run(title, location, price, description || "", image || null);
-
-    res.json({ success: true, id: result.lastInsertRowid });
-  } catch (err) {
-    console.error("❌ Error adding tour:", err);
-    res.status(500).json({ message: "Gagal menambah tour." });
-  }
+  const { title, description, price, date } = req.body;
+  if (!title || !description || !price || !date) return res.status(400).json({ success: false, message: "Semua field wajib diisi" });
+  db.prepare("INSERT INTO tours (title, description, price, date) VALUES (?, ?, ?, ?)").run(title, description, price, date);
+  res.json({ success: true, message: "Tour berhasil ditambahkan" });
 };
 
 exports.updateTour = (req, res) => {
-  try {
-    const id = req.params.id;
-    const { title, location, price, description, image } = req.body;
-
-    db.prepare(
-      "UPDATE tours SET title=?, location=?, price=?, description=?, image=? WHERE id=?"
-    ).run(title, location, price, description, image, id);
-
-    res.json({ success: true, message: "Tour berhasil diperbarui." });
-  } catch (err) {
-    console.error("❌ Error updating tour:", err);
-    res.status(500).json({ message: "Gagal memperbarui tour." });
-  }
+  const { title, description, price, date } = req.body;
+  db.prepare("UPDATE tours SET title=?, description=?, price=?, date=? WHERE id=?").run(title, description, price, date, req.params.id);
+  res.json({ success: true, message: "Tour berhasil diperbarui" });
 };
 
 exports.deleteTour = (req, res) => {
-  try {
-    const id = req.params.id;
-    db.prepare("DELETE FROM tours WHERE id=?").run(id);
-    res.json({ success: true, message: "Tour berhasil dihapus." });
-  } catch (err) {
-    console.error("❌ Error deleting tour:", err);
-    res.status(500).json({ message: "Gagal menghapus tour." });
-  }
+  db.prepare("DELETE FROM tours WHERE id=?").run(req.params.id);
+  res.json({ success: true, message: "Tour berhasil dihapus" });
 };
