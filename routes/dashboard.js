@@ -3,7 +3,9 @@ const router = express.Router();
 const dashboardController = require("../controllers/dashboardController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-router.get("/summary", authMiddleware, dashboardController.summary);
-router.get("/charts", authMiddleware, dashboardController.charts);
+// Semua dashboard harus login
+router.use(authMiddleware);
+
+router.get("/", dashboardController.getDashboardData);
 
 module.exports = router;
