@@ -1,11 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const dashboardController = require("../controllers/dashboardController");
+const { getDashboard } = require("../controllers/dashboardController");
 const authMiddleware = require("../middleware/authMiddleware");
 
-// Semua dashboard harus login
-router.use(authMiddleware);
-
-router.get("/", dashboardController.getDashboardData);
+router.get("/", authMiddleware, getDashboard);
 
 module.exports = router;
