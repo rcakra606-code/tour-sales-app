@@ -1,12 +1,12 @@
-// ===============================
-// ✅ Sales Handlers
-// ===============================
-window.loadSales = async function() {
-  try {
-    const data = await apiRequest("/sales");
-    console.log("Sales loaded:", data.sales);
-    // TODO: Render sales ke tabel atau chart sesuai kebutuhan
-  } catch (err) {
-    showErrorToast(err.message);
+window.sales = {
+  loadSales: async function () {
+    try {
+      const token = localStorage.getItem("token");
+      const data = await window.api.request("/api/sales", "GET", null, token);
+      console.log("Sales loaded:", data.sales);
+      // TODO: render ke table atau chart
+    } catch (err) {
+      window.auth.showError(err.message);
+    }
   }
 };
