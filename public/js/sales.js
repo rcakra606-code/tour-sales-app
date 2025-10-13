@@ -1,74 +1,100 @@
+// ===============================
+// ✅ Sales CRUD
+// ===============================
 window.Sales = {
-  loadSales: async function() {
-    try {
-      const data = await window.Api.get("/sales");
-      return data.sales || [];
-    } catch (err) {
-      console.error("Gagal load sales:", err);
-      return [];
-    }
+  list: async function() {
+    const res = await Api.request("/sales");
+    return res.data || [];
   },
-
-  createSale: async function(sale) {
-    return await window.Api.post("/sales", sale);
+  create: async function(data) {
+    return await Api.request("/sales", "POST", data);
   },
-
-  updateSale: async function(id, sale) {
-    return await window.Api.put(`/sales/${id}`, sale);
+  update: async function(id, data) {
+    return await Api.request("/sales/" + id, "PUT", data);
   },
-
-  deleteSale: async function(id) {
-    return await window.Api.delete(`/sales/${id}`);
-  },
-
-  bindForm: function(formId, resetBtnId) {
-    const form = document.getElementById(formId);
-    const resetBtn = document.getElementById(resetBtnId);
-
-    if (!form) return;
-
-    form.addEventListener("submit", async function(e) {
-      e.preventDefault();
-
-      const id = form.querySelector("#saleId")?.value;
-      const customer = form.querySelector("#customer")?.value.trim();
-      const amount = parseFloat(form.querySelector("#amount")?.value);
-      const date = form.querySelector("#saleDate")?.value;
-
-      if (!customer || !amount || !date) {
-        window.App.showErrorToast("Semua field harus diisi dengan benar");
-        return;
-      }
-
-      const saleData = { customer, amount, date };
-
-      try {
-        let res;
-        if (id) {
-          res = await window.Sales.updateSale(id, saleData);
-        } else {
-          res = await window.Sales.createSale(saleData);
-        }
-
-        if (res.success) {
-          window.App.showSuccessToast("Data sales berhasil disimpan");
-          form.reset();
-          if (form.querySelector("#saleId")) form.querySelector("#saleId").value = "";
-          window.App.init();
-        } else {
-          window.App.showErrorToast(res.message || "Gagal menyimpan sales");
-        }
-      } catch (err) {
-        console.error(err);
-        window.App.showErrorToast(err.message || "Error submit sales");
-      }
-    });
-
-    if (resetBtn) {
-      resetBtn.addEventListener("click", function() {
-        form.reset();
-        if (form.querySelector("#saleId")) form.querySelector("#saleId").value = "";
-      });
-    }
+  remove: async function(id) {
+    return await Api.request("/sales/" + id, "DELETE");
   }
 };
+
+// DOM Binding
+document.addEventListener("DOMContentLoaded", function() {
+  const salesForm = document.getElementById("salesForm");
+  const salesTable = document.getElementById("salesTable");
+  const resetBtn = document.getElementById("resetSalesBtn");
+
+  async function loadSales() {
+    if (!salesTable) return;
+    salesTable.innerHTML = "";
+    const sales = await window.Sales.list();
+    sales.forEach(s => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="p-2">${s.customer}</td>
+        <td class="p-2">${s.amount}</td>
+        <td class="p-2">${s.date}</td>
+        <td class="p-2 text-center">
+          <button onclick="window.Sales.edit(${s.id})" class="bg-yellow-400 px-2 py-1 rounded">Edit</button>
+          <button onclick="window.Sales.delete(${s.id})" class="bg-red-600 px-2 py-1 rounded text-white">Hapus</button>
+        </td>
+      `;
+      salesTable.appendChild(tr);
+    });
+  }
+
+  salesForm && salesForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = document.getElementById("saleId").value;
+    const data = {
+      customer: document.getElementById("customer").value.trim(),
+      amount: parseFloat(document.getElementById("amount").value),
+      date: document.getElementById("saleDate").value
+    };
+    try {
+      window.App.toggleLoading(true);
+      if (id) await window.Sales.update(id, data);
+      else await window.Sales.create(data);
+      window.App.showSuccessToast("Data tersimpan");
+      resetForm();
+      loadSales();
+    } catch(err) {
+      window.App.showErrorToast(err.message);
+    } finally {
+      window.App.toggleLoading(false);
+    }
+  });
+
+  resetBtn && resetBtn.addEventListener("click", resetForm);
+
+  function resetForm() {
+    document.getElementById("saleId").value = "";
+    document.getElementById("customer").value = "";
+    document.getElementById("amount").value = "";
+    document.getElementById("saleDate").value = "";
+  }
+
+  window.Sales.edit = function(id) {
+    const sale = Array.from(salesTable.children).find(r => r.dataset.id == id);
+    if (!sale) return;
+    document.getElementById("saleId").value = id;
+    document.getElementById("customer").value = sale.children[0].textContent;
+    document.getElementById("amount").value = sale.children[1].textContent;
+    document.getElementById("saleDate").value = sale.children[2].textContent;
+  }
+
+  window.Sales.delete = async function(id) {
+    if (!confirm("Hapus data ini?")) return;
+    try {
+      window.App.toggleLoading(true);
+      await window.Sales.remove(id);
+      window.App.showSuccessToast("Data dihapus");
+      loadSales();
+    } catch(err) {
+      window.App.showErrorToast(err.message);
+    } finally {
+      window.App.toggleLoading(false);
+    }
+  }
+
+  window.Sales.loadSales = loadSales;
+});
