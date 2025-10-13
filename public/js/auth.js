@@ -1,27 +1,22 @@
-import { apiFetch } from "./api.js";
-import { setToken, removeToken } from "./config.js";
-
-async function login(username, password) {
-  const res = await apiFetch("/auth/login", "POST", { username, password });
-  setToken(res.token);
-  localStorage.setItem("username", res.user.username);
-  return res.user;
-}
-
-function logout() {
-  removeToken();
-  localStorage.removeItem("username");
-  location.reload();
-}
-
-async function verifyToken() {
+// ===============================
+// ✅ Auth Handlers
+// ===============================
+window.loginUser = async function(username, password) {
   try {
-    const res = await apiFetch("/auth/verify");
-    return res.valid;
-  } catch {
-    logout();
-    return false;
+    const data = await apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("username", data.user.username);
+    return data;
+  } catch (err) {
+    throw err;
   }
-}
+};
 
-export { login, logout, verifyToken };
+window.logoutUser = function() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  window.location.reload();
+};
