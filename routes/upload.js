@@ -1,50 +1,30 @@
-// =====================================
-// ✅ Upload Routes
-// =====================================
-const express = require("express");
+// routes/upload.js
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const router = express.Router();
-const path = require("path");
-const fs = require("fs");
-const upload = require("../middleware/uploadValidator");
-const { authenticateToken } = require("../middleware/auth");
 
-// =====================================
-// ✅ POST /api/uploads (Upload File)
-// =====================================
-router.post("/", authenticateToken, upload.single("file"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "Tidak ada file yang diunggah." });
-    }
+const { getUploadMiddleware, hasMulter } = require('../middleware/uploadValidator');
 
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({
-      success: true,
-      message: "Upload berhasil.",
-      file: {
-        name: req.file.originalname,
-        type: req.file.mimetype,
-        size: req.file.size,
-        path: fileUrl,
-      },
-    });
-  } catch (err) {
-    console.error("❌ Upload error:", err);
-    res.status(500).json({ success: false, message: "Gagal mengunggah file." });
-  }
-});
+// pastikan folder uploads ada
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// =====================================
-// ✅ GET /api/uploads/:filename (Serve File)
-// =====================================
-router.get("/:filename", authenticateToken, (req, res) => {
-  const filePath = path.join(__dirname, "..", "uploads", req.params.filename);
+// jika multer tidak terpasang, getUploadMiddleware() akan mengembalikan middleware yang menolak request
+const uploadMiddleware = getUploadMiddleware();
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ success: false, message: "File tidak ditemukan." });
+// POST /api/uploads  (field: file)
+router.post('/', uploadMiddleware, (req, res) => {
+  // Jika multer tidak ada, middleware di atas sudah mengembalikan respons 501 dan route handler tidak dieksekusi.
+  // Jika multer ada dan sukses, file info berada di req.file
+  if (!hasMulter) return; // safety: seharusnya sudah dikirim 501
+
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'File tidak dikirim. Gunakan field "file".' });
   }
 
-  res.sendFile(filePath);
+  const publicPath = `/uploads/${path.basename(req.file.path)}`;
+  res.json({ success: true, file: { path: publicPath, originalname: req.file.originalname } });
 });
 
 module.exports = router;
