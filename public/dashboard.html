@@ -1,70 +1,144 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard | Travel Management</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-    <!-- Header -->
-    <header class="flex justify-between items-center bg-blue-600 text-white px-6 py-4 shadow">
-      <h1 class="text-xl font-semibold">Dashboard</h1>
-      <div class="flex items-center gap-3">
-        <button id="toggleTheme" class="px-3 py-1 rounded bg-blue-500 hover:bg-blue-700">🌙</button>
-        <button id="logout" class="px-3 py-1 rounded bg-red-500 hover:bg-red-600">Logout</button>
-      </div>
-    </header>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Tour & Sales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-7xl mx-auto mt-10 p-6">
 
-    <!-- Container -->
-    <main class="p-6 max-w-7xl mx-auto">
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <h2 class="text-sm text-gray-500 dark:text-gray-400">Total Penjualan</h2>
-          <p id="totalSales" class="text-3xl font-semibold text-blue-600 dark:text-blue-400">0</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <h2 class="text-sm text-gray-500 dark:text-gray-400">Total Tour</h2>
-          <p id="totalTours" class="text-3xl font-semibold text-green-600 dark:text-green-400">0</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <h2 class="text-sm text-gray-500 dark:text-gray-400">Tour Pending</h2>
-          <p id="pendingTours" class="text-3xl font-semibold text-yellow-500 dark:text-yellow-400">0</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <h2 class="text-sm text-gray-500 dark:text-gray-400">Total Pendapatan</h2>
-          <p id="totalRevenue" class="text-3xl font-semibold text-purple-600 dark:text-purple-400">Rp 0</p>
-        </div>
-      </div>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">📊 Dashboard Tour & Sales</h1>
+      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Logout</button>
+    </div>
 
-      <!-- Chart Section -->
-      <section class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow mb-8">
-        <h3 class="text-lg font-semibold mb-4">Grafik Penjualan Mingguan</h3>
-        <canvas id="salesChart" height="120"></canvas>
-      </section>
+    <p id="userInfo" class="mb-4 text-gray-700"></p>
 
-      <!-- Recent Tours -->
-      <section class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow">
-        <h3 class="text-lg font-semibold mb-4">Tour Terbaru</h3>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
-              <tr>
-                <th class="py-2 px-4 text-left">Lead Passenger</th>
-                <th class="py-2 px-4 text-left">Tour Code</th>
-                <th class="py-2 px-4 text-left">Region</th>
-                <th class="py-2 px-4 text-left">Tanggal Keberangkatan</th>
-                <th class="py-2 px-4 text-right">Harga</th>
-              </tr>
-            </thead>
-            <tbody id="tourTable" class="divide-y dark:divide-gray-700"></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+    <!-- Menu Admin / Staff -->
+    <div class="flex gap-4 mb-6">
+      <button class="nav-item bg-blue-600 text-white px-4 py-2 rounded" onclick="showPage('tourData')">Data Tour</button>
+      <button class="nav-item bg-green-600 text-white px-4 py-2 rounded" onclick="showPage('salesData')">Data Sales</button>
+    </div>
 
-    <script src="/js/dashboard.js"></script>
-  </body>
+    <!-- ===================== PAGES ===================== -->
+    <div id="tourData" class="hidden">
+      <h2 class="text-2xl font-bold mb-4">📅 Data Tour</h2>
+      <table class="w-full border mb-6">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 text-left">Judul</th>
+            <th class="p-2 text-left">Deskripsi</th>
+            <th class="p-2 text-left">Harga</th>
+            <th class="p-2 text-left">Tanggal</th>
+            <th class="p-2 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tourTable"></tbody>
+      </table>
+
+      <canvas id="tourChart" height="100"></canvas>
+    </div>
+
+    <div id="salesData" class="hidden">
+      <h2 class="text-2xl font-bold mb-4">💼 Data Sales</h2>
+      <table class="w-full border mb-6">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 text-left">Customer</th>
+            <th class="p-2 text-left">Produk</th>
+            <th class="p-2 text-left">Jumlah</th>
+            <th class="p-2 text-left">Tanggal</th>
+            <th class="p-2 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="salesTable"></tbody>
+      </table>
+
+      <canvas id="salesChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/tours.js"></script>
+  <script src="/js/sales.js"></script>
+  <script src="/js/app.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const token = localStorage.getItem('token');
+      const userInfo = document.getElementById('userInfo');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      if (!token) {
+        window.location.href = '/';
+        return;
+      }
+
+      // Tampilkan info user
+      const username = localStorage.getItem('username') || 'User';
+      userInfo.textContent = `Selamat datang, ${username}`;
+
+      // Logout
+      logoutBtn?.addEventListener('click', () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        window.location.reload();
+      });
+
+      // Load data awal
+      await loadTours();
+      await loadSales();
+      await loadTourChart();
+      await loadSalesChart();
+    });
+
+    // ===================== PAGE NAVIGATION =====================
+    function showPage(page) {
+      const pages = { tourData: 'tourData', salesData: 'salesData' };
+      Object.values(pages).forEach(id => document.getElementById(id)?.classList.add('hidden'));
+      document.getElementById(pages[page])?.classList.remove('hidden');
+    }
+
+    // ===================== TOUR CHART =====================
+    let tourChartInstance = null;
+    async function loadTourChart() {
+      try {
+        const tours = await apiRequest('/tours');
+        const labels = tours.map(t => t.date);
+        const prices = tours.map(t => t.price);
+
+        const ctx = document.getElementById('tourChart').getContext('2d');
+        if (tourChartInstance) tourChartInstance.destroy();
+
+        tourChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Harga Tour (Rp)',
+              data: prices,
+              backgroundColor: 'rgba(59, 130, 246, 0.6)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true, title: { display: true, text: 'Harga (Rp)' } },
+              x: { title: { display: true, text: 'Tanggal' } }
+            }
+          }
+        });
+      } catch (err) {
+        showErrorToast("Gagal memuat chart tour: " + err.message);
+      }
+    }
+  </script>
+</body>
 </html>
