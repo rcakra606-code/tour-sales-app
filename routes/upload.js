@@ -1,22 +1,18 @@
-// routes/upload.js
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
 
-const { getUploadMiddleware, hasMulter } = require("../middleware/uploadValidator");
+const uploadDir = path.join(__dirname, "..", "uploads");
+const storage = multer.diskStorage({
+  destination: (_, __, cb) => cb(null, uploadDir),
+  filename: (_, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const upload = multer({ storage });
 
-const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const uploadMiddleware = getUploadMiddleware();
-
-router.post("/", uploadMiddleware, (req, res) => {
-  if (!hasMulter) return;
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'File tidak dikirim. Gunakan field "file".' });
-  }
-  const publicPath = `/uploads/${path.basename(req.file.path)}`;
+router.post("/", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false, message: "File tidak dikirim" });
+  const publicPath = `/uploads/${req.file.filename}`;
   res.json({ success: true, file: { path: publicPath, originalname: req.file.originalname } });
 });
 
