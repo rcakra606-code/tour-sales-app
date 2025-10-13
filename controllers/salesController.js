@@ -1,33 +1,89 @@
-const Database = require("better-sqlite3");
-const db = new Database("./data/travel.db");
+// src/controllers/salesController.js
+const db = require("../config/database");
 
-db.prepare(`CREATE TABLE IF NOT EXISTS sales (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  customer TEXT,
-  tour_id INTEGER,
-  amount REAL,
-  date TEXT
-)`).run();
+console.log("✅ SalesController loaded, using database from:", require.resolve("../config/database"));
 
-exports.getAll = (req, res) => {
-  const sales = db.prepare("SELECT * FROM sales").all();
-  res.json(sales);
+// =====================================
+// GET ALL SALES
+// =====================================
+exports.getAllSales = (req, res) => {
+  try {
+    const stmt = db.prepare("SELECT * FROM sales ORDER BY id DESC");
+    const sales = stmt.all();
+    res.json({ success: true, data: sales });
+  } catch (err) {
+    console.error("❌ Failed to fetch sales:", err);
+    res.status(500).json({ success: false, message: "Gagal mengambil data sales." });
+  }
 };
 
-exports.create = (req, res) => {
-  const { customer, tour_id, amount, date } = req.body;
-  db.prepare("INSERT INTO sales (customer,tour_id,amount,date) VALUES (?,?,?,?)").run(customer, tour_id, amount, date);
-  res.json({ success: true });
+// =====================================
+// CREATE NEW SALE
+// =====================================
+exports.createSale = (req, res) => {
+  try {
+    const { name, email, target, achieved } = req.body;
+
+    if (!name || !email || target == null || achieved == null) {
+      return res.status(400).json({ success: false, message: "Semua field wajib diisi." });
+    }
+
+    const stmt = db.prepare(
+      "INSERT INTO sales (name, email, target, achieved) VALUES (?, ?, ?, ?)"
+    );
+    stmt.run(name, email, target, achieved);
+
+    res.json({ success: true, message: "Sales berhasil ditambahkan." });
+  } catch (err) {
+    console.error("❌ Failed to create sale:", err);
+    res.status(500).json({ success: false, message: "Gagal menambahkan data sales." });
+  }
 };
 
-exports.update = (req, res) => {
-  const { id, customer, tour_id, amount, date } = req.body;
-  db.prepare("UPDATE sales SET customer=?, tour_id=?, amount=?, date=? WHERE id=?").run(customer, tour_id, amount, date, id);
-  res.json({ success: true });
+// =====================================
+// UPDATE SALE (optional)
+// =====================================
+exports.updateSale = (req, res) => {
+  try {
+    const { id, name, email, target, achieved } = req.body;
+    if (!id || !name || !email || target == null || achieved == null) {
+      return res.status(400).json({ success: false, message: "Semua field wajib diisi." });
+    }
+
+    const stmt = db.prepare(
+      "UPDATE sales SET name=?, email=?, target=?, achieved=? WHERE id=?"
+    );
+    const info = stmt.run(name, email, target, achieved, id);
+
+    if (info.changes === 0) {
+      return res.status(404).json({ success: false, message: "Data sales tidak ditemukan." });
+    }
+
+    res.json({ success: true, message: "Sales berhasil diperbarui." });
+  } catch (err) {
+    console.error("❌ Failed to update sale:", err);
+    res.status(500).json({ success: false, message: "Gagal memperbarui data sales." });
+  }
 };
 
-exports.delete = (req, res) => {
-  const { id } = req.body;
-  db.prepare("DELETE FROM sales WHERE id=?").run(id);
-  res.json({ success: true });
+// =====================================
+// DELETE SALE
+// =====================================
+exports.deleteSale = (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ success: false, message: "ID wajib disertakan." });
+
+    const stmt = db.prepare("DELETE FROM sales WHERE id=?");
+    const info = stmt.run(id);
+
+    if (info.changes === 0) {
+      return res.status(404).json({ success: false, message: "Data sales tidak ditemukan." });
+    }
+
+    res.json({ success: true, message: "Sales berhasil dihapus." });
+  } catch (err) {
+    console.error("❌ Failed to delete sale:", err);
+    res.status(500).json({ success: false, message: "Gagal menghapus data sales." });
+  }
 };
