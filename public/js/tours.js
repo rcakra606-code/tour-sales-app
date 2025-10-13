@@ -1,45 +1,109 @@
-// public/js/login.js
-import { apiPost } from "./api.js";
+// public/js/tours.js
+import { apiGet, apiPost, apiPut, apiDelete } from "./api.js";
 
-const form = document.getElementById("loginForm");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
+const token = localStorage.getItem("token");
+if (!token) console.warn("Token not found, tour API will fail");
 
-// ==============================
-// Toast helper
-// ==============================
-function showToast(msg, type = "success") {
-  const div = document.createElement("div");
-  div.textContent = msg;
-  div.className = `fixed top-4 right-4 px-4 py-2 rounded text-white z-50 ${type === "error" ? "bg-red-500" : "bg-green-600"}`;
-  document.body.appendChild(div);
-  setTimeout(() => div.remove(), 3000);
+const form = document.getElementById("tourForm");
+const resetBtn = document.getElementById("resetBtn");
+const tableBody = document.getElementById("tourTable");
+
+const idInput = document.getElementById("tourId");
+const titleInput = document.getElementById("title");
+const descInput = document.getElementById("description");
+const priceInput = document.getElementById("price");
+const dateInput = document.getElementById("date");
+
+// =====================
+// ✅ Load Tours
+// =====================
+export async function loadTours() {
+  const data = await apiGet("/tours", token);
+  tableBody.innerHTML = "";
+  if (!data.success) return console.error("Gagal load tours");
+
+  data.tours.forEach(t => {
+    const tr = document.createElement("tr");
+    tr.className = "border-b";
+    tr.innerHTML = `
+      <td class="p-2">${t.title}</td>
+      <td class="p-2">${t.description || "-"}</td>
+      <td class="p-2">Rp ${t.price?.toLocaleString("id-ID")}</td>
+      <td class="p-2">${t.date || "-"}</td>
+      <td class="p-2 text-center">
+        <button onclick="editTour(${t.id})" class="text-blue-500 hover:underline">Edit</button>
+        <button onclick="deleteTour(${t.id})" class="text-red-500 hover:underline ml-2">Hapus</button>
+      </td>
+    `;
+    tableBody.appendChild(tr);
+  });
 }
 
-// ==============================
-// Submit Login Form
-// ==============================
-form.addEventListener("submit", async (e) => {
+// =====================
+// ✅ Create/Update Tour
+// =====================
+async function handleFormSubmit(e) {
   e.preventDefault();
-
+  const id = idInput.value;
   const payload = {
-    username: usernameInput.value.trim(),
-    password: passwordInput.value.trim(),
+    title: titleInput.value.trim(),
+    description: descInput.value.trim(),
+    price: parseFloat(priceInput.value),
+    date: dateInput.value
   };
 
-  try {
-    const res = await apiPost("/auth/login", payload);
-    if (!res.success) return showToast(res.message || "Login gagal", "error");
-
-    // ✅ Simpan token dan user info di localStorage
-    localStorage.setItem("token", res.token);
-    localStorage.setItem("user", JSON.stringify(res.user));
-
-    showToast(res.message || "Login berhasil");
-
-    // Redirect ke halaman tours/dashboard
-    window.location.href = "/tours.html";
-  } catch (err) {
-    showToast(err.message, "error");
+  let data;
+  if (id) {
+    data = await apiPut(`/tours/${id}`, payload, token);
+  } else {
+    data = await apiPost("/tours", payload, token);
   }
+
+  if (data.success) {
+    form.reset();
+    idInput.value = "";
+    loadTours();
+    alert(data.message || "Berhasil disimpan");
+  } else {
+    alert(data.message || "Gagal menyimpan");
+  }
+}
+
+form.addEventListener("submit", handleFormSubmit);
+
+// =====================
+// ✅ Edit Tour
+// =====================
+window.editTour = async (id) => {
+  const data = await apiGet(`/tours/${id}`, token);
+  if (!data.success) return alert("Gagal load tour");
+
+  const t = data.tour;
+  idInput.value = t.id;
+  titleInput.value = t.title;
+  descInput.value = t.description;
+  priceInput.value = t.price;
+  dateInput.value = t.date;
+};
+
+// =====================
+// ✅ Delete Tour
+// =====================
+window.deleteTour = async (id) => {
+  if (!confirm("Yakin ingin menghapus tour ini?")) return;
+  const data = await apiDelete(`/tours/${id}`, token);
+  if (data.success) {
+    loadTours();
+    alert("Tour dihapus");
+  } else {
+    alert(data.message || "Gagal menghapus tour");
+  }
+};
+
+// =====================
+// ✅ Reset Form
+// =====================
+resetBtn.addEventListener("click", () => {
+  form.reset();
+  idInput.value = "";
 });
