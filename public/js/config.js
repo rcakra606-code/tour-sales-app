@@ -1,4 +1,8 @@
-// ✅ Config API Base URL
-window.AppConfig = {
-  apiBase: "/api"
+// ===============================
+// ✅ Config & Base URL
+// ===============================
+window.Config = {
+  apiBase: "/api", // endpoint base API
+  tokenKey: "token",
+  usernameKey: "username"
 };
