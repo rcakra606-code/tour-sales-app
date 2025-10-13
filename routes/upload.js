@@ -3,36 +3,25 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const router = express.Router();
-
 const { getUploadMiddleware, hasMulter } = require("../middleware/uploadValidator");
-const authMiddleware = require("../middleware/authMiddleware"); // ✅ tambahan proteksi JWT
+const authMiddleware = require("../middleware/authMiddleware");
 
-// pastikan folder uploads ada
 const UPLOAD_DIR = path.join(__dirname, "..", "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-// setup upload middleware (fallback otomatis kalau multer tidak ada)
 const uploadMiddleware = getUploadMiddleware();
 
-// ==========================
-// ✅ Upload Route (JWT Protected)
-// ==========================
 router.post("/", authMiddleware, uploadMiddleware, (req, res) => {
-  if (!hasMulter) return; // safety
+  if (!hasMulter) return;
 
   if (!req.file) {
-    return res
-      .status(400)
-      .json({ success: false, message: 'File tidak dikirim. Gunakan field "file".' });
+    return res.status(400).json({ success: false, message: "File tidak dikirim. Gunakan field 'file'." });
   }
 
   const publicPath = `/uploads/${path.basename(req.file.path)}`;
   res.json({
     success: true,
-    file: {
-      path: publicPath,
-      originalname: req.file.originalname,
-    },
+    file: { path: publicPath, originalname: req.file.originalname },
   });
 });
 
