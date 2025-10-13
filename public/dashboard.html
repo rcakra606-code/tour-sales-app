@@ -1,144 +1,185 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard Tour & Sales</title>
+  <title>Tour & Sales Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { box-sizing: border-box; }
+    .error-animation { animation: shake 0.5s ease-in-out; }
+    @keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
+    .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width:30px; height:30px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+  </style>
 </head>
-<body class="bg-gray-100">
-  <div class="max-w-7xl mx-auto mt-10 p-6">
+<body class="h-full bg-gray-50">
 
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold">📊 Dashboard Tour & Sales</h1>
-      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Logout</button>
-    </div>
-
-    <p id="userInfo" class="mb-4 text-gray-700"></p>
-
-    <!-- Menu Admin / Staff -->
-    <div class="flex gap-4 mb-6">
-      <button class="nav-item bg-blue-600 text-white px-4 py-2 rounded" onclick="showPage('tourData')">Data Tour</button>
-      <button class="nav-item bg-green-600 text-white px-4 py-2 rounded" onclick="showPage('salesData')">Data Sales</button>
-    </div>
-
-    <!-- ===================== PAGES ===================== -->
-    <div id="tourData" class="hidden">
-      <h2 class="text-2xl font-bold mb-4">📅 Data Tour</h2>
-      <table class="w-full border mb-6">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 text-left">Judul</th>
-            <th class="p-2 text-left">Deskripsi</th>
-            <th class="p-2 text-left">Harga</th>
-            <th class="p-2 text-left">Tanggal</th>
-            <th class="p-2 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tourTable"></tbody>
-      </table>
-
-      <canvas id="tourChart" height="100"></canvas>
-    </div>
-
-    <div id="salesData" class="hidden">
-      <h2 class="text-2xl font-bold mb-4">💼 Data Sales</h2>
-      <table class="w-full border mb-6">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 text-left">Customer</th>
-            <th class="p-2 text-left">Produk</th>
-            <th class="p-2 text-left">Jumlah</th>
-            <th class="p-2 text-left">Tanggal</th>
-            <th class="p-2 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="salesTable"></tbody>
-      </table>
-
-      <canvas id="salesChart" height="100"></canvas>
+  <!-- ================= LOADING OVERLAY ================= -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+      <div class="loading-spinner mx-auto mb-4"></div>
+      <p class="text-gray-600">Memuat...</p>
     </div>
   </div>
 
+  <!-- ================= TOASTS ================= -->
+  <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
+    <div class="flex items-center">
+      <span class="mr-2">❌</span>
+      <span id="errorMessage">Terjadi kesalahan</span>
+      <button id="closeErrorToast" class="ml-4 text-white hover:text-gray-200">✕</button>
+    </div>
+  </div>
+
+  <div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center">
+      <span class="mr-2">✅</span>
+      <span id="successMessage">Berhasil</span>
+      <button id="closeSuccessToast" class="ml-4 text-white hover:text-gray-200">✕</button>
+    </div>
+  </div>
+
+  <!-- ================= LOGIN PAGE ================= -->
+  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+      <div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Masuk ke Sistem</h2>
+        <p class="mt-2 text-center text-sm text-gray-600">Tour & Sales Management Dashboard</p>
+      </div>
+
+      <form id="loginForm" class="mt-8 space-y-6">
+        <div class="rounded-md shadow-sm -space-y-px">
+          <div>
+            <input id="username" name="username" type="text" required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
+              placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500
+              focus:border-blue-500 focus:z-10 sm:text-sm"
+              placeholder="Username" />
+          </div>
+          <div>
+            <input id="password" name="password" type="password" required
+              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
+              placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500
+              focus:border-blue-500 focus:z-10 sm:text-sm"
+              placeholder="Password" />
+          </div>
+        </div>
+
+        <div>
+          <button type="submit"
+            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm
+            font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2
+            focus:ring-offset-2 focus:ring-blue-500">
+            Masuk
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP ================= -->
+  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-start bg-gray-100 py-6">
+
+    <!-- Header + Logout -->
+    <div class="bg-white shadow-lg rounded-lg p-4 w-full max-w-6xl flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-gray-800" id="pageTitle">Dashboard</h1>
+      <div>
+        <span class="mr-4" id="userInfo">Memuat...</span>
+        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">Logout</button>
+      </div>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <div class="max-w-6xl w-full flex gap-6 mb-6">
+      <button onclick="showPage('dashboard')" class="bg-blue-500 text-white px-4 py-2 rounded">Dashboard Tour</button>
+      <button onclick="showPage('tourDataEntry')" class="bg-blue-500 text-white px-4 py-2 rounded">Input Tour</button>
+      <div id="salesMenuItems" class="hidden">
+        <button onclick="showPage('salesDashboard')" class="bg-green-500 text-white px-4 py-2 rounded">Dashboard Sales</button>
+        <button onclick="showPage('salesDataEntry')" class="bg-green-500 text-white px-4 py-2 rounded">Input Sales</button>
+      </div>
+    </div>
+
+    <!-- ================= DASHBOARD PAGES ================= -->
+    <div class="max-w-6xl w-full">
+
+      <!-- Tour Dashboard -->
+      <div id="dashboardPage" class="bg-white p-6 rounded-lg shadow mb-6">
+        <h2 class="text-xl font-bold mb-4">Daftar Tour</h2>
+        <table class="w-full border">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="p-2 text-left">Judul</th>
+              <th class="p-2 text-left">Deskripsi</th>
+              <th class="p-2 text-left">Harga</th>
+              <th class="p-2 text-left">Tanggal</th>
+              <th class="p-2 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tourTable"></tbody>
+        </table>
+      </div>
+
+      <!-- Tour Input -->
+      <div id="tourDataEntryPage" class="hidden bg-white p-6 rounded-lg shadow mb-6">
+        <h2 class="text-xl font-bold mb-4">Tambah / Edit Tour</h2>
+        <form id="tourForm" class="space-y-3">
+          <input type="hidden" id="tourId">
+          <input type="text" id="title" placeholder="Judul Tour" class="border p-2 w-full rounded">
+          <input type="text" id="description" placeholder="Deskripsi" class="border p-2 w-full rounded">
+          <input type="number" id="price" placeholder="Harga (Rp)" class="border p-2 w-full rounded">
+          <input type="date" id="date" class="border p-2 w-full rounded">
+          <div class="flex justify-end gap-2">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+            <button type="button" id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Sales Dashboard -->
+      <div id="salesDashboardPage" class="hidden bg-white p-6 rounded-lg shadow mb-6">
+        <h2 class="text-xl font-bold mb-4">Daftar Sales</h2>
+        <table class="w-full border">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="p-2 text-left">Nama Sales</th>
+              <th class="p-2 text-left">Email</th>
+              <th class="p-2 text-left">Target</th>
+              <th class="p-2 text-left">Tercapai</th>
+              <th class="p-2 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="salesTable"></tbody>
+        </table>
+      </div>
+
+      <!-- Sales Input -->
+      <div id="salesDataEntryPage" class="hidden bg-white p-6 rounded-lg shadow mb-6">
+        <h2 class="text-xl font-bold mb-4">Tambah / Edit Sales</h2>
+        <form id="salesForm" class="space-y-3">
+          <input type="hidden" id="salesId">
+          <input type="text" id="salesName" placeholder="Nama Sales" class="border p-2 w-full rounded">
+          <input type="email" id="salesEmail" placeholder="Email" class="border p-2 w-full rounded">
+          <input type="number" id="salesTarget" placeholder="Target (Rp)" class="border p-2 w-full rounded">
+          <input type="number" id="salesAchieved" placeholder="Tercapai (Rp)" class="border p-2 w-full rounded">
+          <div class="flex justify-end gap-2">
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Simpan</button>
+            <button type="button" id="salesResetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= JS FILES ================= -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/tours.js"></script>
   <script src="/js/sales.js"></script>
   <script src="/js/app.js"></script>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      const token = localStorage.getItem('token');
-      const userInfo = document.getElementById('userInfo');
-      const logoutBtn = document.getElementById('logoutBtn');
-
-      if (!token) {
-        window.location.href = '/';
-        return;
-      }
-
-      // Tampilkan info user
-      const username = localStorage.getItem('username') || 'User';
-      userInfo.textContent = `Selamat datang, ${username}`;
-
-      // Logout
-      logoutBtn?.addEventListener('click', () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('username');
-        window.location.reload();
-      });
-
-      // Load data awal
-      await loadTours();
-      await loadSales();
-      await loadTourChart();
-      await loadSalesChart();
-    });
-
-    // ===================== PAGE NAVIGATION =====================
-    function showPage(page) {
-      const pages = { tourData: 'tourData', salesData: 'salesData' };
-      Object.values(pages).forEach(id => document.getElementById(id)?.classList.add('hidden'));
-      document.getElementById(pages[page])?.classList.remove('hidden');
-    }
-
-    // ===================== TOUR CHART =====================
-    let tourChartInstance = null;
-    async function loadTourChart() {
-      try {
-        const tours = await apiRequest('/tours');
-        const labels = tours.map(t => t.date);
-        const prices = tours.map(t => t.price);
-
-        const ctx = document.getElementById('tourChart').getContext('2d');
-        if (tourChartInstance) tourChartInstance.destroy();
-
-        tourChartInstance = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Harga Tour (Rp)',
-              data: prices,
-              backgroundColor: 'rgba(59, 130, 246, 0.6)',
-              borderColor: 'rgba(59, 130, 246, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              y: { beginAtZero: true, title: { display: true, text: 'Harga (Rp)' } },
-              x: { title: { display: true, text: 'Tanggal' } }
-            }
-          }
-        });
-      } catch (err) {
-        showErrorToast("Gagal memuat chart tour: " + err.message);
-      }
-    }
-  </script>
 </body>
 </html>
