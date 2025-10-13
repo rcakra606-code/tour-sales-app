@@ -1,5 +1,5 @@
 // =====================================
-// ✅ Upload Middleware (Render-safe)
+// ✅ Upload Middleware (Validator)
 // =====================================
 const multer = require("multer");
 const path = require("path");
@@ -7,34 +7,42 @@ const fs = require("fs");
 
 // Pastikan folder upload tersedia
 const uploadDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log("📂 Created upload directory:", uploadDir);
+}
 
-// Konfigurasi penyimpanan file
+// =====================================
+// ✅ Storage Configuration
+// =====================================
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, `${uniqueSuffix}-${file.originalname}`);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
-// Filter jenis file yang diizinkan
+// =====================================
+// ✅ File Filter
+// =====================================
+const allowedTypes = [".png", ".jpg", ".jpeg", ".pdf", ".docx"];
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "application/pdf",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ];
-  if (allowedTypes.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Tipe file tidak diizinkan. Hanya JPG, PNG, PDF, dan Excel."), false);
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (!allowedTypes.includes(ext)) {
+    return cb(new Error("Tipe file tidak diizinkan."), false);
+  }
+  cb(null, true);
 };
 
-// Inisialisasi multer
+// =====================================
+// ✅ Upload Middleware Export
+// =====================================
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // maksimal 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // Maks 5MB
   fileFilter,
 });
 
