@@ -1,11 +1,10 @@
-// =====================================
-// ✅ Dashboard Routes
-// =====================================
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/dashboardController");
+const dashboardController = require("../controllers/dashboardController");
+const authMiddleware = require("../middleware/authMiddleware");
 
-// Jalur dashboard data
-router.get("/", controller.getDashboardData);
+router.use(authMiddleware);
+
+router.get("/", dashboardController.getStats);
 
 module.exports = router;
