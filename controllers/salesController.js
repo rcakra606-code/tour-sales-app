@@ -1,27 +1,39 @@
-// controllers/salesController.js
 const db = require("../config/database");
 
-exports.getAllSales = (req, res) => {
-  const sales = db.prepare(`
-    SELECT s.*, t.title AS tour_title
-    FROM sales s
-    LEFT JOIN tours t ON s.tour_id = t.id
-  `).all();
-  res.json(sales);
+exports.getSales = (req, res) => {
+  try {
+    const rows = db.prepare(`
+      SELECT s.*, t.title AS tour_title
+      FROM sales s
+      LEFT JOIN tours t ON s.tour_id = t.id
+      ORDER BY s.date DESC
+    `).all();
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error fetching sales:", err);
+    res.status(500).json({ message: "Gagal mengambil data sales." });
+  }
 };
 
-exports.createSale = (req, res) => {
-  const { tour_id, customer_name, total_amount, sale_date } = req.body;
+exports.addSale = (req, res) => {
+  try {
+    const { tour_id, amount, created_by } = req.body;
+    if (!tour_id || !amount)
+      return res.status(400).json({ message: "Data tidak lengkap." });
 
-  const result = db
-    .prepare("INSERT INTO sales (tour_id, customer_name, total_amount, sale_date) VALUES (?, ?, ?, ?)")
-    .run(tour_id, customer_name, total_amount, sale_date);
+    const result = db
+      .prepare("INSERT INTO sales (tour_id, amount, created_by) VALUES (?, ?, ?)")
+      .run(tour_id, amount, created_by || "system");
 
-  res.status(201).json({ message: "Penjualan berhasil ditambahkan", id: result.lastInsertRowid });
+    res.json({ success: true, id: result.lastInsertRowid });
+  } catch (err) {
+    console.error("❌ Error adding sale:", err);
+    res.status(500).json({ message: "Gagal menambah data sales." });
+  }
 };
 
 exports.deleteSale = (req, res) => {
-  const result = db.prepare("DELETE FROM sales WHERE id = ?").run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ message: "Penjualan tidak ditemukan" });
-  res.json({ message: "Penjualan berhasil dihapus" });
-};
+  try {
+    const id = req.params.id;
+    db.prepare("DELETE FROM sales WHERE id = ?").run(id);
+    res.json({ success: true, message
