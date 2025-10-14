@@ -1,3 +1,4 @@
+// controllers/authController.js
 const db = require("../config/database");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -11,7 +12,6 @@ exports.register = (req, res) => {
       INSERT INTO users (name, email, password, role)
       VALUES (?, ?, ?, ?)
     `);
-
     insert.run(name, email, hashed, role || "staff");
 
     res.status(201).json({ message: "User registered successfully" });
