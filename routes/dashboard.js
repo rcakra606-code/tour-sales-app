@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authenticateToken } = require("../middleware/authMiddleware");
-const db = require("../config/db");
+const db = require("../config/database");
 
 // === Dashboard Summary ===
 router.get("/", authenticateToken, async (req, res) => {
