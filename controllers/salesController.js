@@ -1,19 +1,20 @@
 const db = require("../config/database");
 
-module.exports = {
-  getSales: (req, res) => {
-    try {
-      const sales = db.prepare("SELECT * FROM sales").all();
-      res.json({ success: true, data: sales });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
-  },
+exports.getAllSales = (req, res) => {
+  db.all(`SELECT * FROM sales ORDER BY date DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ message: err.message });
+    res.json(rows);
+  });
+};
 
-  createSale: (req, res) => {
-    const { tourId, amount, date } = req.body;
-    if (!tourId || !amount || !date) return res.status(400).json({ message: "Semua field wajib diisi." });
-    db.prepare("INSERT INTO sales (tourId, amount, date) VALUES (?,?,?)").run(tourId, amount, date);
-    res.json({ success: true, message: "Data sales berhasil ditambahkan." });
-  }
+exports.createSale = (req, res) => {
+  const { customer, tourId, amount } = req.body;
+  db.run(
+    `INSERT INTO sales (customer, tourId, amount, date) VALUES (?, ?, ?, datetime('now'))`,
+    [customer, tourId, amount],
+    function (err) {
+      if (err) return res.status(500).json({ message: err.message });
+      res.json({ id: this.lastID, customer, tourId, amount });
+    }
+  );
 };
