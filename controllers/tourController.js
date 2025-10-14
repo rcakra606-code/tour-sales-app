@@ -1,19 +1,28 @@
 const db = require("../config/database");
 
-module.exports = {
-  getTours: (req, res) => {
-    try {
-      const tours = db.prepare("SELECT * FROM tours").all();
-      res.json({ success: true, data: tours });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
-    }
-  },
+exports.getAllTours = (req, res) => {
+  db.all(`SELECT * FROM tours ORDER BY date DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ message: err.message });
+    res.json(rows);
+  });
+};
 
-  createTour: (req, res) => {
-    const { title, description, price, date } = req.body;
-    if (!title || !description || !price || !date) return res.status(400).json({ message: "Semua field wajib diisi." });
-    db.prepare("INSERT INTO tours (title, description, price, date) VALUES (?,?,?,?)").run(title, description, price, date);
-    res.json({ success: true, message: "Tour berhasil ditambahkan." });
-  }
+exports.createTour = (req, res) => {
+  const { title, description, price, date } = req.body;
+  db.run(
+    `INSERT INTO tours (title, description, price, date) VALUES (?, ?, ?, ?)`,
+    [title, description, price, date],
+    function (err) {
+      if (err) return res.status(500).json({ message: err.message });
+      res.json({ id: this.lastID, title, description, price, date });
+    }
+  );
+};
+
+exports.deleteTour = (req, res) => {
+  const id = req.params.id;
+  db.run(`DELETE FROM tours WHERE id = ?`, [id], function (err) {
+    if (err) return res.status(500).json({ message: err.message });
+    res.json({ success: true });
+  });
 };
