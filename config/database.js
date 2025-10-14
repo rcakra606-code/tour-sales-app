@@ -1,69 +1,46 @@
-const sqlite3 = require("sqlite3").verbose();
-const bcrypt = require("bcryptjs");
+// config/database.js
+const Database = require("better-sqlite3");
 const path = require("path");
+const fs = require("fs");
 
-const dbPath = path.join(__dirname, "../data/travel.db");
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error("❌ Database connection error:", err.message);
-  else console.log(`✅ Database connected: ${dbPath}`);
-});
+// Pastikan folder data ada
+const dataDir = path.resolve(__dirname, "../data");
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
-// === INIT TABLES ===
-db.serialize(() => {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT,
-      role TEXT DEFAULT 'staff'
-    )
-  `);
+// Gunakan file travel.db di dalam folder data
+const dbPath = path.join(dataDir, "travel.db");
+const db = new Database(dbPath, { verbose: console.log });
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tours (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      location TEXT,
-      price REAL,
-      description TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+// Buat tabel dasar jika belum ada
+db.exec(`
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'staff'
+);
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tour_id INTEGER,
-      customer_name TEXT,
-      total_price REAL,
-      sale_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (tour_id) REFERENCES tours(id)
-    )
-  `);
+CREATE TABLE IF NOT EXISTS tours (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  price REAL,
+  start_date TEXT,
+  end_date TEXT
+);
 
-  // === CEK ADMIN DEFAULT ===
-  db.get("SELECT * FROM users WHERE username = 'admin'", async (err, row) => {
-    if (err) {
-      console.error("❌ Gagal memeriksa admin:", err.message);
-      return;
-    }
-
-    if (!row) {
-      const defaultPassword = "admin123";
-      const hashed = await bcrypt.hash(defaultPassword, 10);
-
-      db.run(
-        "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-        ["admin", hashed, "admin"],
-        (err) => {
-          if (err) console.error("❌ Gagal membuat admin default:", err.message);
-          else console.log("🧩 Admin default dibuat → username: admin | password: admin123");
-        }
-      );
-    } else {
-      console.log("✅ Admin sudah ada, skip pembuatan default");
-    }
-  });
-});
+CREATE TABLE IF NOT EXISTS sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tour_id INTEGER,
+  user_id INTEGER,
+  amount REAL,
+  date TEXT,
+  FOREIGN KEY (tour_id) REFERENCES tours(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+`);
 
 module.exports = db;
