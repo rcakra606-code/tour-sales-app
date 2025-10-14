@@ -1,41 +1,13 @@
-const API_URL = "/api";
+// api.js
+async function request(endpoint, method = "GET", body = null) {
+  const options = {
+    method,
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+  };
+  if (body) options.body = JSON.stringify(body);
 
-function getToken() {
-  return localStorage.getItem("token");
-}
-
-function getAuthHeaders() {
-  const token = getToken();
-  return token ? { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } : { "Content-Type": "application/json" };
-}
-
-async function apiGet(endpoint) {
-  const res = await fetch(`${API_URL}${endpoint}`, { headers: getAuthHeaders() });
-  return res.json();
-}
-
-async function apiPost(endpoint, data) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    method: "POST",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-async function apiPut(endpoint, data) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    method: "PUT",
-    headers: getAuthHeaders(),
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
-
-async function apiDelete(endpoint) {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    method: "DELETE",
-    headers: getAuthHeaders(),
-  });
-  return res.json();
+  const res = await fetch(`${API_BASE}${endpoint}`, options);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Terjadi kesalahan API");
+  return data;
 }
