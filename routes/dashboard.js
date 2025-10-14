@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authenticateToken } = require("../middlewares/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 const db = require("../config/db");
 
 // === Dashboard Summary ===
