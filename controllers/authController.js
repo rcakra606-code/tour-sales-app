@@ -3,41 +3,79 @@ const db = require("../config/database");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const JWT_SECRET = process.env.JWT_SECRET || "change_this_secret_in_env";
+
+function sanitizeUserRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    username: row.username,
+    email: row.email || null,
+    role: row.role || null,
+    type: row.type || (row.role || 'basic')
+  };
+}
+
 exports.register = (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, username, email, password, type } = req.body;
+    if (!name || !username || !password) {
+      return res.status(400).json({ message: "name, username, and password are required" });
+    }
+
+    // Cek username exist
+    const exists = db.prepare("SELECT id FROM users WHERE username = ? OR email = ?").get(username, email || null);
+    if (exists) return res.status(409).json({ message: "Username or email already registered" });
+
     const hashed = bcrypt.hashSync(password, 10);
+    // default role/type mapping
+    let role = "basic";
+    let userType = "basic";
+    if (type === "super" || type === "semi") {
+      role = type;
+      userType = type;
+    }
 
     const insert = db.prepare(`
-      INSERT INTO users (name, email, password, role)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (name, email, username, password, role, type)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
-    insert.run(name, email, hashed, role || "staff");
+    const info = insert.run(name, email || null, username, hashed, role, userType);
 
-    res.status(201).json({ message: "User registered successfully" });
+    const newUser = db.prepare("SELECT * FROM users WHERE id = ?").get(info.lastInsertRowid);
+    res.status(201).json({ message: "User registered successfully", user: sanitizeUserRow(newUser) });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
 exports.login = (req, res) => {
   try {
-    const { email, password } = req.body;
-    const stmt = db.prepare("SELECT * FROM users WHERE email = ?");
-    const user = stmt.get(email);
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ message: "username and password required" });
+
+    const stmt = db.prepare("SELECT * FROM users WHERE username = ?");
+    const user = stmt.get(username);
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const valid = bcrypt.compareSync(password, user.password);
-    if (!valid) return res.status(401).json({ message: "Invalid password" });
+    if (!valid) return res.status(401).json({ message: "Invalid username or password" });
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const payload = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      type: user.type || (user.role || "basic")
+    };
 
-    res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+
+    res.json({
+      token,
+      user: sanitizeUserRow(user)
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
