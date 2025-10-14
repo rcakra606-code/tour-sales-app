@@ -1,20 +1,14 @@
-// middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
+const SECRET = "travel_secret_key";
 
-module.exports = function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
+exports.verifyToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Akses ditolak. Token tidak ada." });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secretkey");
-    req.user = decoded;
+  jwt.verify(token, SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: "Token tidak valid" });
+    req.user = user;
     next();
-  } catch (err) {
-    return res.status(403).json({ message: "Token tidak valid." });
-  }
+  });
 };
