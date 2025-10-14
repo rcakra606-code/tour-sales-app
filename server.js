@@ -1,31 +1,28 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
-const path = require("path");
+const helmet = require("helmet");
+const morgan = require("morgan");
 
 const authRoutes = require("./routes/auth");
-const dashboardRoutes = require("./routes/dashboard");
+const tourRoutes = require("./routes/tours");
 const salesRoutes = require("./routes/sales");
-const tourRoutes = require("./routes/tour");
-
-dotenv.config();
+const dashboardRoutes = require("./routes/dashboard");
 
 const app = express();
+
+// Middleware
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(morgan("dev"));
+app.use(express.static("public"));
 
-// === ROUTES ===
+// Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/tours", tourRoutes);
 app.use("/api/sales", salesRoutes);
-app.use("/api/tour", tourRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
-// === ROOT ===
-app.get("/", (req, res) => {
-  res.json({ message: "Travel Dashboard API aktif 🚀" });
-});
-
-// === START SERVER ===
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
