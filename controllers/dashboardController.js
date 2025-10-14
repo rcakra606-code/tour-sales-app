@@ -1,13 +1,15 @@
 const db = require("../config/database");
 
-module.exports = {
-  getDashboard: (req, res) => {
-    try {
-      const tours = db.prepare("SELECT * FROM tours").all();
-      const sales = db.prepare("SELECT * FROM sales").all();
-      res.json({ success: true, data: { tours, sales } });
-    } catch (err) {
-      res.status(500).json({ success: false, message: err.message });
+exports.getDashboard = (req, res) => {
+  db.get(
+    `SELECT 
+      (SELECT COUNT(*) FROM tours) as totalTours,
+      (SELECT COUNT(*) FROM sales) as totalSales,
+      (SELECT SUM(amount) FROM sales) as totalRevenue`,
+    [],
+    (err, row) => {
+      if (err) return res.status(500).json({ message: err.message });
+      res.json(row);
     }
-  }
+  );
 };
