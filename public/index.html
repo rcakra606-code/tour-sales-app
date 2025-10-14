@@ -1,147 +1,94 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tour & Sales Management System</title>
-
-  <!-- TailwindCSS & Chart.js -->
+  <title>Travel Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    body { box-sizing: border-box; }
-    .error-animation { animation: shake 0.5s ease-in-out; }
-    @keyframes shake { 0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);} }
-    .loading-spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #3498db;
-      border-radius: 50%;
-      width: 30px; height: 30px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
-  </style>
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
-<body class="h-full bg-gray-50">
 
-  <!-- ================= LOADING OVERLAY ================= -->
-  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white p-6 rounded-lg shadow-xl text-center">
-      <div class="loading-spinner mx-auto mb-4"></div>
-      <p class="text-gray-600">Memuat...</p>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <!-- Navbar -->
+  <nav class="bg-blue-600 text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-semibold">🌍 Travel Dashboard</h1>
+    <div id="userControls" class="hidden">
+      <span id="usernameDisplay"></span>
+      <button onclick="logout()" class="bg-white text-blue-600 px-3 py-1 rounded ml-3">Logout</button>
     </div>
-  </div>
+  </nav>
 
-  <!-- ================= TOASTS ================= -->
-  <div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden error-animation">
-    <div class="flex items-center">
-      <span class="mr-2">❌</span>
-      <span id="errorMessage">Terjadi kesalahan</span>
-      <button id="closeErrorToast" class="ml-4 text-white hover:text-gray-200">✕</button>
-    </div>
-  </div>
-
-  <div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
-    <div class="flex items-center">
-      <span class="mr-2">✅</span>
-      <span id="successMessage">Berhasil</span>
-      <button id="closeSuccessToast" class="ml-4 text-white hover:text-gray-200">✕</button>
-    </div>
-  </div>
-
-  <!-- ================= LOGIN PAGE ================= -->
-  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-      <div>
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Masuk ke Sistem</h2>
-        <p class="mt-2 text-center text-sm text-gray-600">Tour & Sales Management System</p>
-      </div>
-
-      <form id="loginForm" class="mt-8 space-y-6">
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <input id="username" name="username" type="text" required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
-              placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500
-              focus:border-blue-500 focus:z-10 sm:text-sm"
-              placeholder="Username" />
-          </div>
-          <div>
-            <input id="password" name="password" type="password" required
-              class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300
-              placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500
-              focus:border-blue-500 focus:z-10 sm:text-sm"
-              placeholder="Password" />
-          </div>
-        </div>
-
-        <div>
-          <button type="submit"
-            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm
-            font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2
-            focus:ring-offset-2 focus:ring-blue-500">
-            Masuk
-          </button>
-        </div>
+  <!-- Login Section -->
+  <section id="loginSection" class="flex flex-col items-center justify-center flex-grow">
+    <div class="bg-white shadow-md rounded-lg p-6 w-80">
+      <h2 class="text-lg font-semibold mb-4 text-center">Login</h2>
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-3">
+        <input id="username" type="text" placeholder="Username" required class="w-full border p-2 rounded" />
+        <input id="password" type="password" placeholder="Password" required class="w-full border p-2 rounded" />
+        <button type="submit" class="bg-blue-600 text-white w-full py-2 rounded">Login</button>
       </form>
     </div>
-  </div>
+  </section>
 
-  <!-- ================= DASHBOARD ================= -->
-  <div id="mainApp" class="hidden min-h-screen flex flex-col items-center justify-start bg-gray-100 p-4">
-    <header class="w-full max-w-6xl flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
-      <div>
-        <span id="userInfo" class="mr-4 text-gray-700">Memuat...</span>
-        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium">Logout</button>
+  <!-- Dashboard Section -->
+  <section id="dashboardSection" class="hidden flex-grow p-6">
+    <h2 class="text-2xl font-semibold mb-4">Dashboard</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Tours -->
+      <div class="bg-white p-4 shadow-md rounded-lg">
+        <h3 class="font-semibold mb-2">📅 Daftar Tour</h3>
+        <form id="tourForm" class="grid grid-cols-2 gap-2 mb-4">
+          <input type="text" id="title" placeholder="Nama Tour" class="border p-1 rounded" required />
+          <input type="text" id="description" placeholder="Deskripsi" class="border p-1 rounded" required />
+          <input type="number" id="price" placeholder="Harga" class="border p-1 rounded" required />
+          <input type="date" id="date" class="border p-1 rounded" required />
+          <button type="submit" class="col-span-2 bg-blue-600 text-white py-1 rounded">Tambah Tour</button>
+        </form>
+
+        <table class="w-full border">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-2 py-1">Judul</th>
+              <th class="border px-2 py-1">Deskripsi</th>
+              <th class="border px-2 py-1">Harga</th>
+              <th class="border px-2 py-1">Tanggal</th>
+              <th class="border px-2 py-1">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="tourTable"></tbody>
+        </table>
       </div>
-    </header>
 
-    <!-- Menu Navigation -->
-    <nav class="w-full max-w-6xl mb-4 flex gap-2">
-      <button onclick="showPage('dashboard')" class="bg-blue-600 text-white px-4 py-2 rounded">Tour Dashboard</button>
-      <button id="salesMenuItems" onclick="showPage('salesDashboard')" class="bg-green-600 text-white px-4 py-2 rounded hidden">Sales Dashboard</button>
-    </nav>
+      <!-- Sales -->
+      <div class="bg-white p-4 shadow-md rounded-lg">
+        <h3 class="font-semibold mb-2">💰 Penjualan</h3>
+        <form id="salesForm" class="grid grid-cols-2 gap-2 mb-4">
+          <input type="text" id="customer" placeholder="Nama Customer" class="border p-1 rounded" required />
+          <input type="text" id="tourId" placeholder="ID Tour" class="border p-1 rounded" required />
+          <input type="number" id="amount" placeholder="Jumlah (Rp)" class="border p-1 rounded" required />
+          <button type="submit" class="col-span-2 bg-green-600 text-white py-1 rounded">Tambah Penjualan</button>
+        </form>
 
-    <!-- Dashboard Pages -->
-    <div id="dashboardPage" class="w-full max-w-6xl">
-      <h2 class="text-xl font-semibold mb-2">Manajemen Tour</h2>
-      <!-- Form & Table -->
-      <form id="tourForm" class="mb-4 space-y-2 bg-white p-4 rounded shadow">
-        <input type="hidden" id="tourId">
-        <input type="text" id="title" placeholder="Judul Tour" class="border p-2 w-full rounded">
-        <input type="text" id="description" placeholder="Deskripsi" class="border p-2 w-full rounded">
-        <input type="number" id="price" placeholder="Harga (Rp)" class="border p-2 w-full rounded">
-        <input type="date" id="date" class="border p-2 w-full rounded">
-        <div class="flex justify-end gap-2">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
-          <button type="button" id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
-        </div>
-      </form>
-
-      <table class="w-full border bg-white rounded shadow">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 text-left">Judul</th>
-            <th class="p-2 text-left">Deskripsi</th>
-            <th class="p-2 text-left">Harga</th>
-            <th class="p-2 text-left">Tanggal</th>
-            <th class="p-2 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tourTable"></tbody>
-      </table>
+        <table class="w-full border">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-2 py-1">Customer</th>
+              <th class="border px-2 py-1">Tour ID</th>
+              <th class="border px-2 py-1">Jumlah</th>
+              <th class="border px-2 py-1">Tanggal</th>
+            </tr>
+          </thead>
+          <tbody id="salesTable"></tbody>
+        </table>
+      </div>
     </div>
+  </section>
 
-    <div id="salesDashboardPage" class="hidden w-full max-w-6xl">
-      <h2 class="text-xl font-semibold mb-2">Manajemen Sales</h2>
-      <!-- Form & Table bisa ditambahkan mirip Tour -->
-      <p class="text-gray-600">Fitur Sales akan muncul untuk admin.</p>
-    </div>
-  </div>
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded hidden"></div>
 
-  <!-- ================= JS FILES ================= -->
+  <!-- Scripts -->
   <script src="/js/config.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
