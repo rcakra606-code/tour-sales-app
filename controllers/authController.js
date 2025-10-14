@@ -2,55 +2,51 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
+const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";
+
 // === REGISTER USER ===
 exports.register = async (req, res) => {
+  const { username, password, role } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ success: false, message: "Username dan password wajib diisi" });
+
   try {
-    const { username, password, role } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username dan password wajib diisi" });
-    }
-
-    // Cek apakah user sudah ada
-    const userExists = await new Promise((resolve, reject) => {
+    const userExist = await new Promise((resolve, reject) => {
       db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
     });
 
-    if (userExists) {
-      return res.status(400).json({ message: "Username sudah digunakan" });
-    }
+    if (userExist)
+      return res.status(400).json({ success: false, message: "Username sudah digunakan" });
 
-    // Hash password pakai bcryptjs
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Simpan user baru ke database
     await new Promise((resolve, reject) => {
       db.run(
         "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
         [username, hashedPassword, role || "staff"],
-        (err) => {
+        function (err) {
           if (err) reject(err);
-          else resolve();
+          else resolve(this.lastID);
         }
       );
     });
 
-    res.status(201).json({ message: "Registrasi berhasil" });
+    res.json({ success: true, message: "Registrasi berhasil!" });
   } catch (error) {
-    console.error("Error register:", error);
-    res.status(500).json({ message: "Terjadi kesalahan server" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // === LOGIN USER ===
 exports.login = async (req, res) => {
-  try {
-    const { username, password } = req.body;
+  const { username, password } = req.body;
+  if (!username || !password)
+    return res.status(400).json({ success: false, message: "Username dan password wajib diisi" });
 
-    // Ambil user berdasarkan username
+  try {
     const user = await new Promise((resolve, reject) => {
       db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
         if (err) reject(err);
@@ -58,50 +54,45 @@ exports.login = async (req, res) => {
       });
     });
 
-    if (!user) {
-      return res.status(404).json({ message: "User tidak ditemukan" });
-    }
+    if (!user)
+      return res.status(404).json({ success: false, message: "User tidak ditemukan" });
 
-    // Bandingkan password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Password salah" });
-    }
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword)
+      return res.status(401).json({ success: false, message: "Password salah" });
 
-    // Generate JWT token
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET || "secretkey",
-      { expiresIn: "7d" }
+      SECRET_KEY,
+      { expiresIn: "1d" }
     );
 
     res.json({
+      success: true,
       message: "Login berhasil",
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-      },
+      user: { username: user.username, role: user.role },
     });
   } catch (error) {
-    console.error("Error login:", error);
-    res.status(500).json({ message: "Terjadi kesalahan server" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// === VALIDASI TOKEN ===
-exports.validateToken = (req, res) => {
-  try {
-    const authHeader = req.headers["authorization"];
-    if (!authHeader) return res.status(401).json({ message: "Token tidak ditemukan" });
+// === GET PROFILE ===
+exports.profile = async (req, res) => {
+  const userId = req.user.id;
 
-    const token = authHeader.split(" ")[1];
-    jwt.verify(token, process.env.JWT_SECRET || "secretkey", (err, user) => {
-      if (err) return res.status(403).json({ message: "Token tidak valid" });
-      res.json({ valid: true, user });
+  try {
+    const user = await new Promise((resolve, reject) => {
+      db.get("SELECT id, username, role FROM users WHERE id = ?", [userId], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
     });
+
+    if (!user) return res.status(404).json({ success: false, message: "User tidak ditemukan" });
+    res.json({ success: true, data: user });
   } catch (error) {
-    res.status(500).json({ message: "Terjadi kesalahan server" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
