@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { verifyToken } = require("../middlewares/authMiddleware");
+const { verifyToken } = require("../middleware/authMiddleware");
 const { getAllTours, createTour, deleteTour } = require("../controllers/tourController");
 
 router.get("/", verifyToken, getAllTours);
