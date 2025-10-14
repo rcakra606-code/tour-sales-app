@@ -1,22 +1,25 @@
+// middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";
+const db = require("../config/database");
+const JWT_SECRET = process.env.JWT_SECRET || "change_this_in_env";
 
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-  if (!token) return res.status(401).json({ success: false, message: "Token tidak ditemukan" });
-
-  jwt.verify(token, SECRET_KEY, (err, user) => {
-    if (err) return res.status(403).json({ success: false, message: "Token tidak valid" });
-    req.user = user;
+function authMiddleware(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ message: "No token provided" });
+  const parts = auth.split(" ");
+  if (parts.length !== 2) return res.status(401).json({ message: "Token error" });
+  const token = parts[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    // attach user info from token (id, username, type)
+    req.user = decoded;
+    // Optionally refresh user info from db
+    const user = db.prepare("SELECT id,name,username,email,type,role FROM users WHERE id = ?").get(decoded.id);
+    if (user) req.user = { ...req.user, ...user };
     next();
-  });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token", error: err.message });
+  }
 }
 
-function isAdmin(req, res, next) {
-  if (req.user.role !== "admin")
-    return res.status(403).json({ success: false, message: "Akses ditolak (admin only)" });
-  next();
-}
-
-module.exports = { authenticateToken, isAdmin };
+module.exports = authMiddleware;
