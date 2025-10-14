@@ -1,308 +1,256 @@
-<!DOCTYPE html>
-<html lang="id" class="h-full">
+<!doctype html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Aplikasi Reporting Sales & Tour</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Travel Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    /* (Include the same styles from your TARGET file or keep minimal) */
-    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-    .stat-icon { width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); }
-    /* ...you can paste full CSS from TARGET if desired... */
-  </style>
 </head>
-<body class="h-full bg-gray-50">
-  <!-- LOGIN PAGE -->
-  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full">
-      <div class="bg-white rounded-3xl shadow-2xl p-8 border border-white border-opacity-20">
-        <div class="text-center mb-8">
-          <div class="stat-icon mx-auto mb-4 w-16 h-16"><span class="text-2xl">📊</span></div>
-          <h2 class="text-3xl font-bold text-gray-800 mb-2">Selamat Datang</h2>
-          <p class="text-gray-600">Sistem Reporting Sales & Tour</p>
-        </div>
+<body class="h-full">
+  <!-- LOGIN -->
+  <div id="loginPage" class="page login-page">
+    <div class="login-card">
+      <div class="logo-circle">📊</div>
+      <h1 class="title">Selamat Datang</h1>
+      <p class="subtitle">Sistem Reporting Sales & Tour</p>
 
-        <form id="loginForm" class="space-y-6">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
-            <input id="username" name="username" type="text" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl" placeholder="Masukkan username">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-            <input id="password" name="password" type="password" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl" placeholder="Masukkan password">
-          </div>
-          <button id="loginBtn" type="submit" class="w-full py-4 text-white font-bold rounded-xl bg-gradient-to-r from-blue-500 to-purple-600">
-            🚀 Masuk ke Aplikasi
-          </button>
-          <div class="bg-gray-50 rounded-xl p-4 text-xs text-gray-600 mt-4">
-            <p class="font-semibold mb-2 text-center">🔑 Demo Login:</p>
-            <div class="space-y-1 text-sm">
-              <p><strong>Super Admin:</strong> admin / admin123</p>
-              <p><strong>Semi Super Admin:</strong> semiadmin / semi123</p>
-              <p><strong>Basic User:</strong> staff1 / staff123</p>
-            </div>
-          </div>
-        </form>
-      </div>
+      <form id="loginForm" class="form">
+        <label>Username</label>
+        <input id="username" name="username" type="text" required />
+
+        <label>Password</label>
+        <input id="password" name="password" type="password" required />
+
+        <button id="loginBtn" type="submit" class="btn primary">Masuk</button>
+
+        <div class="demo-cred">
+          <strong>Demo:</strong>
+          <div>admin / admin123 &nbsp; | &nbsp; semiadmin / semi123 &nbsp; | &nbsp; staff1 / staff123</div>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- MAIN APP -->
-  <div id="mainApp" class="hidden h-full">
-    <!-- HEADER -->
-    <header class="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg text-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center py-6">
-          <div class="flex items-center space-x-4">
-            <button id="menuToggle" class="p-2">☰</button>
-            <div class="stat-icon"><span>📊</span></div>
+  <!-- APP -->
+  <div id="mainApp" class="app hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="left">
+          <button id="menuToggle" class="menu-toggle" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
+          <div class="brand">
+            <div class="brand-icon">📊</div>
             <div>
-              <h1 class="text-xl font-bold">Aplikasi Reporting Sales & Tour</h1>
-              <p class="text-xs text-blue-100">Sistem Manajemen Terintegrasi</p>
+              <div class="brand-title">Travel Dashboard</div>
+              <div class="brand-sub">Reporting & Management</div>
             </div>
           </div>
-          <div class="flex items-center space-x-4">
-            <div class="text-sm">
-              <p class="text-xs">Selamat datang,</p>
-              <p id="currentUser" class="font-medium"></p>
+        </div>
+
+        <div class="right">
+          <button id="themeBtn" class="theme-toggle" title="Toggle theme"><div class="theme-slider" id="themeSlider">☀️</div></button>
+          <div class="user-box">
+            <div class="avatar">👤</div>
+            <div class="user-info">
+              <div class="small">Selamat datang,</div>
+              <div id="currentUser" class="user-name">User</div>
             </div>
-            <button id="logoutBtn" class="bg-white bg-opacity-20 px-3 py-2 rounded-full">🚪 Logout</button>
+            <button id="logoutBtn" class="btn ghost">Logout</button>
           </div>
         </div>
       </div>
     </header>
 
-    <div class="flex">
+    <div class="layout">
       <!-- SIDEBAR -->
-      <nav id="sidebar" class="w-72 bg-white p-6 border-r">
-        <h2 class="font-bold mb-4">Menu Navigasi</h2>
-        <ul class="space-y-2 text-sm">
-          <li><a href="#" data-page="dashboard" class="navLink">📈 Dashboard Tour</a></li>
-          <li><a href="#" data-page="dashboardSales" class="navLink">💰 Dashboard Sales</a></li>
-          <li><a href="#" data-page="inputData" class="navLink">✈️ Input Data Tour</a></li>
-          <li><a href="#" data-page="inputSales" class="navLink">💳 Input Data Sales</a></li>
-          <li><a href="#" data-page="reportData" class="navLink">📊 Report Data Tour</a></li>
-          <li><a href="#" data-page="reportSales" class="navLink">📋 Report Data Sales</a></li>
-          <li><a href="#" data-page="documentShipment" class="navLink">📄 Rekap Pengiriman Dokumen</a></li>
-          <li><a href="#" data-page="userAdmin" class="navLink">👤 User Admin</a></li>
-          <li id="manageUsersMenu" class="hidden"><a href="#" data-page="manageUsers" class="navLink">👥 Kelola User</a></li>
-          <li id="manageRegionsMenu" class="hidden"><a href="#" data-page="manageRegions" class="navLink">🌍 Kelola Region</a></li>
-        </ul>
-      </nav>
+      <aside id="sidebar" class="sidebar">
+        <nav>
+          <ul>
+            <li><a href="#" class="navLink" data-page="dashboard">Dashboard Tour</a></li>
+            <li><a href="#" class="navLink" data-page="dashboardSales">Dashboard Sales</a></li>
+            <li><a href="#" class="navLink" data-page="inputData">Input Data Tour</a></li>
+            <li><a href="#" class="navLink" data-page="inputSales">Input Data Sales</a></li>
+            <li><a href="#" class="navLink" data-page="reportData">Report Data</a></li>
+            <li><a href="#" class="navLink" data-page="documentShipment">Document Shipment</a></li>
+            <li><a href="#" class="navLink" data-page="userAdmin">User Admin</a></li>
+            <li id="manageUsersMenu" class="hidden"><a href="#" class="navLink" data-page="manageUsers">Manage Users</a></li>
+            <li id="manageRegionsMenu" class="hidden"><a href="#" class="navLink" data-page="manageRegions">Manage Regions</a></li>
+          </ul>
+        </nav>
+      </aside>
 
-      <!-- CONTENT -->
-      <main id="mainContent" class="flex-1 p-6 overflow-y-auto">
-        <!-- DASHBOARD -->
-        <section id="dashboardPage" class="page">
-          <h2 class="text-2xl font-bold mb-4">Dashboard Tour</h2>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Sales</p>
-              <p id="totalSales" class="text-2xl font-bold">Rp 0</p>
+      <!-- MAIN -->
+      <main class="content">
+        <!-- Dashboard -->
+        <section id="dashboardPage" class="page-section">
+          <div class="grid stats">
+            <div class="card stat-card">
+              <div class="stat-left">
+                <p class="muted">Total Sales</p>
+                <p id="totalSales" class="big">Rp 0</p>
+              </div>
+              <div class="stat-icon gradient-1">💰</div>
             </div>
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Profit</p>
-              <p id="totalProfit" class="text-2xl font-bold">Rp 0</p>
+            <div class="card stat-card">
+              <div class="stat-left">
+                <p class="muted">Total Profit</p>
+                <p id="totalProfit" class="big">Rp 0</p>
+              </div>
+              <div class="stat-icon gradient-2">📈</div>
             </div>
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Pendaftar</p>
-              <p id="totalRegistrants" class="text-2xl font-bold">0</p>
+            <div class="card stat-card">
+              <div class="stat-left">
+                <p class="muted">Total Pendaftar</p>
+                <p id="totalRegistrants" class="big">0</p>
+              </div>
+              <div class="stat-icon gradient-3">👥</div>
             </div>
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Pax</p>
-              <p id="totalPax" class="text-2xl font-bold">0</p>
+            <div class="card stat-card">
+              <div class="stat-left">
+                <p class="muted">Total Pax</p>
+                <p id="totalPax" class="big">0</p>
+              </div>
+              <div class="stat-icon gradient-4">🧳</div>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white p-4 rounded shadow">
-              <h3 class="font-semibold mb-2">Sales & Profit per Staff</h3>
+          <div class="grid charts">
+            <div class="card">
+              <h3>Sales & Profit per Staff</h3>
               <canvas id="salesChart"></canvas>
             </div>
-            <div class="bg-white p-4 rounded shadow">
-              <h3 class="font-semibold mb-2">Pendaftar per Region</h3>
+            <div class="card">
+              <h3>Pendaftar per Region</h3>
               <canvas id="regionChart"></canvas>
             </div>
-            <div class="bg-white p-4 rounded shadow lg:col-span-2">
-              <h3 class="font-semibold mb-2">Pendaftar per Periode Keberangkatan</h3>
+            <div class="card wide">
+              <h3>Keberangkatan (by status)</h3>
               <canvas id="departureChart"></canvas>
             </div>
           </div>
         </section>
 
-        <!-- DASHBOARD SALES -->
-        <section id="dashboardSalesPage" class="page hidden">
-          <h2 class="text-2xl font-bold mb-4">Dashboard Sales</h2>
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Sales</p>
-              <p id="totalSalesAmount" class="text-2xl font-bold">Rp 0</p>
-              <p class="text-xs">Target: <span id="totalSalesTarget">Rp 0</span></p>
-            </div>
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Profit</p>
-              <p id="totalProfitAmount" class="text-2xl font-bold">Rp 0</p>
-              <p class="text-xs">Target: <span id="totalProfitTarget">Rp 0</span></p>
-            </div>
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Total Invoice</p>
-              <p id="totalInvoiceCount" class="text-2xl font-bold">0</p>
-            </div>
-            <div class="p-4 bg-white rounded shadow">
-              <p class="text-sm text-gray-500">Achievement</p>
-              <p id="salesAchievement" class="text-2xl font-bold">0%</p>
-            </div>
-          </div>
+        <!-- Input Data Tour -->
+        <section id="inputDataPage" class="page-section hidden">
+          <div class="card">
+            <h3>Input Data Tour</h3>
+            <form id="dataForm" class="form-grid">
+              <label>Tanggal Pendaftaran<input name="registrationDate" type="date" required></label>
+              <label>Lead Passenger<input name="leadPassenger" type="text" required></label>
+              <label>All Passengers<textarea name="allPassengers"></textarea></label>
+              <label>Jumlah Pax<input name="paxCount" type="number" min="1" required></label>
+              <label>Kode Tour<input name="tourCode" type="text" required></label>
+              <label>Region<select id="regionSelect" name="region"><option value="">Pilih Region</option></select></label>
+              <label>Tanggal Keberangkatan<input name="departureDate" type="date"></label>
+              <label>Kode Booking<input name="bookingCode" type="text"></label>
+              <label>Harga Tour<input name="tourPrice" type="number" min="0"></label>
+              <label>Staff<select id="staffSelect" name="staff"><option value="">Pilih Staff</option></select></label>
+              <label>Status Keberangkatan
+                <select name="departureStatus">
+                  <option value="belum_jalan">Belum Jalan</option>
+                  <option value="jalan">Jalan</option>
+                  <option value="tidak_jalan">Tidak Jalan</option>
+                </select>
+              </label>
+              <label>Remarks Dokumen<textarea name="documentRemarks"></textarea></label>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white p-4 rounded shadow">
-              <h3 class="font-semibold mb-2">Sales vs Target per Staff</h3>
-              <canvas id="salesTargetChart"></canvas>
-            </div>
-            <div class="bg-white p-4 rounded shadow">
-              <h3 class="font-semibold mb-2">Profit vs Target per Staff</h3>
-              <canvas id="profitTargetChart"></canvas>
-            </div>
-          </div>
-
-          <div class="bg-white rounded shadow mt-6">
-            <div class="p-4 border-b">
-              <h3 class="font-semibold">Performance per Staff</h3>
-            </div>
-            <div class="overflow-x-auto p-4">
-              <table class="min-w-full">
-                <thead>
-                  <tr class="text-xs text-gray-500">
-                    <th class="p-2 text-left">Staff</th><th class="p-2 text-left">Sales</th><th class="p-2 text-left">Target Sales</th><th class="p-2 text-left">Profit</th><th class="p-2 text-left">Target Profit</th><th class="p-2 text-left">Invoice</th><th class="p-2 text-left">Achievement</th>
-                  </tr>
-                </thead>
-                <tbody id="salesPerformanceBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- INPUT DATA -->
-        <section id="inputDataPage" class="page hidden">
-          <h2 class="text-2xl font-bold mb-4">Input Data Tour</h2>
-          <div class="bg-white p-6 rounded shadow">
-            <form id="dataForm">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label>Tanggal Pendaftaran</label><input name="registrationDate" type="date" required class="w-full p-2 border"/></div>
-                <div><label>Lead Passenger</label><input name="leadPassenger" type="text" required class="w-full p-2 border"/></div>
-                <div class="md:col-span-2"><label>Nama Semua Passenger (pisahkan koma)</label><textarea name="allPassengers" rows="2" class="w-full p-2 border"></textarea></div>
-                <div><label>Jumlah Pax</label><input name="paxCount" type="number" min="1" required class="w-full p-2 border"/></div>
-                <div><label>Kode Tour</label><input name="tourCode" type="text" required class="w-full p-2 border"/></div>
-                <div><label>Region</label><select name="region" class="w-full p-2 border" id="regionSelect"><option value="">Pilih Region</option></select></div>
-                <div><label>Tanggal Keberangkatan</label><input name="departureDate" type="date" required class="w-full p-2 border"/></div>
-                <div><label>Kode Booking</label><input name="bookingCode" type="text" class="w-full p-2 border"/></div>
-                <div><label>Harga Tour</label><input name="tourPrice" type="number" min="0" class="w-full p-2 border"/></div>
-                <div><label>Staff</label><select name="staff" class="w-full p-2 border" id="staffSelect"><option value="">Pilih Staff</option></select></div>
-                <div><label>Status Keberangkatan</label>
-                  <select name="departureStatus" class="w-full p-2 border">
-                    <option value="belum_jalan">Belum Jalan</option>
-                    <option value="jalan">Jalan</option>
-                    <option value="tidak_jalan">Tidak Jalan</option>
-                  </select>
-                </div>
-                <div class="md:col-span-2"><label>Remarks Dokumen</label><textarea name="documentRemarks" rows="2" class="w-full p-2 border"></textarea></div>
-              </div>
-              <div class="mt-4 flex justify-end gap-2">
-                <button type="reset" class="px-4 py-2 border">Reset</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white">Simpan Data</button>
+              <div class="form-actions">
+                <button type="reset" class="btn">Reset</button>
+                <button type="submit" class="btn primary">Simpan Data</button>
               </div>
             </form>
           </div>
 
-          <div class="mt-6 bg-white rounded shadow p-4">
-            <h3 class="font-semibold mb-2">Data Tersimpan</h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full">
-                <thead class="text-xs text-gray-500"><tr><th class="p-2">Tgl</th><th class="p-2">Lead</th><th class="p-2">Kode</th><th class="p-2">Region</th><th class="p-2">Pax</th><th class="p-2">Staff</th><th class="p-2">Harga</th><th class="p-2">Status</th><th class="p-2">Aksi</th></tr></thead>
+          <div class="card">
+            <h3>Data Tersimpan</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Tgl</th><th>Lead</th><th>Kode</th><th>Region</th><th>Pax</th><th>Staff</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead>
                 <tbody id="dataTableBody"></tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- INPUT SALES -->
-        <section id="inputSalesPage" class="page hidden">
-          <h2 class="text-2xl font-bold mb-4">Input Data Sales</h2>
-          <div class="bg-white p-6 rounded shadow">
-            <form id="salesForm">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label>Tanggal Transaksi</label><input name="transactionDate" type="date" required class="w-full p-2 border"/></div>
-                <div><label>Nomor Invoice</label><input name="invoiceNumber" type="text" required class="w-full p-2 border"/></div>
-                <div><label>Sales Amount</label><input name="salesAmount" type="number" min="0" required class="w-full p-2 border"/></div>
-                <div><label>Profit Amount</label><input name="profitAmount" type="number" min="0" class="w-full p-2 border"/></div>
-                <div><label>Discount</label><input name="discountAmount" type="number" min="0" class="w-full p-2 border"/></div>
-                <div><label>Staff</label><select name="staff" id="salesStaffSelect" class="w-full p-2 border"><option value="">Pilih Staff</option></select></div>
-              </div>
-              <div class="mt-4 flex justify-end gap-2">
-                <button type="reset" class="px-4 py-2 border">Reset</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white">Simpan Data</button>
+        <!-- Input Sales -->
+        <section id="inputSalesPage" class="page-section hidden">
+          <div class="card">
+            <h3>Input Data Sales</h3>
+            <form id="salesForm" class="form-grid">
+              <label>Tanggal Transaksi<input name="transactionDate" type="date" required></label>
+              <label>Nomor Invoice<input name="invoiceNumber" type="text" required></label>
+              <label>Sales Amount<input name="salesAmount" type="number" min="0" required></label>
+              <label>Profit Amount<input name="profitAmount" type="number" min="0"></label>
+              <label>Discount<input name="discountAmount" type="number" min="0"></label>
+              <label>Staff<select id="salesStaffSelect" name="staff"><option value="">Pilih Staff</option></select></label>
+
+              <div class="form-actions">
+                <button type="reset" class="btn">Reset</button>
+                <button type="submit" class="btn primary">Simpan Data</button>
               </div>
             </form>
           </div>
 
-          <div class="mt-6 bg-white rounded shadow p-4">
-            <h3 class="font-semibold mb-2">Data Sales Tersimpan</h3>
-            <div class="overflow-x-auto">
-              <table class="min-w-full">
-                <thead class="text-xs text-gray-500"><tr><th class="p-2">Tanggal</th><th class="p-2">Invoice</th><th class="p-2">Sales</th><th class="p-2">Profit</th><th class="p-2">Staff</th><th class="p-2">Aksi</th></tr></thead>
+          <div class="card">
+            <h3>Data Sales Tersimpan</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Tgl</th><th>Invoice</th><th>Sales</th><th>Profit</th><th>Staff</th></tr></thead>
                 <tbody id="salesTableBody"></tbody>
               </table>
             </div>
           </div>
         </section>
 
-        <!-- REPORT DATA (minimal for now) -->
-        <section id="reportDataPage" class="page hidden">
-          <h2 class="text-2xl font-bold mb-4">Report Data Tour</h2>
-          <div class="bg-white p-4 rounded shadow">
-            <div class="flex gap-2 items-center mb-4">
-              <select id="reportStaffFilter" class="p-2 border"><option value="all">Semua Staff</option></select>
-              <select id="reportRegionFilter" class="p-2 border"><option value="all">Semua Region</option></select>
-              <input id="reportStartDate" type="date" class="p-2 border"/>
-              <input id="reportEndDate" type="date" class="p-2 border"/>
-              <button id="exportReportCSV" class="px-3 py-2 bg-green-600 text-white">Export CSV</button>
+        <!-- Report minimal -->
+        <section id="reportDataPage" class="page-section hidden">
+          <div class="card">
+            <h3>Report Data Tour</h3>
+            <div class="filters">
+              <select id="reportStaffFilter"><option value="all">Semua Staff</option></select>
+              <select id="reportRegionFilter"><option value="all">Semua Region</option></select>
+              <input id="reportStartDate" type="date" />
+              <input id="reportEndDate" type="date" />
+              <button id="exportReportCSV" class="btn">Export CSV</button>
             </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full"><thead class="text-xs text-gray-500"><tr><th class="p-2">Tgl</th><th class="p-2">Lead</th><th class="p-2">Kode</th><th class="p-2">Region</th><th class="p-2">Pax</th><th class="p-2">Harga</th></tr></thead><tbody id="reportDataBody"></tbody></table>
+            <div class="table-wrap">
+              <table class="table"><thead><tr><th>Tgl</th><th>Lead</th><th>Kode</th><th>Region</th><th>Pax</th><th>Harga</th></tr></thead><tbody id="reportDataBody"></tbody></table>
             </div>
           </div>
         </section>
 
-        <!-- USER ADMIN (profile) -->
-        <section id="userAdminPage" class="page hidden">
-          <h2 class="text-2xl font-bold mb-4">User Admin</h2>
-          <div class="bg-white p-4 rounded shadow">
-            <form id="userProfileForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label>Nama</label><input id="profileName" class="p-2 border w-full"/></div>
-              <div><label>Email</label><input id="profileEmail" class="p-2 border w-full"/></div>
-              <div class="md:col-span-2 flex justify-end gap-2"><button id="saveProfile" class="px-3 py-2 bg-blue-600 text-white">Simpan</button></div>
+        <!-- User admin -->
+        <section id="userAdminPage" class="page-section hidden">
+          <div class="card">
+            <h3>User Profile</h3>
+            <form id="userProfileForm" class="form-grid">
+              <label>Nama<input id="profileName" /></label>
+              <label>Email<input id="profileEmail" /></label>
+              <div class="form-actions"><button id="saveProfile" class="btn primary">Simpan</button></div>
             </form>
           </div>
         </section>
 
-        <!-- Manage Users & Regions (only visible for super/semi) -->
-        <section id="manageUsersPage" class="page hidden">
-          <h2 class="text-2xl font-bold mb-4">Kelola Users</h2>
-          <div class="bg-white p-4 rounded shadow">
-            <form id="createUserForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <input name="name" placeholder="Nama" class="p-2 border" />
-              <input name="username" placeholder="Username" class="p-2 border" />
-              <input name="password" placeholder="Password" class="p-2 border" />
-              <select name="type" class="p-2 border"><option value="basic">Basic</option><option value="semi">Semi</option><option value="super">Super</option></select>
-              <div class="col-span-3 flex justify-end"><button type="submit" class="px-3 py-2 bg-green-600 text-white">Tambah User</button></div>
+        <!-- Manage users -->
+        <section id="manageUsersPage" class="page-section hidden">
+          <div class="card">
+            <h3>Kelola Users</h3>
+            <form id="createUserForm" class="form-grid mini">
+              <input name="name" placeholder="Nama" />
+              <input name="username" placeholder="Username" />
+              <input name="password" placeholder="Password" />
+              <select name="type"><option value="basic">Basic</option><option value="semi">Semi</option><option value="super">Super</option></select>
+              <div class="form-actions"><button type="submit" class="btn primary">Tambah User</button></div>
             </form>
-            <div class="overflow-x-auto"><table class="min-w-full"><thead class="text-xs text-gray-500"><tr><th class="p-2">Nama</th><th class="p-2">Username</th><th class="p-2">Type</th></tr></thead><tbody id="usersTableBody"></tbody></table></div>
+
+            <div class="table-wrap">
+              <table class="table"><thead><tr><th>Nama</th><th>Username</th><th>Type</th></tr></thead><tbody id="usersTableBody"></tbody></table>
+            </div>
           </div>
         </section>
 
-        <div style="height:120px;"></div>
       </main>
     </div>
   </div>
