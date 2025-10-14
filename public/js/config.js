@@ -1,8 +1,7 @@
-// ===============================
-// ✅ Config & Base URL
-// ===============================
-window.Config = {
-  apiBase: "/api", // endpoint base API
-  tokenKey: "token",
-  usernameKey: "username"
-};
+// config.js
+const API_BASE = "/api";
+const TOKEN = localStorage.getItem("token") || null;
+
+function getAuthHeader() {
+  return TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {};
+}
