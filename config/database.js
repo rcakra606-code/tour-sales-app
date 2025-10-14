@@ -3,43 +3,89 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
 
-// Pastikan folder data ada
 const dataDir = path.resolve(__dirname, "../data");
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-// Gunakan file travel.db di dalam folder data
 const dbPath = path.join(dataDir, "travel.db");
 const db = new Database(dbPath, { verbose: console.log });
 
-// Buat tabel dasar jika belum ada
+// Create tables if not exist (idempotent)
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
-  email TEXT UNIQUE NOT NULL,
+  email TEXT,
+  username TEXT UNIQUE,
   password TEXT NOT NULL,
-  role TEXT DEFAULT 'staff'
+  role TEXT,
+  type TEXT DEFAULT 'basic'
+);
+
+CREATE TABLE IF NOT EXISTS regions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS tours (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  description TEXT,
-  price REAL,
-  start_date TEXT,
-  end_date TEXT
+  registrationDate TEXT,
+  leadPassenger TEXT,
+  allPassengers TEXT,
+  paxCount INTEGER,
+  tourCode TEXT,
+  region TEXT,
+  departureDate TEXT,
+  bookingCode TEXT,
+  tourPrice REAL,
+  discountRemarks TEXT,
+  paymentProof TEXT,
+  documentReceived TEXT,
+  visaProcessStart TEXT,
+  visaProcessEnd TEXT,
+  staff TEXT,
+  departureStatus TEXT,
+  documentRemarks TEXT,
+  salesAmount REAL,
+  profitAmount REAL
 );
 
 CREATE TABLE IF NOT EXISTS sales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tour_id INTEGER,
-  user_id INTEGER,
-  amount REAL,
-  date TEXT,
-  FOREIGN KEY (tour_id) REFERENCES tours(id),
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  transactionDate TEXT,
+  invoiceNumber TEXT,
+  salesAmount REAL,
+  profitAmount REAL,
+  discountAmount REAL,
+  discountRemarks TEXT,
+  staff TEXT
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  documentReceiveDate TEXT,
+  shipmentDate TEXT,
+  guestNames TEXT,
+  passportVisa TEXT,
+  processType TEXT,
+  bookingCodeDMS TEXT,
+  invoiceNumber TEXT,
+  guestPhone TEXT,
+  estimatedCompletion TEXT,
+  tourType TEXT,
+  tourCode TEXT,
+  tourDepartureDate TEXT,
+  passportUsageDate TEXT,
+  passportReceivedDate TEXT,
+  documentStatus TEXT,
+  visaStatus TEXT,
+  remarks TEXT
+);
+
+CREATE TABLE IF NOT EXISTS sales_targets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  staff TEXT UNIQUE,
+  salesTarget REAL DEFAULT 0,
+  profitTarget REAL DEFAULT 0
 );
 `);
 
