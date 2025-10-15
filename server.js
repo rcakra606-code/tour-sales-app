@@ -68,6 +68,18 @@ console.log("✅ All API routes mounted successfully");
 // === Serve file statis frontend ===
 app.use(express.static(path.join(__dirname, "public")));
 
+// === Middleware Auth Global ===
+const authMiddleware = require("./middleware/authMiddleware");
+app.use(authMiddleware);
+
+// === Routes API ===
+app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/tours", toursRoutes);
+app.use("/api/documents", documentsRoutes);
+app.use("/api/users", usersRoutes);
+
 // === Health Check (optional, untuk Render uptime check) ===
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
