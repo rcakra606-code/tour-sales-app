@@ -1,18 +1,14 @@
-// ===============================
-// ✅ Backup & Health Check Scheduler (Dummy Safe)
-// ===============================
-class BackupScheduler {
-  scheduleBackup(cronTime) {
-    console.log(`🕒 Backup job scheduled at: ${cronTime}`);
-  }
+// scripts/setup-cron.js
+const cron = require("node-cron");
+const { exec } = require("child_process");
 
-  scheduleHealthCheck() {
-    console.log('✅ Health check scheduler initialized');
-  }
+console.log("⏰ Starting daily backup scheduler...");
 
-  stopAll() {
-    console.log('🧹 All schedulers stopped.');
-  }
-}
-
-module.exports = BackupScheduler;
+// Jalankan setiap jam 2 pagi
+cron.schedule("0 2 * * *", () => {
+  console.log("🗄️ Running daily backup...");
+  exec("npm run backup-db", (err, stdout, stderr) => {
+    if (err) console.error("❌ Cron backup error:", err);
+    else console.log(stdout || "✅ Backup complete");
+  });
+});
