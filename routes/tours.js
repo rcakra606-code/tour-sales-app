@@ -1,7 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const tourController = require("../controllers/tourController");
-const auth = require("../middleware/authMiddleware");
-router.post("/", auth, tourController.create);
-router.get("/", auth, tourController.list);
+const toursController = require("../controllers/toursController");
+const roleCheck = require("../middleware/roleCheck");
+
+// Semua role login bisa lihat data tour
+router.get("/", roleCheck("super", "semi", "basic"), toursController.getAllTours);
+
+// Hanya super dan semi bisa tambah/edit
+router.post("/", roleCheck("super", "semi"), toursController.createTour);
+router.put("/:id", roleCheck("super", "semi"), toursController.updateTour);
+router.delete("/:id", roleCheck("super"), toursController.deleteTour);
+
 module.exports = router;
