@@ -1,38 +1,74 @@
-// controllers/dashboardController.js
+// controllers/salesController.js
 const db = require("../config/database");
 
-// GET /api/dashboard/summary
-exports.summary = (req, res) => {
+exports.getAllSales = (req, res) => {
   try {
-    const totalSales = db.prepare("SELECT IFNULL(SUM(salesAmount),0) as total FROM tours").get().total;
-    const totalProfit = db.prepare("SELECT IFNULL(SUM(profitAmount),0) as total FROM tours").get().total;
-    const totalRegistrants = db.prepare("SELECT COUNT(*) as cnt FROM tours").get().cnt;
-    const totalPax = db.prepare("SELECT IFNULL(SUM(paxCount),0) as pax FROM tours").get().pax;
-
-    res.json({ totalSales, totalProfit, totalRegistrants, totalPax });
+    const rows = db
+      .prepare(`
+        SELECT s.id, s.transactionDate, s.invoiceNumber, s.salesAmount, s.profitAmount,
+               u.name as staff
+        FROM sales s
+        LEFT JOIN users u ON s.user_id = u.id
+        ORDER BY s.id DESC
+      `)
+      .all();
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// GET /api/dashboard/charts
-exports.charts = (req, res) => {
+exports.createSale = (req, res) => {
   try {
-    // sales/profit per staff
-    const staffRows = db.prepare(`
-      SELECT staff, IFNULL(SUM(salesAmount),0) as sales, IFNULL(SUM(profitAmount),0) as profit
-      FROM tours
-      GROUP BY staff
-    `).all();
+    const { transactionDate, invoiceNumber, salesAmount, profitAmount, user_id } = req.body;
 
-    // region distribution
-    const regionRows = db.prepare(`
-      SELECT region, COUNT(*) as count
-      FROM tours
-      GROUP BY region
-    `).all();
+    if (!invoiceNumber || !salesAmount)
+      return res.status(400).json({ message: "invoiceNumber and salesAmount required" });
 
-    res.json({ staffRows, regionRows });
+    const stmt = db.prepare(`
+      INSERT INTO sales (transactionDate, invoiceNumber, salesAmount, profitAmount, user_id)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(transactionDate || new Date().toISOString().slice(0, 10), invoiceNumber, salesAmount, profitAmount || 0, user_id || req.user?.id);
+
+    res.status(201).json({ message: "Sales record created successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateSale = (req, res) => {
+  try {
+    const { id } = req.params;
+    const { transactionDate, invoiceNumber, salesAmount, profitAmount } = req.body;
+
+    const existing = db.prepare("SELECT * FROM sales WHERE id = ?").get(id);
+    if (!existing) return res.status(404).json({ message: "Sales record not found" });
+
+    db.prepare(`
+      UPDATE sales
+      SET transactionDate=?, invoiceNumber=?, salesAmount=?, profitAmount=?
+      WHERE id=?
+    `).run(
+      transactionDate || existing.transactionDate,
+      invoiceNumber || existing.invoiceNumber,
+      salesAmount || existing.salesAmount,
+      profitAmount || existing.profitAmount,
+      id
+    );
+
+    res.json({ message: "Sales updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteSale = (req, res) => {
+  try {
+    const { id } = req.params;
+    const del = db.prepare("DELETE FROM sales WHERE id = ?").run(id);
+    if (del.changes === 0) return res.status(404).json({ message: "Sales record not found" });
+    res.json({ message: "Sales deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
