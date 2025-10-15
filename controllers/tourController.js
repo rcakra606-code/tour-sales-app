@@ -1,41 +1,122 @@
-// controllers/tourController.js
+// controllers/toursController.js
 const db = require("../config/database");
 
-// POST /api/tours
-exports.create = (req, res) => {
+// === GET all tours ===
+exports.getAllTours = (req, res) => {
   try {
-    const body = req.body;
-    // compute sales/profit if not provided
-    const salesAmount = body.tourPrice || 0;
-    const profitAmount = body.profitAmount ?? Math.round((body.tourPrice || 0) * 0.2);
-
-    const insert = db.prepare(`INSERT INTO tours
-      (registrationDate,leadPassenger,allPassengers,paxCount,tourCode,region,departureDate,bookingCode,tourPrice,discountRemarks,paymentProof,documentReceived,visaProcessStart,visaProcessEnd,staff,departureStatus,documentRemarks,salesAmount,profitAmount)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
-    const info = insert.run(
-      body.registrationDate, body.leadPassenger, body.allPassengers, body.paxCount || 0,
-      body.tourCode, body.region, body.departureDate, body.bookingCode, body.tourPrice || 0,
-      body.discountRemarks || '', body.paymentProof || '', body.documentReceived || null,
-      body.visaProcessStart || null, body.visaProcessEnd || null,
-      body.staff || null, body.departureStatus || 'belum_jalan', body.documentRemarks || null,
-      salesAmount, profitAmount
-    );
-    res.json({ id: info.lastInsertRowid });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const rows = db
+      .prepare(`
+        SELECT t.id,
+               t.registrationDate,
+               t.leadPassenger,
+               t.tourCode,
+               t.region,
+               t.paxCount,
+               t.tourPrice,
+               t.departureStatus,
+               u.name AS staff
+        FROM tours t
+        LEFT JOIN users u ON t.user_id = u.id
+        ORDER BY t.id DESC
+      `)
+      .all();
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// GET /api/tours
-exports.list = (req, res) => {
+// === CREATE new tour ===
+exports.createTour = (req, res) => {
   try {
-    const { staff, region, startDate, endDate, departureStatus } = req.query;
-    let sql = "SELECT * FROM tours WHERE 1=1";
-    const params = [];
-    if (staff && staff !== "all") { sql += " AND staff = ?"; params.push(staff); }
-    if (region && region !== "all") { sql += " AND region = ?"; params.push(region); }
-    if (departureStatus && departureStatus !== "all") { sql += " AND departureStatus = ?"; params.push(departureStatus); }
-    if (startDate) { sql += " AND registrationDate >= ?"; params.push(startDate); }
-    if (endDate) { sql += " AND registrationDate <= ?"; params.push(endDate); }
-    const rows = db.prepare(sql + " ORDER BY registrationDate DESC").all(...params);
-    res.json(rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    const {
+      registrationDate,
+      leadPassenger,
+      tourCode,
+      region,
+      paxCount,
+      staff,
+      tourPrice,
+      departureStatus,
+    } = req.body;
+
+    if (!leadPassenger || !tourCode)
+      return res.status(400).json({ message: "leadPassenger and tourCode required" });
+
+    // Cari ID staff jika dikirim sebagai nama
+    let userId = null;
+    if (staff) {
+      const user = db.prepare("SELECT id FROM users WHERE name = ? OR username = ?").get(staff, staff);
+      if (user) userId = user.id;
+    }
+
+    db.prepare(`
+      INSERT INTO tours
+      (registrationDate, leadPassenger, tourCode, region, paxCount, tourPrice, departureStatus, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      registrationDate || new Date().toISOString().slice(0, 10),
+      leadPassenger,
+      tourCode,
+      region || "Unspecified",
+      paxCount || 0,
+      tourPrice || 0,
+      departureStatus || "Pending",
+      userId || req.user?.id || null
+    );
+
+    res.status(201).json({ message: "Tour created successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// === UPDATE tour ===
+exports.updateTour = (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      registrationDate,
+      leadPassenger,
+      tourCode,
+      region,
+      paxCount,
+      tourPrice,
+      departureStatus,
+    } = req.body;
+
+    const tour = db.prepare("SELECT * FROM tours WHERE id = ?").get(id);
+    if (!tour) return res.status(404).json({ message: "Tour not found" });
+
+    db.prepare(`
+      UPDATE tours
+      SET registrationDate=?, leadPassenger=?, tourCode=?, region=?, paxCount=?, tourPrice=?, departureStatus=?
+      WHERE id=?
+    `).run(
+      registrationDate || tour.registrationDate,
+      leadPassenger || tour.leadPassenger,
+      tourCode || tour.tourCode,
+      region || tour.region,
+      paxCount || tour.paxCount,
+      tourPrice || tour.tourPrice,
+      departureStatus || tour.departureStatus,
+      id
+    );
+
+    res.json({ message: "Tour updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// === DELETE tour ===
+exports.deleteTour = (req, res) => {
+  try {
+    const { id } = req.params;
+    const del = db.prepare("DELETE FROM tours WHERE id = ?").run(id);
+    if (del.changes === 0) return res.status(404).json({ message: "Tour not found" });
+    res.json({ message: "Tour deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
