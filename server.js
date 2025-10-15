@@ -55,7 +55,7 @@ app.use(
 app.use(express.static(path.join(__dirname, "public")));
 
 // === Routes API ===
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", require("./routes/auth"));
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/tours", toursRoutes);
