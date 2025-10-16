@@ -4,40 +4,24 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const path = require("path");
-
-// === Import logger dan database ===
 const { logger, httpLogger } = require("./config/logger");
-const db = require("./config/database");
 
-// === Import routes ===
-const authRoutes = require("./routes/auth");
-const dashboardRoutes = require("./routes/dashboard");
-const toursRoutes = require("./routes/tours");
-const salesRoutes = require("./routes/sales");
-const usersRoutes = require("./routes/users");
-const regionsRoutes = require("./routes/regions");
+// === Initialize DB ===
+require("./config/database");
 
-// === Inisialisasi app ===
 const app = express();
 
-// === Middleware global ===
+// === Middleware ===
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(httpLogger); // HTTP log via winston
-app.use(morgan("dev")); // tambahan untuk console dev log
-
-// === Helmet (dengan CSP longgar untuk CDN Tailwind & Chart.js) ===
+app.use(httpLogger);
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-        ],
+        scriptSrc: ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
@@ -49,28 +33,22 @@ app.use(
   })
 );
 
-// === API Routes ===
-app.use("/api/auth", authRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/tours", toursRoutes);
-app.use("/api/sales", salesRoutes);
-app.use("/api/users", usersRoutes);
-app.use("/api/regions", regionsRoutes);
+// === Routes ===
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/dashboard", require("./routes/dashboard"));
+app.use("/api/sales", require("./routes/sales"));
+app.use("/api/tours", require("./routes/tours"));
+app.use("/api/users", require("./routes/users"));
+app.use("/api/regions", require("./routes/regions"));
 
-// === Serve frontend static ===
+// === Static Frontend ===
 app.use(express.static(path.join(__dirname, "public")));
+app.get("*", (req, res) =>
+  res.sendFile(path.join(__dirname, "public", "index.html"))
+);
 
-// === SPA fallback ===
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-// === Jalankan server ===
+// === Start Server ===
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  if (logger && typeof logger.info === "function") {
-    logger.info(`✅ Server running on port ${PORT}`);
-  } else {
-    console.log(`✅ Server running on port ${PORT}`);
-  }
+  logger.info(`✅ Server running on port ${PORT}`);
 });
