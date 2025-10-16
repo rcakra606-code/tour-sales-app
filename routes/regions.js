@@ -10,8 +10,8 @@ router.use(authMiddleware);
 
 // Hanya admin (type = super) yang bisa ubah region
 router.get("/", regionsController.getAllRegions);
-router.post("/", roleCheck(["super"]), regionsController.createRegion);
-router.put("/:id", roleCheck(["super"]), regionsController.updateRegion);
-router.delete("/:id", roleCheck(["super"]), regionsController.deleteRegion);
+router.post("/", roleCheck(["super"]), regionController.createRegion);
+router.put("/:id", roleCheck(["super"]), regionController.updateRegion);
+router.delete("/:id", roleCheck(["super"]), regionController.deleteRegion);
 
 module.exports = router;
