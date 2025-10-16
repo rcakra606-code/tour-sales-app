@@ -1,8 +1,7 @@
-// controllers/regionsController.js
+// controllers/regionController.js
 const db = require("../config/database");
 
-// === GET semua region ===
-exports.getAllRegions = (req, res) => {
+exports.getAll = (req, res) => {
   try {
     const regions = db.prepare("SELECT * FROM regions ORDER BY name ASC").all();
     res.json(regions);
@@ -11,51 +10,39 @@ exports.getAllRegions = (req, res) => {
   }
 };
 
-// === Tambah region baru ===
-exports.addRegion = (req, res) => {
+exports.create = (req, res) => {
   try {
-    const { name, code, description } = req.body;
-    if (!name) return res.status(400).json({ message: "Region name is required" });
+    const { name, description } = req.body;
+    if (!name) return res.status(400).json({ message: "Nama region wajib diisi" });
 
     const exists = db.prepare("SELECT id FROM regions WHERE name = ?").get(name);
-    if (exists) return res.status(409).json({ message: "Region already exists" });
+    if (exists) return res.status(409).json({ message: "Region sudah ada" });
 
-    const insert = db.prepare("INSERT INTO regions (name, code, description) VALUES (?, ?, ?)");
-    insert.run(name, code || null, description || null);
-
-    res.status(201).json({ message: "Region added successfully" });
+    db.prepare("INSERT INTO regions (name, description) VALUES (?, ?)").run(name, description || null);
+    res.status(201).json({ message: "Region ditambahkan" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// === Update region ===
-exports.updateRegion = (req, res) => {
+exports.update = (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, description } = req.body;
+    const { name, description } = req.body;
+    if (!name) return res.status(400).json({ message: "Nama wajib diisi" });
 
-    const region = db.prepare("SELECT * FROM regions WHERE id = ?").get(id);
-    if (!region) return res.status(404).json({ message: "Region not found" });
-
-    const update = db.prepare(`
-      UPDATE regions SET name = ?, code = ?, description = ? WHERE id = ?
-    `);
-    update.run(name || region.name, code || region.code, description || region.description, id);
-
-    res.json({ message: "Region updated successfully" });
+    db.prepare("UPDATE regions SET name = ?, description = ? WHERE id = ?").run(name, description || null, id);
+    res.json({ message: "Region diperbarui" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// === Hapus region ===
-exports.deleteRegion = (req, res) => {
+exports.remove = (req, res) => {
   try {
     const { id } = req.params;
-    const del = db.prepare("DELETE FROM regions WHERE id = ?").run(id);
-    if (del.changes === 0) return res.status(404).json({ message: "Region not found" });
-    res.json({ message: "Region deleted successfully" });
+    db.prepare("DELETE FROM regions WHERE id = ?").run(id);
+    res.json({ message: "Region dihapus" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
