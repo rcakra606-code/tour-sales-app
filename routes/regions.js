@@ -1,22 +1,19 @@
 // routes/regions.js
 const express = require("express");
 const router = express.Router();
-const regionController = require("../controllers/regionController");
+const regionsController = require("../controllers/regionController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleCheck = require("../middleware/roleCheck");
 
-// require auth for every region route
+// Semua route region butuh login
 router.use(authMiddleware);
 
-// public GET for regions (any authenticated user)
-router.get("/", regionController.getAll);
+// === GET semua region (semua role bisa lihat)
+router.get("/", regionsController.getAll);
 
-// create/update/delete require roles
-router.post("/", roleCheck("semi") /* allow semi or super? see note below */, regionController.create);
-// Note: roleCheck helper as earlier expects a single role string, if you want multiple roles, either call roleCheck twice or adapt roleCheck to accept array.
-// For simplicity, if your roleCheck supports arrays, pass ["super","semi"]. If not, change to roleCheck("super") and roleCheck("semi") logic.
-
-router.put("/:id", roleCheck("semi"), regionController.update);
-router.delete("/:id", roleCheck("super"), regionController.remove);
+// === CREATE / UPDATE / DELETE hanya untuk admin/super
+router.post("/", roleCheck(["admin", "super"]), regionsController.create);
+router.put("/:id", roleCheck(["admin", "super"]), regionsController.update);
+router.delete("/:id", roleCheck(["admin", "super"]), regionsController.remove);
 
 module.exports = router;
