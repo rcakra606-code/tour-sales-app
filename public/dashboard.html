@@ -6,184 +6,184 @@
   <title>Tour & Sales Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: { extend: { colors: { primary: "#2563eb" } } }
-    }
-  </script>
+
   <style>
-    body { box-sizing: border-box; }
-    .sidebar-active { background-color: #2563eb; color: white; }
-    .sidebar-item:hover { background-color: #3b82f6; color: white; }
-    .dark .sidebar-active { background-color: #60a5fa; color: black; }
-    .sidebar-transition { transition: all 0.3s ease-in-out; }
+    body { box-sizing: border-box; transition: background 0.3s, color 0.3s; }
+    .dark-mode { background-color: #1f2937; color: #e5e7eb; }
+    .sidebar-item { transition: background 0.2s; }
+    .sidebar-item:hover { background-color: #2563eb; color: white; }
   </style>
 </head>
-<body class="h-full flex bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
 
-  <!-- SIDEBAR -->
-  <aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg h-screen flex flex-col sidebar-transition fixed lg:relative z-40 lg:translate-x-0 -translate-x-full">
-    <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
-      <div>
-        <h2 class="text-xl font-bold text-blue-700 dark:text-blue-400">Tour & Sales</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Management System</p>
-      </div>
-      <button id="closeSidebar" class="lg:hidden text-gray-700 dark:text-gray-300 text-2xl">✕</button>
+<body class="h-full bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+
+  <!-- HEADER -->
+  <header class="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
+    <h1 class="text-2xl font-bold">🌍 Tour & Sales Dashboard</h1>
+    <div class="flex items-center gap-3">
+      <span id="userInfo" class="text-sm text-gray-600 dark:text-gray-300">Memuat...</span>
+      <button id="toggleTheme" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">🌙</button>
+      <button id="logoutBtn" class="bg-red-600 text-white px-4 py-1 rounded">Logout</button>
     </div>
+  </header>
 
-    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-      <button onclick="showPage('dashboard')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg sidebar-active">📊 Dashboard</button>
-      <button onclick="showPage('inputData')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🧾 Input Tour</button>
-      <button onclick="showPage('inputSales')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">💰 Input Sales</button>
-      <button onclick="showPage('reportData')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">📑 Laporan</button>
-      <hr class="my-3 dark:border-gray-700" />
+  <!-- MAIN WRAPPER -->
+  <div class="flex min-h-screen">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-gray-50 dark:bg-gray-800 p-4 space-y-3 border-r dark:border-gray-700">
+      <button onclick="showPage('dashboard')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg bg-blue-500 text-white">🏠 Dashboard</button>
+      <button onclick="showPage('tourDataEntry')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🧳 Input Tour</button>
+      <button onclick="showPage('salesDashboard')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">💼 Sales Dashboard</button>
+      <button onclick="showPage('salesDataEntry')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">📋 Input Sales</button>
+      <button onclick="showPage('manageRegions')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🌏 Manage Region</button>
+      <button onclick="showPage('changePassword')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🔒 Ganti Password</button>
       <button onclick="showPage('manageUsers')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">👥 Manage Users</button>
-      <button onclick="showPage('manageRegions')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🌍 Manage Regions</button>
-    </nav>
+    </aside>
 
-    <div class="p-4 border-t dark:border-gray-700">
-      <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 w-full text-white py-2 rounded-lg font-medium">Logout</button>
-    </div>
-  </aside>
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-6 space-y-8">
 
-  <!-- OVERLAY -->
-  <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
+      <!-- DASHBOARD -->
+      <section id="dashboardPage" class="">
+        <h2 class="text-xl font-bold mb-4">📊 Ringkasan Dashboard</h2>
 
-  <!-- MAIN CONTENT -->
-  <main class="flex-1 p-8 overflow-y-auto transition-all lg:ml-0 ml-0 w-full">
-    <!-- HEADER -->
-    <header class="flex justify-between items-center mb-6">
-      <div class="flex items-center gap-3">
-        <button id="sidebarToggle" class="lg:hidden text-3xl text-gray-700 dark:text-gray-300">☰</button>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-      </div>
-      <div class="flex items-center gap-4">
-        <button id="themeToggle" class="bg-gray-200 dark:bg-gray-700 px-3 py-2 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition">🌙</button>
-        <span class="text-gray-600 dark:text-gray-400">👤 <span id="currentUser">Loading...</span></span>
-      </div>
-    </header>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Sales</h3>
+            <p id="totalSales" class="text-2xl font-bold">0</p>
+          </div>
+          <div class="bg-green-100 dark:bg-green-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Profit</h3>
+            <p id="totalProfit" class="text-2xl font-bold">0</p>
+          </div>
+          <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Registrants</h3>
+            <p id="totalRegistrants" class="text-2xl font-bold">0</p>
+          </div>
+          <div class="bg-purple-100 dark:bg-purple-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Pax</h3>
+            <p id="totalPax" class="text-2xl font-bold">0</p>
+          </div>
+        </div>
 
-    <!-- SUMMARY -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Sales</h3><p id="totalSales" class="text-2xl font-bold">Rp 0</p></div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Profit</h3><p id="totalProfit" class="text-2xl font-bold">Rp 0</p></div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Registrants</h3><p id="totalRegistrants" class="text-2xl font-bold">0</p></div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Pax</h3><p id="totalPax" class="text-2xl font-bold">0</p></div>
-    </section>
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <canvas id="salesChart"></canvas>
+          <canvas id="regionChart"></canvas>
+        </div>
+      </section>
 
-    <!-- CHARTS -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Sales & Profit per Staff</h3><canvas id="salesChart" class="w-full h-64"></canvas></div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Registrasi per Region</h3><canvas id="regionChart" class="w-full h-64"></canvas></div>
-    </section>
+      <!-- CHANGE PASSWORD -->
+      <section id="changePasswordPage" class="hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4">🔒 Ganti Password</h3>
+        <form id="changePasswordForm" class="space-y-4 max-w-md">
+          <div>
+            <label class="block mb-1">Password Lama</label>
+            <input type="password" id="oldPassword" class="border p-2 w-full rounded dark:bg-gray-700" required />
+          </div>
+          <div>
+            <label class="block mb-1">Password Baru</label>
+            <input type="password" id="newPassword" class="border p-2 w-full rounded dark:bg-gray-700" required />
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+          </div>
+        </form>
+      </section>
 
-    <!-- DAILY SALES -->
-    <section class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-      <h3>Tren Penjualan Harian</h3>
-      <canvas id="dailySalesChart" class="w-full h-64"></canvas>
-    </section>
+    </main>
+  </div>
 
-    <!-- MANAGE REGION -->
-    <section id="manageRegionsPage" class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow hidden">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">🌍 Manage Regions</h3>
-        <button id="addRegionBtn" class="bg-blue-600 text-white px-4 py-2 rounded">+ Tambah Region</button>
-      </div>
-      <table class="w-full border text-left">
-        <thead class="bg-gray-200 dark:bg-gray-700">
-          <tr>
-            <th class="p-2">Nama Region</th>
-            <th class="p-2">Deskripsi</th>
-            <th class="p-2 text-center">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="regionsTableBody"></tbody>
-      </table>
-    </section>
-  </main>
-
-  <!-- JS -->
+  <!-- JS LOGIC -->
   <script>
-    // Dark mode toggle
-    const themeToggle = document.getElementById("themeToggle");
-    const root = document.documentElement;
-    if (localStorage.theme === "dark") root.classList.add("dark");
-    themeToggle.addEventListener("click", () => {
-      root.classList.toggle("dark");
-      localStorage.theme = root.classList.contains("dark") ? "dark" : "light";
-      themeToggle.textContent = root.classList.contains("dark") ? "☀️" : "🌙";
+    // === THEME TOGGLE ===
+    const themeBtn = document.getElementById("toggleTheme");
+    themeBtn.addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      const mode = document.body.classList.contains("dark") ? "dark" : "light";
+      localStorage.setItem("theme", mode);
+      themeBtn.textContent = mode === "dark" ? "☀️" : "🌙";
     });
-    themeToggle.textContent = root.classList.contains("dark") ? "☀️" : "🌙";
+    if (localStorage.getItem("theme") === "dark") {
+      document.body.classList.add("dark");
+      themeBtn.textContent = "☀️";
+    }
 
-    // Sidebar toggle
-    const sidebar = document.getElementById("sidebar");
-    const sidebarToggle = document.getElementById("sidebarToggle");
-    const sidebarOverlay = document.getElementById("sidebarOverlay");
-    const closeSidebar = document.getElementById("closeSidebar");
+    // === PAGE SWITCH ===
+    function showPage(page) {
+      document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
+      document.getElementById(page + "Page").classList.remove("hidden");
+    }
 
-    sidebarToggle.addEventListener("click", () => {
-      sidebar.classList.remove("-translate-x-full");
-      sidebarOverlay.classList.remove("hidden");
-    });
-    closeSidebar.addEventListener("click", () => {
-      sidebar.classList.add("-translate-x-full");
-      sidebarOverlay.classList.add("hidden");
-    });
-    sidebarOverlay.addEventListener("click", () => {
-      sidebar.classList.add("-translate-x-full");
-      sidebarOverlay.classList.add("hidden");
-    });
+    // === FETCH DASHBOARD SUMMARY ===
+    async function loadDashboard() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/dashboard/summary", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        document.getElementById("totalSales").innerText = data.totalSales ?? 0;
+        document.getElementById("totalProfit").innerText = data.totalProfit ?? 0;
+        document.getElementById("totalRegistrants").innerText = data.totalRegistrants ?? 0;
+        document.getElementById("totalPax").innerText = data.totalPax ?? 0;
 
-    // Load Regions
-    async function loadRegions() {
-      const res = await fetch("/api/regions");
-      const regions = await res.json();
-      const tbody = document.getElementById("regionsTableBody");
-      tbody.innerHTML = "";
-      regions.forEach(r => {
-        tbody.innerHTML += `
-          <tr class="border-b dark:border-gray-700">
-            <td class="p-2">${r.name}</td>
-            <td class="p-2">${r.description || "-"}</td>
-            <td class="p-2 text-center">
-              <button onclick="editRegion(${r.id}, '${r.name}', '${r.description || ""}')" class="text-blue-600">✏️</button>
-              <button onclick="deleteRegion(${r.id})" class="text-red-600 ml-2">🗑️</button>
-            </td>
-          </tr>`;
+        const chartRes = await fetch("/api/dashboard/charts", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const charts = await chartRes.json();
+        renderCharts(charts);
+      } catch (e) {
+        console.error("Dashboard load error:", e);
+      }
+    }
+
+    // === CHART RENDER ===
+    function renderCharts(data) {
+      const salesCtx = document.getElementById("salesChart").getContext("2d");
+      new Chart(salesCtx, {
+        type: "bar",
+        data: {
+          labels: data.staffRows.map(r => r.staff),
+          datasets: [{
+            label: "Sales",
+            data: data.staffRows.map(r => r.sales),
+            backgroundColor: "rgba(59,130,246,0.7)"
+          }]
+        }
+      });
+
+      const regionCtx = document.getElementById("regionChart").getContext("2d");
+      new Chart(regionCtx, {
+        type: "pie",
+        data: {
+          labels: data.regionRows.map(r => r.region),
+          datasets: [{
+            label: "Tours per Region",
+            data: data.regionRows.map(r => r.count),
+            backgroundColor: ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa"]
+          }]
+        }
       });
     }
 
-    // Add/Edit/Delete region
-    document.getElementById("addRegionBtn").addEventListener("click", async () => {
-      const name = prompt("Nama region:");
-      if (!name) return;
-      const desc = prompt("Deskripsi:");
-      await fetch("/api/regions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, description: desc }) });
-      loadRegions();
+    // === CHANGE PASSWORD ===
+    document.getElementById("changePasswordForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const token = localStorage.getItem("token");
+      const oldPassword = document.getElementById("oldPassword").value;
+      const newPassword = document.getElementById("newPassword").value;
+      const res = await fetch("/api/users/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await res.json();
+      alert(data.message || "Gagal memperbarui password");
     });
 
-    window.editRegion = async (id, name, desc) => {
-      const newName = prompt("Ubah nama region:", name);
-      if (!newName) return;
-      const newDesc = prompt("Ubah deskripsi:", desc);
-      await fetch(`/api/regions/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName, description: newDesc }) });
-      loadRegions();
-    };
-
-    window.deleteRegion = async (id) => {
-      if (!confirm("Hapus region ini?")) return;
-      await fetch(`/api/regions/${id}`, { method: "DELETE" });
-      loadRegions();
-    };
-
-    function showPage(page) {
-      document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
-      if (page === "manageRegions") {
-        document.getElementById("manageRegionsPage").classList.remove("hidden");
-        loadRegions();
-      }
-    }
+    // === INIT ===
+    loadDashboard();
   </script>
 </body>
 </html>
