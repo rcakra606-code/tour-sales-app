@@ -1,21 +1,25 @@
 // middleware/roleCheck.js
 /**
- * Middleware untuk memeriksa hak akses pengguna berdasarkan role/type.
- * - Mendukung string tunggal atau array.
- * - Contoh:
- *    router.post("/regions", roleCheck(["super","semi"]), regionController.create);
+ * Middleware untuk validasi role user
+ * Contoh penggunaan:
+ *   router.post("/create", roleCheck(["admin", "super"]), controller.createRegion);
  */
-module.exports = (allowedRoles) => {
+
+function roleCheck(allowedRoles = []) {
   return (req, res, next) => {
-    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+    const user = req.user;
+    if (!user)
+      return res.status(401).json({ message: "Unauthorized - no user data" });
 
-    const userRole = req.user.type || req.user.role || "basic";
-    const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-
-    if (!allowed.includes(userRole)) {
-      return res.status(403).json({ message: "Access denied for role: " + userRole });
+    const role = user.type || user.role || "basic";
+    if (!allowedRoles.includes(role)) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden - insufficient privileges" });
     }
 
     next();
   };
-};
+}
+
+module.exports = roleCheck;
