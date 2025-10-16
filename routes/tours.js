@@ -1,14 +1,26 @@
+// routes/tours.js
 const express = require("express");
 const router = express.Router();
 const toursController = require("../controllers/tourController");
+const authMiddleware = require("../middleware/authMiddleware");
 const roleCheck = require("../middleware/roleCheck");
 
-// Semua role login bisa lihat data tour
-router.get("/", roleCheck("super", "semi", "basic"), toursController.getAllTours);
+// Semua endpoint tours butuh autentikasi
+router.use(authMiddleware);
 
-// Hanya super dan semi bisa tambah/edit
-router.post("/", roleCheck("super", "semi"), toursController.createTour);
+// === GET semua tour ===
+router.get("/", toursController.getAllTours);
+
+// === POST tambah tour baru (khusus super/semi) ===
+router.post("/", roleCheck("super", "semi"), toursController.addTour);
+
+// === GET satu tour ===
+router.get("/:id", toursController.getTourById);
+
+// === PUT update tour ===
 router.put("/:id", roleCheck("super", "semi"), toursController.updateTour);
+
+// === DELETE tour ===
 router.delete("/:id", roleCheck("super"), toursController.deleteTour);
 
 module.exports = router;
