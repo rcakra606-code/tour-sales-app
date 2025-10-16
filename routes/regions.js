@@ -9,7 +9,7 @@ const roleCheck = require("../middleware/roleCheck");
 router.use(authMiddleware);
 
 // Hanya admin (type = super) yang bisa ubah region
-router.get("/", regionsController.getAllRegions);
+router.get("/", regionController.getAllRegions);
 router.post("/", roleCheck(["super"]), regionController.createRegion);
 router.put("/:id", roleCheck(["super"]), regionController.updateRegion);
 router.delete("/:id", roleCheck(["super"]), regionController.deleteRegion);
