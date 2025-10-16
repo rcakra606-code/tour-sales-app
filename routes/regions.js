@@ -1,7 +1,7 @@
 // routes/regions.js
 const express = require("express");
 const router = express.Router();
-const regionsController = require("../controllers/regionController");
+const regionController = require("../controllers/regionController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleCheck = require("../middleware/roleCheck");
 
