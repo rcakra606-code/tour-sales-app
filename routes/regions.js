@@ -1,19 +1,23 @@
 // routes/regions.js
 const express = require("express");
 const router = express.Router();
-const regionsController = require("../controllers/regionController");
+const regionController = require("../controllers/regionController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleCheck = require("../middleware/roleCheck");
 
-// Semua route region butuh login
+// Semua route butuh login
 router.use(authMiddleware);
 
-// === GET semua region (semua role bisa lihat)
-router.get("/", regionsController.getAll);
+// === Get all regions ===
+router.get("/", regionController.getAll);
 
-// === CREATE / UPDATE / DELETE hanya untuk admin/super
-router.post("/", roleCheck(["admin", "super"]), regionsController.create);
-router.put("/:id", roleCheck(["admin", "super"]), regionsController.update);
-router.delete("/:id", roleCheck(["admin", "super"]), regionsController.remove);
+// === Create region (Admin/Super only) ===
+router.post("/", roleCheck(["super", "admin"]), regionController.create);
+
+// === Update region (Admin/Super only) ===
+router.put("/:id", roleCheck(["super", "admin"]), regionController.update);
+
+// === Delete region (Admin/Super only) ===
+router.delete("/:id", roleCheck(["super", "admin"]), regionController.remove);
 
 module.exports = router;
