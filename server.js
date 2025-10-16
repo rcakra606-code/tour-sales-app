@@ -16,6 +16,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(morgan("dev"));
+app.use("/api/users", require("./routes/users"));
+app.use("/api/regions", require("./routes/regions"));
 
 // === Helmet dengan CSP yang diizinkan untuk Tailwind & Chart.js ===
 app.use(
