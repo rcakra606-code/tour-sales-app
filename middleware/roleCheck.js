@@ -1,32 +1,21 @@
 // middleware/roleCheck.js
-
 /**
- * Middleware untuk membatasi akses berdasarkan role/type user.
- * Contoh:
- *   app.get("/api/admin", roleCheck("super"), handler)
- *   app.post("/api/region", roleCheck("super", "semi"), handler)
+ * Middleware untuk memeriksa hak akses pengguna berdasarkan role/type.
+ * - Mendukung string tunggal atau array.
+ * - Contoh:
+ *    router.post("/regions", roleCheck(["super","semi"]), regionController.create);
  */
-
-function roleCheck(...allowedRoles) {
+module.exports = (allowedRoles) => {
   return (req, res, next) => {
-    try {
-      const user = req.user;
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-      if (!user) {
-        return res.status(401).json({ message: "Unauthorized: user not found in token" });
-      }
+    const userRole = req.user.type || req.user.role || "basic";
+    const allowed = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
 
-      const userRole = user.type || user.role || "basic";
-
-      if (!allowedRoles.includes(userRole)) {
-        return res.status(403).json({ message: `Access denied for role: ${userRole}` });
-      }
-
-      next();
-    } catch (err) {
-      res.status(500).json({ message: "Role check failed", error: err.message });
+    if (!allowed.includes(userRole)) {
+      return res.status(403).json({ message: "Access denied for role: " + userRole });
     }
-  };
-}
 
-module.exports = roleCheck;
+    next();
+  };
+};
