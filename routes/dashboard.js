@@ -2,10 +2,16 @@
 const express = require("express");
 const router = express.Router();
 const dashboardController = require("../controllers/dashboardController");
+const authMiddleware = require("../middleware/authMiddleware");
 const roleCheck = require("../middleware/roleCheck");
 
-// 🔹 Semua role boleh melihat dashboard summary dan chart
-router.get("/summary", roleCheck("super", "semi", "basic"), dashboardController.getSummary);
-router.get("/charts", roleCheck("super", "semi", "basic"), dashboardController.getCharts);
+// Semua route dashboard butuh login
+router.use(authMiddleware);
+
+// === Summary data untuk dashboard utama ===
+router.get("/summary", dashboardController.getSummary);
+
+// === Data untuk chart (sales, region, departure) ===
+router.get("/charts", dashboardController.getCharts);
 
 module.exports = router;
