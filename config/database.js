@@ -1,31 +1,23 @@
-// config/database.js
-const Database = require("better-sqlite3");
-const fs = require("fs");
+/**
+ * ✅ DATABASE CONFIGURATION
+ * Menggunakan better-sqlite3 untuk database lokal yang cepat dan ringan.
+ */
+
 const path = require("path");
+const Database = require("better-sqlite3");
 const logger = require("./logger");
 
-const dbPath = path.join(__dirname, "../data/database.sqlite");
-const backupDir = path.join(__dirname, "../backups");
+const dbPath = path.join(__dirname, "..", "data", "database.sqlite");
 
-// === Restore otomatis kalau DB hilang ===
-if (!fs.existsSync(dbPath)) {
-  logger.warn("⚠️ Database file missing. Trying to restore from latest backup...");
-  if (fs.existsSync(backupDir)) {
-    const backups = fs.readdirSync(backupDir).filter(f => f.endsWith(".sqlite"));
-    if (backups.length > 0) {
-      const latest = backups.sort().reverse()[0];
-      fs.copyFileSync(path.join(backupDir, latest), dbPath);
-      logger.info(`✅ Restored database from backup: ${latest}`);
-    } else {
-      logger.warn("⚠️ No backup found, creating new database...");
-    }
-  }
-}
-
+// === Inisialisasi Database ===
 const db = new Database(dbPath);
 logger.info(`✅ Database connected at: ${dbPath}`);
 
-// === Pastikan tabel utama ada ===
+// =====================================
+// ✅ CREATE TABLES
+// =====================================
+
+// === USERS ===
 db.prepare(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,38 +30,55 @@ db.prepare(`
   )
 `).run();
 
+// === TOURS ===
 db.prepare(`
   CREATE TABLE IF NOT EXISTS tours (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    registrationDate TEXT,
+    registrationDate TEXT DEFAULT (DATE('now')),
     leadPassenger TEXT,
     tourCode TEXT,
     region TEXT,
-    paxCount INTEGER,
+    paxCount INTEGER DEFAULT 0,
     staff TEXT,
-    tourPrice REAL,
-    departureStatus TEXT
+    tourPrice REAL DEFAULT 0,
+    departureStatus TEXT DEFAULT 'Pending'
   )
 `).run();
 
+// === SALES ===
 db.prepare(`
   CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    transactionDate TEXT,
+    transactionDate TEXT DEFAULT (DATE('now')),
     invoiceNumber TEXT,
-    salesAmount REAL,
-    profitAmount REAL,
+    salesAmount REAL DEFAULT 0,
+    profitAmount REAL DEFAULT 0,
     staff TEXT
   )
 `).run();
 
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS regions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
-    code TEXT,
-    description TEXT
-  )
-`).run();
+// =====================================
+// ✅ INDEXING (opsional, agar query cepat)
+// =====================================
+db.prepare(`CREATE INDEX IF NOT EXISTS idx_tours_region ON tours(region)`).run();
+db.prepare(`CREATE INDEX IF NOT EXISTS idx_sales_staff ON sales(staff)`).run();
+db.prepare(`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`).run();
 
+// =====================================
+// ✅ TEST INITIAL DATA (jika kosong)
+// =====================================
+const userCount = db.prepare("SELECT COUNT(*) AS count FROM users").get().count;
+if (userCount === 0) {
+  const bcrypt = require("bcryptjs");
+  const hashed = bcrypt.hashSync("admin123", 10);
+  db.prepare(`
+    INSERT INTO users (name, username, email, password, role, type)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run("Administrator", "admin", "admin@example.com", hashed, "super", "super");
+  logger.info("👤 Default admin user created: admin / admin123");
+}
+
+// =====================================
+// ✅ Export Database Connection
+// =====================================
 module.exports = db;
