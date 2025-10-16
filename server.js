@@ -79,6 +79,7 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/tours", toursRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/regions", require("./routes/regions"));
 
 // === Health Check (optional, untuk Render uptime check) ===
 app.get("/health", (req, res) => res.json({ status: "ok" }));
