@@ -57,6 +57,15 @@ db.prepare(`
   )
 `).run();
 
+// === REGION ===
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS regions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT
+  )
+`).run();
+
 // =====================================
 // ✅ INDEXING (opsional, agar query cepat)
 // =====================================
