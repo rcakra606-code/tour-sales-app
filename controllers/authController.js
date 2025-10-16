@@ -67,7 +67,7 @@ exports.register = (req, res) => {
 // === Login ===
 exports.login = (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if ((!username && !email) || !password)
       return res.status(400).json({ message: "Username/email dan password wajib diisi" });
 
