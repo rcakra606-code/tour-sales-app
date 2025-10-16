@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const documentsController = require("../controllers/documentsController");
+const documentsController = require("../controllers/documentController");
 const roleCheck = require("../middleware/roleCheck");
 
 // Semua user login bisa lihat dokumen
