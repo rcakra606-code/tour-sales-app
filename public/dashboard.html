@@ -1,189 +1,566 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tour & Sales Dashboard</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tour & Sales — Dashboard</title>
+
+  <!-- Tailwind & Chart.js (CDN) -->
+  <script>
+    tailwind = true;
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    body { box-sizing: border-box; transition: background 0.3s, color 0.3s; }
-    .dark-mode { background-color: #1f2937; color: #e5e7eb; }
-    .sidebar-item { transition: background 0.2s; }
-    .sidebar-item:hover { background-color: #2563eb; color: white; }
+    /* small helpers */
+    .sidebar-item { transition: background .15s, color .15s; }
+    .sidebar-item:hover { background-color: #2563eb; color:white; }
+    .active { background-color: #1e40af; color:white; }
+    .card { background: white; }
+    .dark .card { background: #0f172a; }
+    .cursor-drag { cursor: grab; }
   </style>
 </head>
+<body class="h-full bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
 
-<body class="h-full bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
-
-  <!-- HEADER -->
-  <header class="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
-    <h1 class="text-2xl font-bold">🌍 Tour & Sales Dashboard</h1>
-    <div class="flex items-center gap-3">
-      <span id="userInfo" class="text-sm text-gray-600 dark:text-gray-300">Memuat...</span>
-      <button id="toggleTheme" class="bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">🌙</button>
-      <button id="logoutBtn" class="bg-red-600 text-white px-4 py-1 rounded">Logout</button>
-    </div>
-  </header>
-
-  <!-- MAIN WRAPPER -->
-  <div class="flex min-h-screen">
+  <!-- APP WRAPPER -->
+  <div id="app" class="flex h-full">
 
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-gray-50 dark:bg-gray-800 p-4 space-y-3 border-r dark:border-gray-700">
-      <button onclick="showPage('dashboard')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg bg-blue-500 text-white">🏠 Dashboard</button>
-      <button onclick="showPage('tourDataEntry')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🧳 Input Tour</button>
-      <button onclick="showPage('salesDashboard')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">💼 Sales Dashboard</button>
-      <button onclick="showPage('salesDataEntry')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">📋 Input Sales</button>
-      <button onclick="showPage('manageRegions')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🌏 Manage Region</button>
-      <button onclick="showPage('changePassword')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🔒 Ganti Password</button>
-      <button onclick="showPage('manageUsers')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">👥 Manage Users</button>
+    <aside id="sidebar" class="w-72 bg-white dark:bg-gray-800 border-r dark:border-gray-700 min-h-screen p-4 fixed lg:relative z-30 transform -translate-x-full lg:translate-x-0 transition-transform">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-blue-700 dark:text-blue-400">Tour & Sales</h1>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Management System</p>
+        </div>
+        <button id="closeSidebarBtn" class="lg:hidden text-gray-600 dark:text-gray-300">✕</button>
+      </div>
+
+      <nav class="space-y-1">
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3 active" data-page="dashboard">
+          <span>📊</span><span>Dashboard</span>
+        </button>
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3" data-page="tours">
+          <span>🧳</span><span>Tours</span>
+        </button>
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3" data-page="sales">
+          <span>💰</span><span>Sales</span>
+        </button>
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3" data-page="reports">
+          <span>📑</span><span>Reports</span>
+        </button>
+        <hr class="my-3 border-gray-200 dark:border-gray-700" />
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3" data-page="manageUsers">
+          <span>👥</span><span>Manage Users</span>
+        </button>
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3" data-page="manageRegions">
+          <span>🌍</span><span>Manage Regions</span>
+        </button>
+        <button class="sidebar-item w-full text-left px-3 py-2 rounded flex items-center gap-3" data-page="settings">
+          <span>⚙️</span><span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="mt-auto pt-4">
+        <button id="logoutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded">Logout</button>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 p-6 space-y-8">
+    <div class="flex-1 lg:ml-72 min-h-screen">
 
-      <!-- DASHBOARD -->
-      <section id="dashboardPage" class="">
-        <h2 class="text-xl font-bold mb-4">📊 Ringkasan Dashboard</h2>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded shadow">
-            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Sales</h3>
-            <p id="totalSales" class="text-2xl font-bold">0</p>
-          </div>
-          <div class="bg-green-100 dark:bg-green-900 p-4 rounded shadow">
-            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Profit</h3>
-            <p id="totalProfit" class="text-2xl font-bold">0</p>
-          </div>
-          <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded shadow">
-            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Registrants</h3>
-            <p id="totalRegistrants" class="text-2xl font-bold">0</p>
-          </div>
-          <div class="bg-purple-100 dark:bg-purple-900 p-4 rounded shadow">
-            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Pax</h3>
-            <p id="totalPax" class="text-2xl font-bold">0</p>
-          </div>
+      <!-- top header -->
+      <header class="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-900 sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+          <button id="openSidebarBtn" class="lg:hidden text-2xl">☰</button>
+          <h2 id="pageTitle" class="text-xl font-semibold">Dashboard</h2>
         </div>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <canvas id="salesChart"></canvas>
-          <canvas id="regionChart"></canvas>
+        <div class="flex items-center gap-3">
+          <button id="themeToggle" class="px-3 py-2 rounded bg-gray-200 dark:bg-gray-700">🌙</button>
+          <div id="userPreview" class="text-sm text-gray-700 dark:text-gray-300">—</div>
         </div>
-      </section>
+      </header>
 
-      <!-- CHANGE PASSWORD -->
-      <section id="changePasswordPage" class="hidden bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold mb-4">🔒 Ganti Password</h3>
-        <form id="changePasswordForm" class="space-y-4 max-w-md">
-          <div>
-            <label class="block mb-1">Password Lama</label>
-            <input type="password" id="oldPassword" class="border p-2 w-full rounded dark:bg-gray-700" required />
-          </div>
-          <div>
-            <label class="block mb-1">Password Baru</label>
-            <input type="password" id="newPassword" class="border p-2 w-full rounded dark:bg-gray-700" required />
-          </div>
-          <div class="flex gap-2">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
-          </div>
-        </form>
-      </section>
+      <main class="p-6 space-y-6">
 
-    </main>
+        <!-- DASHBOARD PAGE -->
+        <section id="page-dashboard" class="page">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="card p-4 rounded shadow">
+              <div class="text-sm text-gray-500">Total Sales</div>
+              <div id="totalSales" class="text-2xl font-bold mt-2">Rp 0</div>
+            </div>
+            <div class="card p-4 rounded shadow">
+              <div class="text-sm text-gray-500">Total Profit</div>
+              <div id="totalProfit" class="text-2xl font-bold mt-2">Rp 0</div>
+            </div>
+            <div class="card p-4 rounded shadow">
+              <div class="text-sm text-gray-500">Registrants</div>
+              <div id="totalRegistrants" class="text-2xl font-bold mt-2">0</div>
+            </div>
+            <div class="card p-4 rounded shadow">
+              <div class="text-sm text-gray-500">Total Pax</div>
+              <div id="totalPax" class="text-2xl font-bold mt-2">0</div>
+            </div>
+          </div>
+
+          <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="card p-6 rounded shadow">
+              <h3 class="font-semibold mb-3">Sales & Profit per Staff</h3>
+              <canvas id="salesByStaffChart" class="w-full h-64"></canvas>
+            </div>
+            <div class="card p-6 rounded shadow">
+              <h3 class="font-semibold mb-3">Registrasi per Region</h3>
+              <canvas id="registrationsByRegionChart" class="w-full h-64"></canvas>
+            </div>
+          </div>
+
+          <div class="mt-6 card p-6 rounded shadow">
+            <h3 class="font-semibold mb-3">Tren Penjualan (14 hari)</h3>
+            <canvas id="dailySalesChart" class="w-full h-56"></canvas>
+          </div>
+        </section>
+
+        <!-- TOURS PAGE -->
+        <section id="page-tours" class="page hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Tours</h3>
+            <button id="newTourBtn" class="px-3 py-2 rounded bg-blue-600 text-white">+ New Tour</button>
+          </div>
+
+          <div id="toursContainer" class="card p-4 rounded shadow">
+            <table class="w-full text-left">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="p-2">Code</th>
+                  <th class="p-2">Title</th>
+                  <th class="p-2">Region</th>
+                  <th class="p-2">Pax</th>
+                  <th class="p-2">Price</th>
+                  <th class="p-2">Departure</th>
+                  <th class="p-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="toursTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SALES PAGE -->
+        <section id="page-sales" class="page hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Sales</h3>
+            <button id="newSalesBtn" class="px-3 py-2 rounded bg-green-600 text-white">+ New Sale</button>
+          </div>
+
+          <div id="salesContainer" class="card p-4 rounded shadow">
+            <table class="w-full text-left">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="p-2">Date</th>
+                  <th class="p-2">Invoice</th>
+                  <th class="p-2">Sales</th>
+                  <th class="p-2">Profit</th>
+                  <th class="p-2">Staff</th>
+                </tr>
+              </thead>
+              <tbody id="salesTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- REPORTS PAGE -->
+        <section id="page-reports" class="page hidden">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold">Reports</h3>
+            <div class="flex gap-2">
+              <button id="exportCsvBtn" class="px-3 py-2 bg-gray-800 text-white rounded">Export CSV</button>
+            </div>
+          </div>
+          <div id="reportPreview" class="mt-4 card p-4 rounded shadow"></div>
+        </section>
+
+        <!-- MANAGE USERS -->
+        <section id="page-manageUsers" class="page hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Manage Users</h3>
+            <button id="refreshUsersBtn" class="px-3 py-2 bg-blue-600 text-white rounded">Refresh</button>
+          </div>
+          <div class="card p-4 rounded shadow">
+            <table class="w-full text-left">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="p-2">Name</th>
+                  <th class="p-2">Username</th>
+                  <th class="p-2">Role</th>
+                  <th class="p-2">Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- MANAGE REGIONS -->
+        <section id="page-manageRegions" class="page hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Manage Regions</h3>
+            <div class="flex gap-2">
+              <button id="addRegionBtn" class="px-3 py-2 bg-blue-600 text-white rounded">+ Add Region</button>
+              <button id="refreshRegionsBtn" class="px-3 py-2 bg-gray-300 rounded">Refresh</button>
+            </div>
+          </div>
+          <div class="card p-4 rounded shadow">
+            <table class="w-full text-left">
+              <thead class="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th class="p-2">Name</th>
+                  <th class="p-2">Description</th>
+                  <th class="p-2">Action</th>
+                </tr>
+              </thead>
+              <tbody id="regionsTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SETTINGS (Change password) -->
+        <section id="page-settings" class="page hidden">
+          <div class="card p-4 rounded shadow max-w-md">
+            <h3 class="text-lg font-semibold mb-3">Change Password</h3>
+            <form id="changePasswordForm">
+              <div class="mb-3">
+                <label class="text-sm block mb-1">Old password</label>
+                <input id="oldPassword" type="password" class="w-full border rounded p-2 bg-white dark:bg-gray-700" required />
+              </div>
+              <div class="mb-3">
+                <label class="text-sm block mb-1">New password</label>
+                <input id="newPassword" type="password" class="w-full border rounded p-2 bg-white dark:bg-gray-700" required />
+              </div>
+              <div>
+                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Change</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+      </main>
+    </div>
   </div>
 
-  <!-- JS LOGIC -->
+  <!-- ================= CLIENT SCRIPT (All-in-one for now) ================= -->
   <script>
-    // === THEME TOGGLE ===
-    const themeBtn = document.getElementById("toggleTheme");
-    themeBtn.addEventListener("click", () => {
-      document.body.classList.toggle("dark");
-      const mode = document.body.classList.contains("dark") ? "dark" : "light";
-      localStorage.setItem("theme", mode);
-      themeBtn.textContent = mode === "dark" ? "☀️" : "🌙";
+  (function(){
+
+    /* ---------- helpers ---------- */
+    const API = window.location.origin + "/api";
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    function getToken(){ return localStorage.getItem("token"); }
+    function apiFetch(path, opts = {}) {
+      opts.headers = opts.headers || {};
+      if (!opts.headers["Content-Type"] && !(opts.body instanceof FormData)) opts.headers["Content-Type"] = "application/json";
+      const token = getToken();
+      if (token) opts.headers["Authorization"] = "Bearer " + token;
+      return fetch(API + path, opts).then(async r=>{
+        const txt = await r.text();
+        let json = {};
+        try{ json = JSON.parse(txt); }catch(e){}
+        if (!r.ok) throw { status: r.status, body: json || txt };
+        return json;
+      });
+    }
+
+    /* ---------- UI: sidebar, theme, pages ---------- */
+    const sidebar = $("#sidebar");
+    const openSidebarBtn = $("#openSidebarBtn");
+    const closeSidebarBtn = $("#closeSidebarBtn");
+    const overlay = document.createElement("div");
+    overlay.className = "fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden hidden";
+    document.body.appendChild(overlay);
+
+    openSidebarBtn && openSidebarBtn.addEventListener("click", ()=> {
+      sidebar.classList.remove("-translate-x-full");
+      overlay.classList.remove("hidden");
     });
-    if (localStorage.getItem("theme") === "dark") {
-      document.body.classList.add("dark");
-      themeBtn.textContent = "☀️";
+    closeSidebarBtn && closeSidebarBtn.addEventListener("click", ()=> {
+      sidebar.classList.add("-translate-x-full");
+      overlay.classList.add("hidden");
+    });
+    overlay.addEventListener("click", ()=> {
+      sidebar.classList.add("-translate-x-full");
+      overlay.classList.add("hidden");
+    });
+
+    // sidebar nav buttons
+    $$("[data-page]").forEach(btn=>{
+      btn.addEventListener("click", ()=> {
+        const page = btn.getAttribute("data-page");
+        setActiveNav(btn);
+        showPage(page);
+      });
+    });
+    function setActiveNav(activeBtn){
+      $$(".sidebar-item").forEach(b=>b.classList.remove("active"));
+      if (activeBtn) activeBtn.classList.add("active");
     }
 
-    // === PAGE SWITCH ===
-    function showPage(page) {
-      document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
-      document.getElementById(page + "Page").classList.remove("hidden");
+    function showPage(name){
+      // hide all pages
+      $$(".page").forEach(p=>p.classList.add("hidden"));
+      const el = document.getElementById("page-" + name);
+      if (el) el.classList.remove("hidden");
+      // set title
+      $("#pageTitle").innerText = name.charAt(0).toUpperCase() + name.slice(1);
     }
 
-    // === FETCH DASHBOARD SUMMARY ===
-    async function loadDashboard() {
+    // theme toggle
+    const themeToggle = $("#themeToggle");
+    const prefersDark = localStorage.getItem("theme") === "dark";
+    if (prefersDark) document.documentElement.classList.add("dark");
+    themeToggle.addEventListener("click", ()=>{
+      document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+    });
+
+    // logout
+    $("#logoutBtn").addEventListener("click", ()=>{
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/"; // or redirect to login page
+    });
+
+    /* ---------- Charts placeholders ---------- */
+    let charts = { staff:null, region:null, daily:null };
+
+    /* ---------- Dashboard data load ---------- */
+    async function loadDashboard(){
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("/api/dashboard/summary", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        document.getElementById("totalSales").innerText = data.totalSales ?? 0;
-        document.getElementById("totalProfit").innerText = data.totalProfit ?? 0;
-        document.getElementById("totalRegistrants").innerText = data.totalRegistrants ?? 0;
-        document.getElementById("totalPax").innerText = data.totalPax ?? 0;
+        const summary = await apiFetch("/dashboard/summary");
+        $("#totalSales").innerText = "Rp " + Number(summary.totalSales||0).toLocaleString();
+        $("#totalProfit").innerText = "Rp " + Number(summary.totalProfit||0).toLocaleString();
+        $("#totalRegistrants").innerText = (summary.totalRegistrants||0);
+        $("#totalPax").innerText = (summary.totalPax||0);
 
-        const chartRes = await fetch("/api/dashboard/charts", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const charts = await chartRes.json();
-        renderCharts(charts);
-      } catch (e) {
-        console.error("Dashboard load error:", e);
+        const chartsData = await apiFetch("/dashboard/charts");
+        renderStaffChart(chartsData.staffRows || []);
+        renderRegionChart(chartsData.regionRows || []);
+
+        const daily = await apiFetch("/dashboard/sales-overview");
+        renderDailyChart(daily.daily || []);
+      } catch (err) {
+        console.error("loadDashboard", err);
+        if (err.status === 401) {
+          // not authenticated
+          window.location.href = "/"; // fallback to login
+        }
       }
     }
 
-    // === CHART RENDER ===
-    function renderCharts(data) {
-      const salesCtx = document.getElementById("salesChart").getContext("2d");
-      new Chart(salesCtx, {
-        type: "bar",
-        data: {
-          labels: data.staffRows.map(r => r.staff),
-          datasets: [{
-            label: "Sales",
-            data: data.staffRows.map(r => r.sales),
-            backgroundColor: "rgba(59,130,246,0.7)"
-          }]
-        }
-      });
-
-      const regionCtx = document.getElementById("regionChart").getContext("2d");
-      new Chart(regionCtx, {
-        type: "pie",
-        data: {
-          labels: data.regionRows.map(r => r.region),
-          datasets: [{
-            label: "Tours per Region",
-            data: data.regionRows.map(r => r.count),
-            backgroundColor: ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa"]
-          }]
-        }
+    function renderStaffChart(rows){
+      const ctx = document.getElementById("salesByStaffChart").getContext("2d");
+      const labels = rows.map(r => r.staff || "Unknown");
+      const sales = rows.map(r => Number(r.sales||0));
+      const profit = rows.map(r => Number(r.profit||0));
+      if (charts.staff) charts.staff.destroy();
+      charts.staff = new Chart(ctx, { type:"bar",
+        data:{ labels, datasets:[
+          { label:"Sales", data:sales, backgroundColor:"rgba(59,130,246,0.8)" },
+          { label:"Profit", data:profit, backgroundColor:"rgba(16,185,129,0.8)" }
+        ]},
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ callback:v => 'Rp ' + v.toLocaleString() } } } }
       });
     }
 
-    // === CHANGE PASSWORD ===
-    document.getElementById("changePasswordForm").addEventListener("submit", async e => {
-      e.preventDefault();
-      const token = localStorage.getItem("token");
-      const oldPassword = document.getElementById("oldPassword").value;
-      const newPassword = document.getElementById("newPassword").value;
-      const res = await fetch("/api/users/change-password", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ oldPassword, newPassword }),
-      });
-      const data = await res.json();
-      alert(data.message || "Gagal memperbarui password");
+    function renderRegionChart(rows){
+      const ctx = document.getElementById("registrationsByRegionChart").getContext("2d");
+      const labels = rows.map(r => r.region || "Unknown");
+      const data = rows.map(r => Number(r.count||0));
+      if (charts.region) charts.region.destroy();
+      charts.region = new Chart(ctx, { type:"pie", data:{ labels, datasets:[{ data, backgroundColor: labels.map((_,i)=>`hsl(${i*60%360} 70% 50%)`) }] }, options:{ responsive:true } });
+    }
+
+    function renderDailyChart(rows){
+      const ctx = document.getElementById("dailySalesChart").getContext("2d");
+      const labels = rows.map(r => r.date);
+      const sales = rows.map(r => Number(r.totalSales||0));
+      const profit = rows.map(r => Number(r.totalProfit||0));
+      if (charts.daily) charts.daily.destroy();
+      charts.daily = new Chart(ctx, { type:"line", data:{ labels, datasets:[
+        { label:"Sales", data:sales, borderColor:"rgba(59,130,246,0.9)", fill:false },
+        { label:"Profit", data:profit, borderColor:"rgba(16,185,129,0.9)", fill:false }
+      ]}, options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'Rp '+v.toLocaleString() } } } } });
+    }
+
+    /* ---------- Tours CRUD (frontend) ---------- */
+    async function loadTours(){
+      try{
+        const rows = await apiFetch("/tours");
+        const tbody = $("#toursTableBody");
+        tbody.innerHTML = "";
+        rows.forEach(r=>{
+          tbody.insertAdjacentHTML("beforeend", `<tr class="border-b dark:border-gray-700">
+            <td class="p-2">${r.tourCode||"-"}</td>
+            <td class="p-2">${r.leadPassenger||r.title||"-"}</td>
+            <td class="p-2">${r.region||"-"}</td>
+            <td class="p-2">${r.paxCount||0}</td>
+            <td class="p-2">Rp ${Number(r.tourPrice||0).toLocaleString()}</td>
+            <td class="p-2">${r.departureStatus||"-"}</td>
+            <td class="p-2 text-center">
+              <button onclick="editTour(${r.id})" class="text-blue-600">✏️</button>
+              <button onclick="deleteTour(${r.id})" class="text-red-600 ml-2">🗑️</button>
+            </td>
+          </tr>`);
+        });
+      } catch(e){ console.error("loadTours", e); }
+    }
+    window.editTour = (id)=>{ alert("Implement editTour UI for id="+id); };
+    window.deleteTour = async (id)=>{ if(!confirm("Hapus?")) return; await apiFetch(`/tours/${id}`, { method:"DELETE" }); loadTours(); };
+
+    /* ---------- Sales CRUD ---------- */
+    async function loadSales(){
+      try{
+        const rows = await apiFetch("/sales");
+        const tbody = $("#salesTableBody");
+        tbody.innerHTML = "";
+        rows.forEach(r=>{
+          tbody.insertAdjacentHTML("beforeend", `<tr class="border-b dark:border-gray-700">
+            <td class="p-2">${r.transactionDate||"-"}</td>
+            <td class="p-2">${r.invoiceNumber||"-"}</td>
+            <td class="p-2">Rp ${Number(r.salesAmount||0).toLocaleString()}</td>
+            <td class="p-2">Rp ${Number(r.profitAmount||0).toLocaleString()}</td>
+            <td class="p-2">${r.staff||"-"}</td>
+          </tr>`);
+        });
+      } catch(e){ console.error("loadSales", e); }
+    }
+
+    /* ---------- Regions (CRUD) ---------- */
+    async function loadRegions(){
+      try{
+        const rows = await apiFetch("/regions");
+        const tbody = $("#regionsTableBody");
+        tbody.innerHTML = "";
+        rows.forEach(r=>{
+          tbody.insertAdjacentHTML("beforeend", `<tr class="border-b dark:border-gray-700">
+            <td class="p-2">${r.name}</td>
+            <td class="p-2">${r.description||"-"}</td>
+            <td class="p-2">
+              <button onclick="editRegion(${r.id}, '${escapeJs(r.name)}', '${escapeJs(r.description||"")}')" class="text-blue-600">✏️</button>
+              <button onclick="deleteRegion(${r.id})" class="text-red-600 ml-2">🗑️</button>
+            </td>
+          </tr>`);
+        });
+      } catch(e){ console.error("loadRegions", e); }
+    }
+
+    function escapeJs(s){ return (s+"").replace(/'/g,"\\'").replace(/\n/g,"\\n"); }
+
+    window.editRegion = async (id, name, desc) => {
+      const newName = prompt("Nama region:", name);
+      if (!newName) return;
+      const newDesc = prompt("Deskripsi:", desc);
+      await apiFetch(`/regions/${id}`, { method:"PUT", body: JSON.stringify({ name:newName, description:newDesc }) });
+      await loadRegions();
+    };
+
+    window.deleteRegion = async (id) => {
+      if (!confirm("Hapus region?")) return;
+      await apiFetch(`/regions/${id}`, { method:"DELETE" });
+      await loadRegions();
+    };
+
+    $("#addRegionBtn").addEventListener("click", async ()=>{
+      const name = prompt("Nama region:");
+      if (!name) return;
+      const desc = prompt("Deskripsi (opsional):");
+      await apiFetch("/regions", { method:"POST", body: JSON.stringify({ name, description: desc }) });
+      await loadRegions();
     });
 
-    // === INIT ===
-    loadDashboard();
+    $("#refreshRegionsBtn").addEventListener("click", loadRegions);
+
+    /* ---------- Users admin (list + reset password) ---------- */
+    async function loadUsers(){
+      try{
+        const rows = await apiFetch("/users");
+        const tbody = $("#usersTableBody");
+        tbody.innerHTML = "";
+        rows.forEach(u=>{
+          tbody.insertAdjacentHTML("beforeend", `<tr class="border-b dark:border-gray-700">
+            <td class="p-2">${u.name||"-"}</td>
+            <td class="p-2">${u.username||"-"}</td>
+            <td class="p-2">${u.type||u.role||"basic"}</td>
+            <td class="p-2">
+              <button onclick="adminReset(${u.id})" class="text-yellow-600">🔑 Reset</button>
+            </td>
+          </tr>`);
+        });
+      } catch(e){ console.error("loadUsers", e); }
+    }
+    window.adminReset = async (id) => {
+      if (!confirm("Reset password ke default 'changeme123'?")) return;
+      await apiFetch(`/users/reset/${id}`, { method: "PUT", body: JSON.stringify({ newPassword: "changeme123" }) });
+      alert("Password direset ke 'changeme123'");
+      await loadUsers();
+    };
+    $("#refreshUsersBtn") && $("#refreshUsersBtn").addEventListener("click", loadUsers);
+
+    /* ---------- Change password (self) ---------- */
+    $("#changePasswordForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      const oldPassword = $("#oldPassword").value;
+      const newPassword = $("#newPassword").value;
+      try{
+        await apiFetch("/users/change-password", { method:"PUT", body: JSON.stringify({ oldPassword, newPassword }) });
+        alert("Password updated");
+        $("#oldPassword").value = $("#newPassword").value = "";
+      }catch(err){ alert("Error: " + (err.body?.message || err.body || err.status)); }
+    });
+
+    /* ---------- Reports (export) ---------- */
+    $("#exportCsvBtn") && $("#exportCsvBtn").addEventListener("click", async ()=>{
+      try{
+        const res = await apiFetch("/dashboard/report");
+        const rows = res.report || [];
+        if (!rows.length) return alert("No data");
+        let csv = "registrationDate,tourCode,region,leadPassenger,staff,salesAmount,profitAmount\n";
+        rows.forEach(r=>{
+          csv += [r.registrationDate, r.tourCode, r.region, r.leadPassenger, r.staff, r.salesAmount, r.profitAmount].map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(",") + "\n";
+        });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = `report_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+      }catch(e){ console.error(e); alert("Export error"); }
+    });
+
+    /* ---------- Init on load ---------- */
+    async function initApp(){
+      // set user preview if exists
+      try{
+        const user = JSON.parse(localStorage.getItem("user") || "null");
+        if (user) $("#userPreview").innerText = user.name || user.username || user.id;
+      }catch(e){ console.warn(e); }
+
+      // load default page data
+      await loadDashboard();
+      await loadTours();
+      await loadSales();
+      await loadRegions();
+      await loadUsers();
+
+      // show dashboard page
+      showPage("dashboard");
+    }
+
+    // bootstrap
+    initApp();
+
+  })();
   </script>
+
 </body>
 </html>
