@@ -69,10 +69,20 @@ db.prepare(`
     profitAmount REAL,
     staff TEXT
   )
-    CREATE TABLE IF NOT EXISTS regions (
+  CREATE TABLE IF NOT EXISTS regions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     code TEXT,
+    description TEXT
+  )
+  CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    fileName TEXT NOT NULL,
+    originalName TEXT,
+    mimeType TEXT,
+    size INTEGER,
+    uploadedBy TEXT,
+    uploadedAt TEXT DEFAULT (datetime('now')),
     description TEXT
   )
 `).run();
