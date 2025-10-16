@@ -20,6 +20,8 @@ router.get("/summary", dashboardController.getSummary);
 
 // === Data untuk chart (sales, region, departure) ===
 router.get("/charts", dashboardController.getCharts);
+router.get("/sales-overview", dashboardController.getSalesOverview);
+router.get("/report", dashboardController.exportReport);
 
 // === (Opsional) Tambahkan proteksi role jika butuh akses khusus ===
 // router.get("/admin-only", roleCheck("super"), dashboardController.adminSummary);
