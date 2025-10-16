@@ -1,19 +1,22 @@
-// ==============================
-// ✅ SERVER.JS — Main Application
-// ==============================
-
+// server.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const morgan = require("morgan");
 const path = require("path");
-
-// === Import custom logger ===
-const logger = require("./config/logger");
-const { httpLogger } = logger;
+const { logger, httpLogger } = require("./config/logger");
 
 // === Inisialisasi database ===
 require("./config/database");
+
+// === Import Routes ===
+const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const salesRoutes = require("./routes/sales");
+const toursRoutes = require("./routes/tours");
+const usersRoutes = require("./routes/users");
+const regionsRoutes = require("./routes/regions");
 
 const app = express();
 
@@ -21,27 +24,20 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(httpLogger); // gunakan morgan yang terhubung ke winston
+app.use(httpLogger);
 
-// === Helmet dengan CSP aman untuk Tailwind & Chart.js ===
+// === Helmet + CSP yang mengizinkan CDN ===
 app.use(
   helmet({
     contentSecurityPolicy: {
-      useDefaults: true,
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: [
           "'self'",
           "https://cdn.tailwindcss.com",
           "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com",
         ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://fonts.googleapis.com",
-          "https://cdn.jsdelivr.net",
-        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
         connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
@@ -52,47 +48,25 @@ app.use(
   })
 );
 
-// ==============================
-// ✅ ROUTES SETUP
-// ==============================
-const authRoutes = require("./routes/auth");
-const dashboardRoutes = require("./routes/dashboard");
-const salesRoutes = require("./routes/sales");
-const toursRoutes = require("./routes/tours");
-const usersRoutes = require("./routes/users");
+// === Serve file statis frontend ===
+app.use(express.static(path.join(__dirname, "public")));
 
-// === Gunakan routes ===
+// === API ROUTES ===
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/tours", toursRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/regions", regionsRoutes);
 
-// ==============================
-// ✅ FRONTEND (Static Files)
-// ==============================
-app.use(express.static(path.join(__dirname, "public")));
-
-// === Fallback ke index.html untuk SPA routing ===
+// === SPA Fallback ===
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// ==============================
-// ✅ GLOBAL ERROR HANDLER
-// ==============================
-app.use((err, req, res, next) => {
-  logger.error(err.stack || err.message);
-  res.status(500).json({
-    success: false,
-    message: "Internal server error",
-  });
-});
-
-// ==============================
-// ✅ START SERVER
-// ==============================
+// === Jalankan Server ===
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info(`✅ Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
