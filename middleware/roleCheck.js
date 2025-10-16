@@ -1,8 +1,9 @@
 // middleware/roleCheck.js
 module.exports = function (allowedRoles = []) {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.type)) {
-      return res.status(403).json({ message: "Akses ditolak" });
+    const userType = req.user?.type || "basic";
+    if (!allowedRoles.includes(userType)) {
+      return res.status(403).json({ message: "Akses ditolak. Role tidak sesuai." });
     }
     next();
   };
