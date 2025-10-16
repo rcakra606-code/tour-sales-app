@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const toursController = require("../controllers/toursController");
+const toursController = require("../controllers/tourController");
 const roleCheck = require("../middleware/roleCheck");
 
 // Semua role login bisa lihat data tour
