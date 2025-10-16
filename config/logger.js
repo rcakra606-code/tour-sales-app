@@ -1,6 +1,6 @@
 /**
- * ✅ LOGGER CONFIGURATION (Final Version)
- * Menggunakan Winston untuk logging utama + Morgan untuk HTTP request logging
+ * ✅ LOGGER CONFIGURATION
+ * Menggunakan Winston untuk logging + Morgan untuk HTTP request log
  */
 
 const fs = require("fs");
@@ -8,28 +8,30 @@ const path = require("path");
 const winston = require("winston");
 const morgan = require("morgan");
 
-// === Pastikan folder logs tersedia ===
+// === Pastikan folder log ada ===
 const logDir = path.join(__dirname, "..", "logs");
 if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
+  fs.mkdirSync(logDir);
 }
 
-// === Winston logger ===
+// === Format log ===
 const logFormat = winston.format.printf(({ level, message, timestamp }) => {
   return `[${timestamp}] ${level.toUpperCase()}: ${message}`;
 });
 
+// === Winston instance ===
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === "production" ? "info" : "debug",
   format: winston.format.combine(
     winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+    winston.format.errors({ stack: true }),
     logFormat
   ),
   transports: [
     new winston.transports.File({
       filename: path.join(logDir, "app.log"),
-      maxsize: 5 * 1024 * 1024, // 5MB
-      maxFiles: 5,
+      maxsize: 5 * 1024 * 1024,
+      maxFiles: 3,
       tailable: true,
     }),
     new winston.transports.Console({
@@ -41,15 +43,14 @@ const logger = winston.createLogger({
   ],
 });
 
-// === Morgan HTTP Logger ===
+// === Morgan (HTTP request logger) ===
 const httpLogger = morgan("combined", {
   stream: {
     write: (message) => logger.info(message.trim()),
   },
 });
 
-// === Ekspor keduanya ===
-// Default export → langsung instance `logger`
-// Named export → jika butuh middleware Morgan di server.js
-module.exports = logger;
-module.exports.httpLogger = httpLogger;
+module.exports = {
+  logger,
+  httpLogger,
+};
