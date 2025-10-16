@@ -69,6 +69,12 @@ db.prepare(`
     profitAmount REAL,
     staff TEXT
   )
+    CREATE TABLE IF NOT EXISTS regions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    code TEXT,
+    description TEXT
+  )
 `).run();
 
 module.exports = db;
