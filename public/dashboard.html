@@ -24,19 +24,23 @@
     .sidebar-active { background-color: #2563eb; color: white; }
     .sidebar-item:hover { background-color: #3b82f6; color: white; }
     .dark .sidebar-active { background-color: #60a5fa; color: black; }
+    .sidebar-transition { transition: all 0.3s ease-in-out; }
   </style>
 </head>
 
 <body class="h-full flex bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
 
   <!-- ================= SIDEBAR ================= -->
-  <aside class="w-64 bg-white dark:bg-gray-800 shadow-lg h-screen flex flex-col transition-all">
-    <div class="p-6 border-b dark:border-gray-700">
-      <h2 class="text-xl font-bold text-blue-700 dark:text-blue-400">Tour & Sales</h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400">Management System</p>
+  <aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg h-screen flex flex-col sidebar-transition fixed lg:relative z-40 lg:translate-x-0 -translate-x-full">
+    <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+      <div>
+        <h2 class="text-xl font-bold text-blue-700 dark:text-blue-400">Tour & Sales</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Management System</p>
+      </div>
+      <button id="closeSidebar" class="lg:hidden text-gray-700 dark:text-gray-300 text-2xl">✕</button>
     </div>
 
-    <nav class="flex-1 p-4 space-y-2">
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
       <button onclick="showPage('dashboard')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg sidebar-active">📊 Dashboard</button>
       <button onclick="showPage('inputData')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">🧾 Input Tour</button>
       <button onclick="showPage('inputSales')" class="sidebar-item w-full text-left px-4 py-2 rounded-lg">💰 Input Sales</button>
@@ -51,12 +55,19 @@
     </div>
   </aside>
 
+  <!-- ================= OVERLAY (untuk mobile) ================= -->
+  <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
+
   <!-- ================= MAIN CONTENT ================= -->
-  <main class="flex-1 p-8 overflow-y-auto transition-all">
+  <main class="flex-1 p-8 overflow-y-auto transition-all lg:ml-0 ml-0 w-full">
 
     <!-- Header -->
     <header class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
+      <div class="flex items-center gap-3">
+        <!-- Sidebar Toggle -->
+        <button id="sidebarToggle" class="lg:hidden text-3xl text-gray-700 dark:text-gray-300">☰</button>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
+      </div>
       <div class="flex items-center gap-4">
         <!-- Dark Mode Toggle -->
         <button id="themeToggle" class="bg-gray-200 dark:bg-gray-700 px-3 py-2 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
@@ -107,20 +118,36 @@
 
   <!-- ================= JS ================= -->
   <script>
-    // Theme toggle setup
+    // 🌙 DARK MODE
     const themeToggle = document.getElementById("themeToggle");
     const root = document.documentElement;
     if (localStorage.theme === "dark") root.classList.add("dark");
-
     themeToggle.addEventListener("click", () => {
       root.classList.toggle("dark");
       const isDark = root.classList.contains("dark");
       localStorage.theme = isDark ? "dark" : "light";
       themeToggle.textContent = isDark ? "☀️" : "🌙";
     });
-
-    // Set initial icon
     themeToggle.textContent = root.classList.contains("dark") ? "☀️" : "🌙";
+
+    // 🧭 SIDEBAR
+    const sidebar = document.getElementById("sidebar");
+    const sidebarToggle = document.getElementById("sidebarToggle");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+    const closeSidebar = document.getElementById("closeSidebar");
+
+    sidebarToggle.addEventListener("click", () => {
+      sidebar.classList.remove("-translate-x-full");
+      sidebarOverlay.classList.remove("hidden");
+    });
+    closeSidebar.addEventListener("click", () => {
+      sidebar.classList.add("-translate-x-full");
+      sidebarOverlay.classList.add("hidden");
+    });
+    sidebarOverlay.addEventListener("click", () => {
+      sidebar.classList.add("-translate-x-full");
+      sidebarOverlay.classList.add("hidden");
+    });
   </script>
 
   <script src="/js/app.js"></script>
