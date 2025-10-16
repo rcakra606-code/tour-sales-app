@@ -9,15 +9,8 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            primary: "#2563eb",
-            secondary: "#1e40af",
-          },
-        },
-      },
-    };
+      theme: { extend: { colors: { primary: "#2563eb" } } }
+    }
   </script>
   <style>
     body { box-sizing: border-box; }
@@ -27,10 +20,9 @@
     .sidebar-transition { transition: all 0.3s ease-in-out; }
   </style>
 </head>
-
 <body class="h-full flex bg-gray-100 dark:bg-gray-900 dark:text-gray-100">
 
-  <!-- ================= SIDEBAR ================= -->
+  <!-- SIDEBAR -->
   <aside id="sidebar" class="w-64 bg-white dark:bg-gray-800 shadow-lg h-screen flex flex-col sidebar-transition fixed lg:relative z-40 lg:translate-x-0 -translate-x-full">
     <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center">
       <div>
@@ -55,82 +47,76 @@
     </div>
   </aside>
 
-  <!-- ================= OVERLAY (untuk mobile) ================= -->
+  <!-- OVERLAY -->
   <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
 
-  <!-- ================= MAIN CONTENT ================= -->
+  <!-- MAIN CONTENT -->
   <main class="flex-1 p-8 overflow-y-auto transition-all lg:ml-0 ml-0 w-full">
-
-    <!-- Header -->
+    <!-- HEADER -->
     <header class="flex justify-between items-center mb-6">
       <div class="flex items-center gap-3">
-        <!-- Sidebar Toggle -->
         <button id="sidebarToggle" class="lg:hidden text-3xl text-gray-700 dark:text-gray-300">☰</button>
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
       </div>
       <div class="flex items-center gap-4">
-        <!-- Dark Mode Toggle -->
-        <button id="themeToggle" class="bg-gray-200 dark:bg-gray-700 px-3 py-2 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-          🌙
-        </button>
+        <button id="themeToggle" class="bg-gray-200 dark:bg-gray-700 px-3 py-2 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition">🌙</button>
         <span class="text-gray-600 dark:text-gray-400">👤 <span id="currentUser">Loading...</span></span>
       </div>
     </header>
 
-    <!-- Summary Cards -->
+    <!-- SUMMARY -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Total Sales</h3>
-        <p id="totalSales" class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-2">Rp 0</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Total Profit</h3>
-        <p id="totalProfit" class="text-2xl font-bold text-green-600 dark:text-green-400 mt-2">Rp 0</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Total Registrants</h3>
-        <p id="totalRegistrants" class="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-2">0</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-gray-500 dark:text-gray-400 text-sm font-semibold">Total Pax</h3>
-        <p id="totalPax" class="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-2">0</p>
-      </div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Sales</h3><p id="totalSales" class="text-2xl font-bold">Rp 0</p></div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Profit</h3><p id="totalProfit" class="text-2xl font-bold">Rp 0</p></div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Registrants</h3><p id="totalRegistrants" class="text-2xl font-bold">0</p></div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Total Pax</h3><p id="totalPax" class="text-2xl font-bold">0</p></div>
     </section>
 
-    <!-- Charts -->
+    <!-- CHARTS -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Sales & Profit per Staff</h3>
-        <canvas id="salesChart" class="w-full h-64"></canvas>
-      </div>
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Registrasi per Region</h3>
-        <canvas id="regionChart" class="w-full h-64"></canvas>
-      </div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Sales & Profit per Staff</h3><canvas id="salesChart" class="w-full h-64"></canvas></div>
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow"><h3>Registrasi per Region</h3><canvas id="regionChart" class="w-full h-64"></canvas></div>
     </section>
 
-    <!-- Daily Sales -->
+    <!-- DAILY SALES -->
     <section class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-      <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">Tren Penjualan Harian</h3>
+      <h3>Tren Penjualan Harian</h3>
       <canvas id="dailySalesChart" class="w-full h-64"></canvas>
+    </section>
+
+    <!-- MANAGE REGION -->
+    <section id="manageRegionsPage" class="mt-8 bg-white dark:bg-gray-800 p-6 rounded-lg shadow hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">🌍 Manage Regions</h3>
+        <button id="addRegionBtn" class="bg-blue-600 text-white px-4 py-2 rounded">+ Tambah Region</button>
+      </div>
+      <table class="w-full border text-left">
+        <thead class="bg-gray-200 dark:bg-gray-700">
+          <tr>
+            <th class="p-2">Nama Region</th>
+            <th class="p-2">Deskripsi</th>
+            <th class="p-2 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="regionsTableBody"></tbody>
+      </table>
     </section>
   </main>
 
-  <!-- ================= JS ================= -->
+  <!-- JS -->
   <script>
-    // 🌙 DARK MODE
+    // Dark mode toggle
     const themeToggle = document.getElementById("themeToggle");
     const root = document.documentElement;
     if (localStorage.theme === "dark") root.classList.add("dark");
     themeToggle.addEventListener("click", () => {
       root.classList.toggle("dark");
-      const isDark = root.classList.contains("dark");
-      localStorage.theme = isDark ? "dark" : "light";
-      themeToggle.textContent = isDark ? "☀️" : "🌙";
+      localStorage.theme = root.classList.contains("dark") ? "dark" : "light";
+      themeToggle.textContent = root.classList.contains("dark") ? "☀️" : "🌙";
     });
     themeToggle.textContent = root.classList.contains("dark") ? "☀️" : "🌙";
 
-    // 🧭 SIDEBAR
+    // Sidebar toggle
     const sidebar = document.getElementById("sidebar");
     const sidebarToggle = document.getElementById("sidebarToggle");
     const sidebarOverlay = document.getElementById("sidebarOverlay");
@@ -148,8 +134,56 @@
       sidebar.classList.add("-translate-x-full");
       sidebarOverlay.classList.add("hidden");
     });
-  </script>
 
-  <script src="/js/app.js"></script>
+    // Load Regions
+    async function loadRegions() {
+      const res = await fetch("/api/regions");
+      const regions = await res.json();
+      const tbody = document.getElementById("regionsTableBody");
+      tbody.innerHTML = "";
+      regions.forEach(r => {
+        tbody.innerHTML += `
+          <tr class="border-b dark:border-gray-700">
+            <td class="p-2">${r.name}</td>
+            <td class="p-2">${r.description || "-"}</td>
+            <td class="p-2 text-center">
+              <button onclick="editRegion(${r.id}, '${r.name}', '${r.description || ""}')" class="text-blue-600">✏️</button>
+              <button onclick="deleteRegion(${r.id})" class="text-red-600 ml-2">🗑️</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    // Add/Edit/Delete region
+    document.getElementById("addRegionBtn").addEventListener("click", async () => {
+      const name = prompt("Nama region:");
+      if (!name) return;
+      const desc = prompt("Deskripsi:");
+      await fetch("/api/regions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, description: desc }) });
+      loadRegions();
+    });
+
+    window.editRegion = async (id, name, desc) => {
+      const newName = prompt("Ubah nama region:", name);
+      if (!newName) return;
+      const newDesc = prompt("Ubah deskripsi:", desc);
+      await fetch(`/api/regions/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName, description: newDesc }) });
+      loadRegions();
+    };
+
+    window.deleteRegion = async (id) => {
+      if (!confirm("Hapus region ini?")) return;
+      await fetch(`/api/regions/${id}`, { method: "DELETE" });
+      loadRegions();
+    };
+
+    function showPage(page) {
+      document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
+      if (page === "manageRegions") {
+        document.getElementById("manageRegionsPage").classList.remove("hidden");
+        loadRegions();
+      }
+    }
+  </script>
 </body>
 </html>
