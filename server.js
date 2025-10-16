@@ -1,72 +1,74 @@
-// server.js
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
+/**
+ * Database Initialization (SQLite via better-sqlite3)
+ */
 const path = require("path");
-const { logger, httpLogger } = require("./config/logger");
+const Database = require("better-sqlite3");
+const fs = require("fs");
+const { logger } = require("./logger");
 
-// === Inisialisasi database ===
-require("./config/database");
+const dataDir = path.join(__dirname, "..", "data");
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
-// === Import Routes ===
-const authRoutes = require("./routes/auth");
-const dashboardRoutes = require("./routes/dashboard");
-const salesRoutes = require("./routes/sales");
-const toursRoutes = require("./routes/tours");
-const usersRoutes = require("./routes/users");
-const regionsRoutes = require("./routes/regions");
+const dbPath = path.join(dataDir, "database.sqlite");
+const db = new Database(dbPath);
 
-const app = express();
+// === CREATE TABLES ===
+try {
+  // USERS
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT,
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'basic',
+      type TEXT DEFAULT 'basic'
+    );
+  `).run();
 
-// === Middleware Umum ===
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(httpLogger);
+  // TOURS
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS tours (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tourCode TEXT,
+      leadPassenger TEXT,
+      region TEXT,
+      paxCount INTEGER DEFAULT 0,
+      tourPrice REAL DEFAULT 0,
+      departureStatus TEXT,
+      registrationDate TEXT DEFAULT CURRENT_TIMESTAMP,
+      staff TEXT
+    );
+  `).run();
 
-// === Helmet + CSP yang mengizinkan CDN ===
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-        ],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
+  // SALES
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS sales (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      transactionDate TEXT DEFAULT CURRENT_TIMESTAMP,
+      invoiceNumber TEXT,
+      salesAmount REAL DEFAULT 0,
+      profitAmount REAL DEFAULT 0,
+      staff TEXT,
+      tourId INTEGER,
+      FOREIGN KEY (tourId) REFERENCES tours(id)
+    );
+  `).run();
 
-// === Serve file statis frontend ===
-app.use(express.static(path.join(__dirname, "public")));
+  // REGIONS
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS regions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT
+    );
+  `).run();
 
-// === API ROUTES ===
-app.use("/api/auth", authRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/sales", salesRoutes);
-app.use("/api/tours", toursRoutes);
-app.use("/api/users", usersRoutes);
-app.use("/api/regions", regionsRoutes);
+  logger.info(`✅ Database connected at: ${dbPath}`);
+} catch (err) {
+  console.error("❌ Database initialization error:", err.message);
+  process.exit(1);
+}
 
-// === SPA Fallback ===
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
-});
-
-// === Jalankan Server ===
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  logger.info(`✅ Server running on port ${PORT}`);
-  console.log(`✅ Server running on port ${PORT}`);
-});
+module.exports = db;
