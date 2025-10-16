@@ -67,16 +67,18 @@ exports.register = (req, res) => {
 // === Login ===
 exports.login = (req, res) => {
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: "username and password required" });
-    }
+    const { username, email, password } = req.body;
+    if ((!username && !email) || !password)
+      return res.status(400).json({ message: "Username/email dan password wajib diisi" });
 
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = db
+      .prepare("SELECT * FROM users WHERE username = ? OR email = ?")
+      .get(username || email, username || email);
+
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
 
     const valid = bcrypt.compareSync(password, user.password);
-    if (!valid) return res.status(401).json({ message: "Invalid username or password" });
+    if (!valid) return res.status(401).json({ message: "Password salah" });
 
     const payload = { id: user.id, username: user.username, name: user.name, type: user.type || user.role || "basic" };
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
