@@ -1,21 +1,28 @@
 // routes/users.js
 const express = require("express");
 const router = express.Router();
-const userController = require("../controllers/userController");
+const usersController = require("../controllers/usersController");
 const authMiddleware = require("../middleware/authMiddleware");
 const roleCheck = require("../middleware/roleCheck");
 
+// semua routes butuh login
 router.use(authMiddleware);
 
-// === CRUD dasar ===
-router.get("/", roleCheck(["super", "semi"]), userController.getAll);
-router.get("/:id", roleCheck(["super", "semi"]), userController.getById);
-router.post("/", roleCheck(["super"]), userController.create);
-router.put("/:id", roleCheck(["super"]), userController.update);
-router.delete("/:id", roleCheck(["super"]), userController.remove);
+// GET /api/users -> list pengguna (untuk dropdowns/dll)
+router.get("/", usersController.getAll);
 
-// === Password Management ===
-router.post("/change-password", userController.changePassword); // user ganti sendiri
-router.post("/:id/reset-password", roleCheck(["super"]), userController.resetPassword); // admin reset user
+// GET /api/users/me -> data user yang login
+router.get("/me", usersController.getMe);
+
+// POST /api/users/change-password -> user sendiri ganti password
+router.post("/change-password", usersController.changePassword);
+
+// Admin-only routes
+router.post("/", roleCheck(["admin"]), usersController.create);
+router.put("/:id", roleCheck(["admin"]), usersController.update);
+router.delete("/:id", roleCheck(["admin"]), usersController.delete);
+
+// Admin reset password by username
+router.post("/reset-password/:username", roleCheck(["admin"]), usersController.resetPassword);
 
 module.exports = router;
