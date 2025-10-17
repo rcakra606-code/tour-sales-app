@@ -1,87 +1,66 @@
-// public/js/regions.js
-const regionTable = document.getElementById("regionTable");
-const regionForm = document.getElementById("regionForm");
-const regionId = document.getElementById("regionId");
-const regionName = document.getElementById("regionName");
-const regionDesc = document.getElementById("regionDesc");
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Regions - Tour & Sales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-white shadow p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold text-gray-800">🌍 Manage Regions</h1>
+    <div>
+      <button onclick="window.location.href='dashboard.html'"
+        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded mr-2">← Kembali</button>
+      <button id="logoutBtn"
+        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Logout</button>
+    </div>
+  </header>
 
-async function loadRegions() {
-  try {
-    const res = await fetch(`${API_BASE}/regions`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const regions = await res.json();
-    regionTable.innerHTML = "";
+  <!-- Main content -->
+  <main class="flex-1 p-6 max-w-4xl mx-auto w-full">
+    <!-- Form -->
+    <div class="bg-white p-6 rounded-lg shadow mb-6">
+      <h2 class="text-lg font-bold mb-4">Tambah / Edit Region</h2>
+      <form id="regionForm" class="space-y-3">
+        <input type="hidden" id="regionId" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nama Region</label>
+          <input id="regionName" type="text" required
+            class="border p-2 w-full rounded focus:ring focus:ring-blue-300" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+          <textarea id="regionDesc" rows="2"
+            class="border p-2 w-full rounded focus:ring focus:ring-blue-300"></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+          <button type="button" id="resetRegionBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
+        </div>
+      </form>
+    </div>
 
-    regions.forEach((r) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="p-2 border">${r.name}</td>
-        <td class="p-2 border">${r.description || "-"}</td>
-        <td class="p-2 border text-center">
-          <button onclick="editRegion(${r.id}, '${r.name}', '${r.description || ""}')" class="text-blue-600 hover:underline mr-2">Edit</button>
-          <button onclick="deleteRegion(${r.id})" class="text-red-600 hover:underline">Hapus</button>
-        </td>
-      `;
-      regionTable.appendChild(tr);
-    });
-  } catch (err) {
-    console.error(err);
-    showError("Gagal memuat region");
-  }
-}
+    <!-- Table -->
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-lg font-bold mb-4">Daftar Region</h2>
+      <table class="w-full border text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="p-2 text-left">Nama</th>
+            <th class="p-2 text-left">Deskripsi</th>
+            <th class="p-2 text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="regionTable"></tbody>
+      </table>
+    </div>
+  </main>
 
-regionForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  try {
-    const method = regionId.value ? "PUT" : "POST";
-    const url = regionId.value
-      ? `${API_BASE}/regions/${regionId.value}`
-      : `${API_BASE}/regions`;
-
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({
-        name: regionName.value.trim(),
-        description: regionDesc.value.trim(),
-      }),
-    });
-
-    if (!res.ok) throw new Error("Gagal menyimpan region");
-    showSuccess("Region berhasil disimpan");
-    regionForm.reset();
-    regionId.value = "";
-    loadRegions();
-  } catch (err) {
-    showError(err.message);
-  }
-});
-
-function editRegion(id, name, description) {
-  regionId.value = id;
-  regionName.value = name;
-  regionDesc.value = description;
-}
-
-async function deleteRegion(id) {
-  if (!confirm("Hapus region ini?")) return;
-  try {
-    const res = await fetch(`${API_BASE}/regions/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    if (!res.ok) throw new Error("Gagal menghapus region");
-    showSuccess("Region berhasil dihapus");
-    loadRegions();
-  } catch (err) {
-    showError(err.message);
-  }
-}
-
-function initRegionManagement() {
-  loadRegions();
-}
+  <script src="/js/config.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/regions.js"></script>
+</body>
+</html>
