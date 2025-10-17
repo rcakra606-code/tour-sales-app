@@ -1,15 +1,19 @@
-// routes/regions.js
+// routes/regions.js — Final Version
 const express = require("express");
 const router = express.Router();
-const regionsController = require("../controllers/regionsController");
-const authMiddleware = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
+const regionController = require("../controllers/regionController");
 
-router.use(authMiddleware);
+// Semua akses region untuk admin (super)
+function adminOnly(req, res, next) {
+  if (!req.user || req.user.type !== "super")
+    return res.status(403).json({ error: "Hanya admin yang dapat mengakses." });
+  next();
+}
 
-router.get("/", regionsController.getAll);
-router.post("/", roleCheck(["admin"]), regionsController.create);
-router.put("/:id", roleCheck(["admin"]), regionsController.update);
-router.delete("/:id", roleCheck(["admin"]), regionsController.delete);
+// Routes
+router.get("/", regionController.getRegions);
+router.post("/", adminOnly, regionController.createRegion);
+router.put("/:id", adminOnly, regionController.updateRegion);
+router.delete("/:id", adminOnly, regionController.deleteRegion);
 
 module.exports = router;
