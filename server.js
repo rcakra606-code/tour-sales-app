@@ -1,69 +1,42 @@
-/**
- * 🌐 MAIN SERVER
- * Express + SQLite + JWT + Logger
- */
-
-require("dotenv").config();
+// server.js
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
-const morgan = require("morgan");
-const bcrypt = require("bcryptjs");
+const bodyParser = require("body-parser");
+const { logger, httpLogger } = require("./config/logger");
 const db = require("./config/database");
-const { logger, httpLogger } = require("./config/logger"); // <-- destructure!
 
-// === Express app ===
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// === Middleware ===
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// === Middleware Global ===
 app.use(cors());
-app.use(helmet({
-  contentSecurityPolicy: false, // Matikan CSP ketat agar tidak blok eval dari chart.js
-}));
-app.use(morgan("dev"));
-
-// === Static public files ===
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(bodyParser.json());
+app.use(httpLogger);
 app.use(express.static(path.join(__dirname, "public")));
 
-// === ROUTES ===
-const authRoutes = require("./routes/auth");
-const dashboardRoutes = require("./routes/dashboard");
-const regionRoutes = require("./routes/region");
+// === Routes ===
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/dashboard", require("./routes/dashboard"));
+app.use("/api/regions", require("./routes/regions"));
+app.use("/api/tours", require("./routes/tours"));
+app.use("/api/sales", require("./routes/sales"));
+app.use("/api/users", require("./routes/users"));
 
-app.use("/api/auth", authRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/regions", regionRoutes);
+// === Health Check ===
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-// === HEALTH CHECK ===
-app.get("/health", (_, res) => res.json({ status: "ok" }));
-
-// === AUTO-CREATE DEFAULT ADMIN ===
-try {
-  const existing = db.prepare("SELECT * FROM users WHERE username = ?").get("admin");
-  if (!existing) {
-    const hashed = bcrypt.hashSync("admin123", 10);
-    db.prepare(`
-      INSERT INTO users (name, username, email, password, role, type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run("Administrator", "admin", "admin@example.com", hashed, "admin", "admin");
-    logger.info("👤 Default admin user created: admin / admin123");
-  } else {
-    logger.info("✅ Admin account already exists");
-  }
-} catch (err) {
-  logger.error("❌ Error checking/creating admin:", err.message);
-}
-
-// === FALLBACK FRONTEND ROUTE ===
+// === SPA Fallback ===
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// === START SERVER ===
+// === Start Server ===
 app.listen(PORT, () => {
   logger.info(`✅ Server running on port ${PORT}`);
 });
+
+process.on("uncaughtException", (err) => logger.error("💥 Uncaught Exception: " + err.message));
+process.on("unhandledRejection", (err) => logger.error("💥 Unhandled Rejection: " + err));
