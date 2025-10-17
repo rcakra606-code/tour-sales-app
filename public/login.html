@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Login — Travel Dashboard</title>
+  <title>Masuk — Travel Dashboard</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,12 +25,17 @@
     .card {
       backdrop-filter: blur(16px);
       background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.15);
       border-radius: 16px;
       width: 100%;
       max-width: 400px;
       padding: 2rem;
       box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      animation: fadeIn .5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity:0; transform: translateY(20px); }
+      to { opacity:1; transform: translateY(0); }
     }
     input {
       background: rgba(255,255,255,0.15);
@@ -42,13 +47,18 @@
     }
     input::placeholder { color: rgba(255,255,255,0.6); }
     button:hover { transform: translateY(-1px); transition: all .2s; }
+    #alert { transition: opacity 0.25s ease; }
   </style>
 </head>
 <body>
-  <main class="card text-center animate-fade-in">
+
+  <main class="card text-center">
     <div class="flex justify-center mb-3">
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" stroke="white" fill="none" viewBox="0 0 24 24"><path d="M3 3h18v4H3zM6 21h12v-2H6zM6 11h12v8H6z"></path></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" stroke="white" fill="none" viewBox="0 0 24 24">
+        <path d="M3 3h18v4H3zM6 21h12v-2H6zM6 11h12v8H6z"></path>
+      </svg>
     </div>
+
     <h1 class="text-2xl font-bold mb-1">Travel Dashboard</h1>
     <p class="text-sm text-blue-100 mb-6">Masuk untuk mengelola data tour & sales</p>
 
@@ -61,36 +71,65 @@
         <label class="text-xs text-blue-100">Password</label>
         <input id="password" type="password" placeholder="Masukkan password" required>
       </div>
-      <button type="submit" id="btn-login" class="w-full mt-4 bg-white text-indigo-600 font-semibold rounded-lg py-2">Masuk</button>
+      <button type="submit" id="btn-login" class="w-full mt-4 bg-white text-indigo-600 font-semibold rounded-lg py-2 hover:bg-slate-100 transition">
+        Masuk
+      </button>
     </form>
 
-    <div id="alert" class="mt-3 text-sm text-red-300 hidden">Login gagal.</div>
+    <div id="alert" class="mt-3 text-sm text-red-300 hidden"></div>
 
-    <div class="mt-6 text-xs text-blue-100 opacity-75">
-      <button id="btn-test-email" class="underline">Test email</button> · <a href="#" class="underline">Lupa password?</a>
+    <div class="mt-6 text-xs text-blue-100 opacity-75 flex justify-center gap-2">
+      <button id="btn-test-email" class="underline">Test email</button>
+      <span>·</span>
+      <a href="#" class="underline opacity-70">Lupa password?</a>
+    </div>
+
+    <div class="mt-6 text-[10px] text-blue-200 opacity-70">
+      © 2025 Travel Dashboard — PT Nusantara Wisata Digital
     </div>
   </main>
 
   <script>
     const API_BASE = '';
     const tokenKey = 'travel_token';
+    const refreshKey = 'travel_refresh';
     const userKey = 'travel_user';
 
-    // jika sudah login, redirect langsung
-    const token = localStorage.getItem(tokenKey);
-    if (token) {
-      window.location.href = '/index.html';
+    // Jika sudah login valid, redirect langsung ke dashboard
+    async function checkExistingSession() {
+      const token = localStorage.getItem(tokenKey);
+      if (!token) return;
+      try {
+        const res = await fetch(API_BASE + '/api/auth/verify', {
+          method: 'GET',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (res.ok && data.valid) {
+          window.location.href = '/index.html';
+        } else {
+          // Jika token tidak valid, bersihkan
+          localStorage.removeItem(tokenKey);
+          localStorage.removeItem(refreshKey);
+          localStorage.removeItem(userKey);
+        }
+      } catch {
+        // jika offline atau error, biarkan login manual
+      }
     }
+    checkExistingSession();
 
+    // Handler login
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
+      const password = document.getElementById('password').value.trim();
       const btn = document.getElementById('btn-login');
+      const alertBox = document.getElementById('alert');
+      alertBox.classList.add('hidden');
+
       btn.disabled = true;
       btn.textContent = 'Memproses...';
-      const alert = document.getElementById('alert');
-      alert.classList.add('hidden');
 
       try {
         const res = await fetch(API_BASE + '/api/auth/login', {
@@ -99,25 +138,33 @@
           body: JSON.stringify({ username, password })
         });
         const data = await res.json();
+
         if (res.ok && data.token) {
+          // Simpan token ke localStorage
           localStorage.setItem(tokenKey, data.token);
+          localStorage.setItem(refreshKey, data.refreshToken);
           localStorage.setItem(userKey, JSON.stringify(data.user));
-          window.location.href = '/index.html';
+
+          // Transisi sebelum redirect
+          btn.textContent = 'Berhasil!';
+          btn.classList.add('bg-green-500','text-white');
+          setTimeout(() => window.location.href = '/index.html', 800);
         } else {
-          alert.textContent = data.error || 'Login gagal.';
-          alert.classList.remove('hidden');
+          alertBox.textContent = data.error || 'Login gagal, periksa kembali.';
+          alertBox.classList.remove('hidden');
         }
       } catch (err) {
-        alert.textContent = 'Terjadi kesalahan koneksi.';
-        alert.classList.remove('hidden');
+        alertBox.textContent = 'Terjadi kesalahan koneksi ke server.';
+        alertBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Masuk';
+        setTimeout(() => btn.textContent = 'Masuk', 2000);
       }
     });
 
+    // Test email tombol
     document.getElementById('btn-test-email').addEventListener('click', () => {
-      alert('Gunakan perintah `npm run test-email` di server.');
+      alert('Gunakan perintah: npm run test-email di server untuk menguji pengiriman email.');
     });
   </script>
 </body>
