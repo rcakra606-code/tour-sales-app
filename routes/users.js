@@ -22,5 +22,6 @@ router.delete("/:username", checkRole(["super"]), userController.deleteUser);
 // Password Management
 router.post("/change-password", userController.changePassword);
 router.post("/reset-password", checkRole(["semi", "super"]), userController.resetPassword);
+router.post("/unlock", checkRole(["super"]), userController.unlockUser);
 
 module.exports = router;
