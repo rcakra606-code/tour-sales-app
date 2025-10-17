@@ -1,102 +1,148 @@
-// controllers/authController.js
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const Database = require("better-sqlite3");
+// controllers/authController.js — Final Production Version
 const path = require("path");
+const Database = require("better-sqlite3");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const db = new Database(path.join(__dirname, "..", "data", "database.sqlite"));
+
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
 const REFRESH_SECRET = process.env.REFRESH_SECRET || "refreshsecretkey987";
+const ACCESS_EXPIRE = process.env.ACCESS_TOKEN_EXPIRE || "15m";
+const REFRESH_EXPIRE = process.env.REFRESH_TOKEN_EXPIRE || "7d";
 
-// Simpan refresh token di tabel baru
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS refresh_tokens (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT,
-    token TEXT,
-    created_at TEXT
-  )
-`).run();
-
-function createAccessToken(user) {
+/**
+ * Membuat JWT Access Token
+ */
+function generateAccessToken(user) {
   return jwt.sign(
     { username: user.username, type: user.type },
     JWT_SECRET,
-    { expiresIn: "15m" } // 15 menit aktif
+    { expiresIn: ACCESS_EXPIRE }
   );
 }
 
-function createRefreshToken(user) {
-  return jwt.sign(
+/**
+ * Membuat JWT Refresh Token
+ */
+function generateRefreshToken(user) {
+  const token = jwt.sign(
     { username: user.username },
     REFRESH_SECRET,
-    { expiresIn: "7d" } // Refresh valid 7 hari
+    { expiresIn: REFRESH_EXPIRE }
   );
+  // Simpan di DB
+  db.prepare("INSERT INTO refresh_tokens (username, token) VALUES (?, ?)").run(user.username, token);
+  return token;
 }
 
-// === LOGIN ===
+/**
+ * Membersihkan refresh token expired (opsional)
+ */
+function cleanupExpiredTokens() {
+  try {
+    db.prepare(`
+      DELETE FROM refresh_tokens 
+      WHERE datetime(created_at, '+8 days') < datetime('now')
+    `).run();
+  } catch {}
+}
+
+/**
+ * LOGIN
+ * POST /api/auth/login
+ */
 exports.login = (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password)
-    return res.status(400).json({ error: "Username dan password wajib diisi." });
+  try {
+    const { username, password } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ error: "Username dan password wajib diisi." });
 
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-  if (!user) return res.status(401).json({ error: "User tidak ditemukan." });
-  if (!bcrypt.compareSync(password, user.password))
-    return res.status(401).json({ error: "Password salah." });
+    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+    if (!user) return res.status(401).json({ error: "User tidak ditemukan." });
 
-  const accessToken = createAccessToken(user);
-  const refreshToken = createRefreshToken(user);
+    const valid = bcrypt.compareSync(password, user.password);
+    if (!valid) return res.status(401).json({ error: "Password salah." });
 
-  db.prepare("INSERT INTO refresh_tokens (username, token, created_at) VALUES (?,?,?)")
-    .run(username, refreshToken, new Date().toISOString());
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    cleanupExpiredTokens();
 
-  res.json({
-    token: accessToken,
-    refreshToken,
-    user: { username, name: user.name, email: user.email, type: user.type },
-  });
+    res.json({
+      ok: true,
+      token: accessToken,
+      refreshToken,
+      user: {
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        type: user.type,
+      },
+    });
+  } catch (err) {
+    console.error("Auth login error:", err.message);
+    res.status(500).json({ error: "Gagal memproses login." });
+  }
 };
 
-// === VERIFY TOKEN ===
-exports.verifyToken = (req, res) => {
-  const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ valid: false });
-  const token = header.split(" ")[1];
+/**
+ * REFRESH TOKEN
+ * POST /api/auth/refresh
+ */
+exports.refresh = (req, res) => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ valid: true, user: decoded });
-  } catch {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(401).json({ error: "Refresh token diperlukan." });
+
+    const found = db.prepare("SELECT * FROM refresh_tokens WHERE token = ?").get(refreshToken);
+    if (!found) return res.status(403).json({ error: "Refresh token tidak valid." });
+
+    jwt.verify(refreshToken, REFRESH_SECRET, (err, decoded) => {
+      if (err) return res.status(403).json({ error: "Refresh token kedaluwarsa." });
+
+      const user = db.prepare("SELECT * FROM users WHERE username = ?").get(decoded.username);
+      if (!user) return res.status(404).json({ error: "User tidak ditemukan." });
+
+      const newAccess = generateAccessToken(user);
+      res.json({ token: newAccess });
+    });
+  } catch (err) {
+    console.error("Auth refresh error:", err.message);
+    res.status(500).json({ error: "Gagal memperbarui token." });
+  }
+};
+
+/**
+ * VERIFY TOKEN
+ * GET /api/auth/verify
+ */
+exports.verify = (req, res) => {
+  try {
+    const header = req.headers.authorization;
+    if (!header) return res.status(401).json({ valid: false });
+
+    const token = header.split(" ")[1];
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
+      if (err) return res.status(401).json({ valid: false });
+      res.json({ valid: true, user: decoded });
+    });
+  } catch (err) {
     res.status(401).json({ valid: false });
   }
 };
 
-// === REFRESH TOKEN ===
-exports.refreshToken = (req, res) => {
-  const { refreshToken } = req.body;
-  if (!refreshToken) return res.status(400).json({ error: "Refresh token dibutuhkan" });
-
-  const found = db.prepare("SELECT * FROM refresh_tokens WHERE token = ?").get(refreshToken);
-  if (!found) return res.status(403).json({ error: "Token tidak valid" });
-
-  try {
-    const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
-    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(decoded.username);
-    if (!user) return res.status(403).json({ error: "User tidak valid" });
-
-    const newAccess = createAccessToken(user);
-    res.json({ token: newAccess });
-  } catch (err) {
-    db.prepare("DELETE FROM refresh_tokens WHERE token = ?").run(refreshToken);
-    res.status(403).json({ error: "Refresh token kadaluarsa" });
-  }
-};
-
-// === LOGOUT ===
+/**
+ * LOGOUT
+ * POST /api/auth/logout
+ */
 exports.logout = (req, res) => {
-  const { refreshToken } = req.body;
-  if (refreshToken) {
-    db.prepare("DELETE FROM refresh_tokens WHERE token = ?").run(refreshToken);
+  try {
+    const { refreshToken } = req.body;
+    if (refreshToken)
+      db.prepare("DELETE FROM refresh_tokens WHERE token = ?").run(refreshToken);
+    res.json({ ok: true, message: "Logout berhasil." });
+  } catch (err) {
+    console.error("Auth logout error:", err.message);
+    res.status(500).json({ error: "Gagal logout." });
   }
-  res.json({ ok: true });
 };
