@@ -1,21 +1,21 @@
 /**
- * Database Initialization (SQLite via better-sqlite3)
+ * ===================================
+ * 🧱 DATABASE INITIALIZATION (SQLite)
+ * ===================================
  */
-
 const path = require("path");
-const Database = require("better-sqlite3");
 const fs = require("fs");
-const { logger } = require("./logger"); // ✅ perbaikan di sini!
+const Database = require("better-sqlite3");
+const { logger } = require("./logger");
 
-// === Setup folder data ===
 const dataDir = path.join(__dirname, "..", "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 
 const dbPath = path.join(dataDir, "database.sqlite");
 const db = new Database(dbPath);
 
-// === CREATE TABLES ===
 try {
+  /* ---------- CREATE TABLES ---------- */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,10 +63,23 @@ try {
     );
   `).run();
 
-  // ✅ log ke file & console
+  /* ---------- DEFAULT ADMIN ---------- */
+  const admin = db.prepare("SELECT * FROM users WHERE username = 'admin'").get();
+  if (!admin) {
+    const bcrypt = require("bcrypt");
+    const hash = bcrypt.hashSync("admin123", 10);
+    db.prepare(
+      `INSERT INTO users (name, username, email, password, role, type)
+       VALUES ('Administrator', 'admin', 'admin@example.com', ?, 'admin', 'admin')`
+    ).run(hash);
+    logger.info("👤 Default admin user created: admin / admin123");
+  } else {
+    logger.info("✅ Admin account already exists");
+  }
+
   logger.info(`✅ Database connected at: ${dbPath}`);
 } catch (err) {
-  console.error("❌ Database initialization error:", err.message);
+  logger.error(`❌ Database initialization error: ${err.message}`);
   process.exit(1);
 }
 
