@@ -1,57 +1,54 @@
-// controllers/authController.js — Final Production Version
+// controllers/authController.js — Travel Dashboard Enterprise v2.0
 const path = require("path");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const db = new Database(path.join(__dirname, "..", "data", "database.sqlite"));
-
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
-const REFRESH_SECRET = process.env.REFRESH_SECRET || "refreshsecretkey987";
-const ACCESS_EXPIRE = process.env.ACCESS_TOKEN_EXPIRE || "15m";
-const REFRESH_EXPIRE = process.env.REFRESH_TOKEN_EXPIRE || "7d";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 
-/**
- * Membuat JWT Access Token
- */
+// Temporary in-memory refresh tokens (you can store in db if needed)
+let refreshTokens = [];
+
+// ===========================================================
+// 🧠 Helper: Generate Tokens
+// ===========================================================
 function generateAccessToken(user) {
   return jwt.sign(
-    { username: user.username, type: user.type },
+    {
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      type: user.type,
+    },
     JWT_SECRET,
-    { expiresIn: ACCESS_EXPIRE }
+    { expiresIn: JWT_EXPIRES_IN }
   );
 }
 
-/**
- * Membuat JWT Refresh Token
- */
 function generateRefreshToken(user) {
-  const token = jwt.sign(
-    { username: user.username },
-    REFRESH_SECRET,
-    { expiresIn: REFRESH_EXPIRE }
-  );
-  // Simpan di DB
-  db.prepare("INSERT INTO refresh_tokens (username, token) VALUES (?, ?)").run(user.username, token);
+  const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
+  refreshTokens.push(token);
   return token;
 }
 
-/**
- * Membersihkan refresh token expired (opsional)
- */
 function cleanupExpiredTokens() {
-  try {
-    db.prepare(`
-      DELETE FROM refresh_tokens 
-      WHERE datetime(created_at, '+8 days') < datetime('now')
-    `).run();
-  } catch {}
+  const now = Math.floor(Date.now() / 1000);
+  refreshTokens = refreshTokens.filter((t) => {
+    try {
+      const decoded = jwt.verify(t, JWT_SECRET);
+      return decoded.exp > now;
+    } catch {
+      return false;
+    }
+  });
 }
 
-/**
- * LOGIN
- * POST /api/auth/login
- */
+// ===========================================================
+// 🔐 LOGIN
+// ===========================================================
 exports.login = (req, res) => {
   try {
     const { username, password } = req.body;
@@ -77,88 +74,100 @@ exports.login = (req, res) => {
       return res.status(401).json({ error: `Password salah (${newAttempts}/3).` });
     }
 
-    // Reset counter jika sukses login
+    // Reset failed attempts if success
     db.prepare("UPDATE users SET failed_attempts = 0 WHERE username = ?").run(username);
+
+    const payload = {
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      type: user.type,
+    };
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-    cleanupExpiredTokens();
 
-    res.json({
-      ok: true,
-      token: accessToken,
-      refreshToken,
-      user: {
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        type: user.type,
-      },
-    });
+    res.json({ ok: true, token: accessToken, refreshToken, user: payload });
   } catch (err) {
     console.error("Auth login error:", err.message);
     res.status(500).json({ error: "Gagal memproses login." });
   }
 };
 
-/**
- * REFRESH TOKEN
- * POST /api/auth/refresh
- */
-exports.refresh = (req, res) => {
+// ===========================================================
+// 🧾 REGISTER (admin only, optional if needed)
+// ===========================================================
+exports.register = (req, res) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(401).json({ error: "Refresh token diperlukan." });
+    const { username, password, name, email, type } = req.body;
+    if (!username || !password)
+      return res.status(400).json({ error: "Username dan password wajib diisi." });
 
-    const found = db.prepare("SELECT * FROM refresh_tokens WHERE token = ?").get(refreshToken);
-    if (!found) return res.status(403).json({ error: "Refresh token tidak valid." });
+    const exists = db.prepare("SELECT username FROM users WHERE username = ?").get(username);
+    if (exists)
+      return res.status(400).json({ error: "Username sudah terdaftar." });
 
-    jwt.verify(refreshToken, REFRESH_SECRET, (err, decoded) => {
+    const hash = bcrypt.hashSync(password, 8);
+    db.prepare("INSERT INTO users (username, password, name, email, type) VALUES (?,?,?,?,?)")
+      .run(username, hash, name || username, email || "", type || "basic");
+
+    res.json({ ok: true, message: "User berhasil dibuat." });
+  } catch (err) {
+    console.error("Register error:", err.message);
+    res.status(500).json({ error: "Gagal menambah user." });
+  }
+};
+
+// ===========================================================
+// 🔄 REFRESH TOKEN
+// ===========================================================
+exports.refreshToken = (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(401).json({ error: "Refresh token tidak ditemukan." });
+    if (!refreshTokens.includes(token))
+      return res.status(403).json({ error: "Refresh token tidak valid." });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err) return res.status(403).json({ error: "Refresh token kedaluwarsa." });
 
-      const user = db.prepare("SELECT * FROM users WHERE username = ?").get(decoded.username);
-      if (!user) return res.status(404).json({ error: "User tidak ditemukan." });
+      const dbUser = db.prepare("SELECT * FROM users WHERE username = ?").get(user.username);
+      if (!dbUser) return res.status(404).json({ error: "User tidak ditemukan." });
 
-      const newAccess = generateAccessToken(user);
-      res.json({ token: newAccess });
+      const newAccessToken = generateAccessToken(dbUser);
+      res.json({ ok: true, token: newAccessToken });
     });
   } catch (err) {
-    console.error("Auth refresh error:", err.message);
+    console.error("Refresh token error:", err.message);
     res.status(500).json({ error: "Gagal memperbarui token." });
   }
 };
 
-/**
- * VERIFY TOKEN
- * GET /api/auth/verify
- */
-exports.verify = (req, res) => {
+// ===========================================================
+// 🚪 LOGOUT
+// ===========================================================
+exports.logout = (req, res) => {
   try {
-    const header = req.headers.authorization;
-    if (!header) return res.status(401).json({ valid: false });
-
-    const token = header.split(" ")[1];
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-      if (err) return res.status(401).json({ valid: false });
-      res.json({ valid: true, user: decoded });
-    });
+    const { token } = req.body;
+    refreshTokens = refreshTokens.filter((t) => t !== token);
+    res.json({ ok: true, message: "Logout berhasil." });
   } catch (err) {
-    res.status(401).json({ valid: false });
+    console.error("Logout error:", err.message);
+    res.status(500).json({ error: "Gagal logout." });
   }
 };
 
-/**
- * LOGOUT
- * POST /api/auth/logout
- */
-exports.logout = (req, res) => {
+// ===========================================================
+// 🧩 VERIFY TOKEN
+// ===========================================================
+exports.verify = (req, res) => {
   try {
-    const { refreshToken } = req.body;
-    if (refreshToken)
-      db.prepare("DELETE FROM refresh_tokens WHERE token = ?").run(refreshToken);
-    res.json({ ok: true, message: "Logout berhasil." });
-  } catch (err) {
-    console.error("Auth logout error:", err.message);
-    res.status(500).json({ error: "Gagal logout." });
+    const authHeader = req.headers["authorization"];
+    if (!authHeader) return res.status(401).json({ error: "Token tidak ditemukan." });
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.json({ ok: true, user: decoded });
+  } catch {
+    res.status(403).json({ error: "Token tidak valid atau kedaluwarsa." });
   }
 };
