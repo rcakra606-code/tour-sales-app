@@ -178,3 +178,21 @@ exports.resetPassword = (req, res) => {
     res.status(500).json({ error: "Gagal mereset password." });
   }
 };
+
+/* ===========================================================
+   🔓 POST /api/users/unlock
+   Hanya admin (super)
+=========================================================== */
+exports.unlockUser = (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username)
+      return res.status(400).json({ error: "Username wajib diisi." });
+
+    db.prepare("UPDATE users SET locked = 0, failed_attempts = 0 WHERE username = ?").run(username);
+    res.json({ ok: true, message: `Akun ${username} telah dibuka kuncinya.` });
+  } catch (err) {
+    console.error("unlockUser error:", err.message);
+    res.status(500).json({ error: "Gagal membuka kunci user." });
+  }
+};
