@@ -3,278 +3,454 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Travel Dashboard</title>
+  <title>Travel Dashboard — Rapi</title>
 
-  <!-- Tailwind CDN (utility) -->
+  <!-- Inter font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
+
+  <!-- Lucide icons -->
+  <script type="module" src="https://unpkg.com/lucide@0.260.0/dist/esm/index.js"></script>
+
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    /* minor polishing to match target UI */
-    .sidebar { min-height: 100vh; }
-    .active-link { background: rgba(15,23,42,0.08); }
-    .card { background: var(--card-bg); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
-    :root { --card-bg: #ffffff; --text: #0f172a; --muted: #64748b; }
-    [data-theme="dark"] { --card-bg: #0b1220; --text: #e6eef8; --muted: #94a3b8; }
-    body { color: var(--text); background: linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%); }
-    [data-theme="dark"] body { background: #071024; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid rgba(15, 23, 42, 0.06); text-align: left; }
+    :root{
+      --primary:#2563eb;
+      --accent:#10b981;
+      --muted:#64748b;
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --glass: rgba(255,255,255,0.6);
+    }
+    [data-theme="dark"]{
+      --primary:#60a5fa;
+      --accent:#34d399;
+      --muted:#94a3b8;
+      --bg:#071024;
+      --card:#071428;
+      --glass: rgba(12,18,26,0.6);
+    }
+    html,body{height:100%}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:var(--bg); color:var(--text,#0f172a);}
+    .transition-smooth{transition: all .25s ease-in-out;}
+    .card{background:var(--card); border-radius:12px; box-shadow: 0 6px 20px rgba(2,6,23,0.06); padding:1rem;}
+    .table-head th{position:sticky; top:0; background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.9)); backdrop-filter: blur(4px);}
+    [data-theme="dark"] .table-head th{background: linear-gradient(180deg, rgba(7,20,36,0.9), rgba(7,20,36,0.85));}
+    .zebra tbody tr:nth-child(odd){background:rgba(15,23,42,0.02)}
+    [data-theme="dark"] .zebra tbody tr:nth-child(odd){background: rgba(255,255,255,0.01)}
+    .hover-row tbody tr:hover{transform: translateY(-2px); box-shadow: 0 8px 24px rgba(2,6,23,0.08); transition: all .12s ease-in-out;}
+    .sticky-top{position:sticky; top:0; z-index:40;}
+    /* toast */
+    #toast{min-width:220px; max-width:360px; border-radius:10px; padding:12px 14px; box-shadow:0 10px 30px rgba(2,6,23,0.12); transform:translateY(20px); opacity:0; transition:all .28s ease; pointer-events:none;}
+    #toast.show{opacity:1; transform:translateY(0); pointer-events:auto;}
+    /* responsive tweaks */
+    @media (max-width: 1024px){
+      aside.sidebar{position:fixed; left:-100%; top:0; bottom:0; width:78%; z-index:50; transition:all .22s ease; padding:1rem;}
+      aside.sidebar.open{left:0}
+      .overlay{position:fixed; inset:0; background:rgba(2,6,23,0.4); z-index:45; display:none}
+      .overlay.show{display:block}
+    }
   </style>
 </head>
-<body data-theme="light" class="min-h-screen antialiased">
+<body data-theme="light" class="min-h-screen">
 
-  <div id="app" class="flex">
+  <div id="app" class="min-h-screen flex">
+
     <!-- SIDEBAR -->
-    <aside class="sidebar w-64 p-4 bg-white dark:bg-slate-900 border-r hidden lg:block">
+    <aside id="sidebar" class="sidebar w-72 p-5 bg-white border-r hidden lg:block transition-smooth">
       <div class="mb-6">
-        <h2 class="text-xl font-semibold">Travel Dashboard</h2>
-        <p class="text-sm text-gray-500">Manage tours · sales · reports</p>
+        <h2 class="text-2xl font-bold" style="color:var(--primary)">Travel Dashboard</h2>
+        <p class="text-sm text-slate-500 mt-1">Manage tours • sales • reports</p>
       </div>
-      <nav id="navlinks" class="space-y-1">
-        <button data-route="dashboard" class="w-full text-left p-2 rounded hover:bg-gray-100 active-link">Dashboard</button>
-        <button data-route="tours" class="w-full text-left p-2 rounded hover:bg-gray-100">Tours</button>
-        <button data-route="sales" class="w-full text-left p-2 rounded hover:bg-gray-100">Sales</button>
-        <button data-route="documents" class="w-full text-left p-2 rounded hover:bg-gray-100">Documents</button>
-        <button data-route="reports" class="w-full text-left p-2 rounded hover:bg-gray-100">Reports & Export</button>
-        <button id="btn-logout" class="w-full text-left p-2 rounded hover:bg-gray-100 text-red-600 mt-4">Logout</button>
+
+      <nav class="space-y-1 text-sm" aria-label="Main Navigation">
+        <button data-route="dashboard" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-left transition-smooth active" title="Dashboard">
+          <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 13h8V3H3zM13 21h8V11h-8zM13 3v8h8M3 21h8v-8H3z"></path></svg>
+          Dashboard
+        </button>
+
+        <button data-route="tours" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-left transition-smooth">
+          <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2l2 7h7l-5.5 4 2 7L12 16 4 20l2-7L1 9h7z"></path></svg>
+          Tours
+        </button>
+
+        <button data-route="sales" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-left transition-smooth">
+          <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3h18v4H3zM6 21h12v-2H6zM6 11h12v8H6z"></path></svg>
+          Sales
+        </button>
+
+        <button data-route="documents" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-left transition-smooth">
+          <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16l4-2 4 2 4-2 4 2V8z"></path></svg>
+          Documents
+        </button>
+
+        <button data-route="reports" class="nav-btn w-full flex items-center gap-3 p-3 rounded-lg text-left transition-smooth">
+          <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18"></path></svg>
+          Reports
+        </button>
+
+        <div class="mt-6 pt-4 border-t">
+          <button id="btn-logout" class="w-full text-left p-2 rounded hover:bg-red-50 text-red-600">Logout</button>
+        </div>
+
+        <div class="mt-6 pt-4 border-t text-sm text-slate-500">
+          <label class="flex items-center gap-3">
+            <input id="toggle-theme" type="checkbox" class="w-4 h-4" />
+            Dark Mode
+          </label>
+        </div>
       </nav>
-      <div class="mt-8">
-        <label class="flex items-center gap-2">
-          <input id="toggle-theme" type="checkbox" class="h-4 w-4">
-          <span class="text-sm text-gray-600">Dark Mode</span>
-        </label>
-      </div>
     </aside>
 
-    <!-- MAIN -->
-    <div class="flex-1 p-6">
-      <!-- top bar -->
-      <header class="flex items-center justify-between mb-6">
-        <div>
-          <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
-          <p id="page-sub" class="text-sm text-gray-500">Overview & quick actions</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <div id="user-info" class="text-right hidden sm:block">
-            <div id="user-name" class="font-medium"></div>
-            <div id="user-role" class="text-xs text-gray-500"></div>
+    <!-- MOBILE SIDEBAR (hidden on desktop) -->
+    <aside id="sidebar-mobile" class="sidebar open lg:hidden fixed left-0 top-0 bottom-0 w-72 p-5 bg-white border-r transition-smooth hidden">
+      <!-- mobile content duplicated for simplicity -->
+    </aside>
+
+    <!-- overlay for mobile -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 min-h-screen flex flex-col">
+      <!-- topbar -->
+      <header class="sticky-top z-30 bg-transparent backdrop-blur py-3 px-4 border-b">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <button id="btn-hamburger" class="lg:hidden p-2 rounded-md hover:bg-slate-100 transition-smooth">
+              <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
+            </button>
+            <div>
+              <h1 id="page-title" class="text-lg font-semibold">Dashboard</h1>
+              <p id="page-sub" class="text-xs text-slate-500">Overview & quick insights</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div id="user-info" class="text-right hidden sm:block">
+              <div id="user-name" class="font-medium">—</div>
+              <div id="user-role" class="text-xs text-slate-500">—</div>
+            </div>
+            <button id="btn-notif" class="p-2 rounded-md hover:bg-slate-100 transition-smooth" title="Notifications">
+              <svg xmlns="http://www.w3.org/2000/svg" class="lucide" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"></path></svg>
+            </button>
           </div>
         </div>
       </header>
 
-      <!-- AUTH (if not logged in show login form) -->
-      <div id="auth-area" class="max-w-md mx-auto">
-        <div id="login-card" class="card">
-          <h3 class="text-lg font-semibold mb-2">Sign in</h3>
-          <form id="login-form" class="space-y-3">
-            <div>
-              <label class="text-sm">Username</label>
-              <input id="login-username" required class="w-full border rounded px-3 py-2" />
-            </div>
-            <div>
-              <label class="text-sm">Password</label>
-              <input id="login-password" type="password" required class="w-full border rounded px-3 py-2" />
-            </div>
-            <div class="flex justify-between items-center">
-              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Sign in</button>
-              <button type="button" id="btn-test-email" class="text-sm text-gray-600">Test Email</button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- CONTENT AREAS -->
-      <section id="content" class="hidden">
-        <!-- DASHBOARD -->
-        <div id="view-dashboard" class="space-y-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="card">
-              <div class="text-sm text-gray-500">Total Tours</div>
-              <div id="total-tours" class="text-2xl font-bold">—</div>
-            </div>
-            <div class="card">
-              <div class="text-sm text-gray-500">Total Sales</div>
-              <div id="total-sales" class="text-2xl font-bold">—</div>
-            </div>
-            <div class="card">
-              <div class="text-sm text-gray-500">Total Profit</div>
-              <div id="total-profit" class="text-2xl font-bold">—</div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div class="lg:col-span-2 card">
-              <h3 class="font-semibold mb-2">Sales Overview</h3>
-              <canvas id="salesChart" height="120"></canvas>
-            </div>
-            <div class="card">
-              <h3 class="font-semibold mb-2">Quick Actions</h3>
-              <div class="space-y-2">
-                <button id="open-tours" class="w-full px-3 py-2 bg-green-600 text-white rounded">Add Tour</button>
-                <button id="open-sales" class="w-full px-3 py-2 bg-yellow-600 text-white rounded">Add Sale</button>
-                <button id="export-excel" class="w-full px-3 py-2 border rounded">Export Report Excel</button>
+      <main class="flex-1 max-w-7xl mx-auto p-6">
+        <!-- AUTH area -->
+        <section id="auth-area" class="max-w-xl mx-auto">
+          <div id="login-card" class="card mx-auto">
+            <h3 class="text-xl font-semibold mb-2">Sign in</h3>
+            <form id="login-form" class="space-y-4">
+              <div>
+                <label class="block text-xs text-slate-500 mb-1">Username</label>
+                <input id="login-username" class="w-full border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" required />
               </div>
-            </div>
-          </div>
-        </div>
+              <div>
+                <label class="block text-xs text-slate-500 mb-1">Password</label>
+                <input id="login-password" type="password" class="w-full border border-slate-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" required />
+              </div>
 
-        <!-- TOURS -->
-        <div id="view-tours" class="hidden space-y-4">
-          <div class="card">
-            <h3 class="font-semibold mb-2">Tours</h3>
-            <form id="form-tour" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-              <input name="leadPassenger" placeholder="Lead Passenger" class="border p-2 rounded" required />
-              <input name="tourCode" placeholder="Tour Code" class="border p-2 rounded" />
-              <input name="registrationDate" type="date" placeholder="Registration Date" class="border p-2 rounded" required />
-              <input name="departureDate" type="date" placeholder="Departure Date" class="border p-2 rounded" />
-              <input name="paxCount" type="number" placeholder="Pax Count" class="border p-2 rounded" />
-              <input name="tourPrice" type="number" placeholder="Tour Price" class="border p-2 rounded" />
-              <textarea name="allPassengers" placeholder="All passengers (comma separated)" class="border p-2 rounded md:col-span-2"></textarea>
-              <div class="md:col-span-2 flex gap-2">
-                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Save Tour</button>
-                <button id="btn-refresh-tours" type="button" class="px-3 py-2 border rounded">Refresh</button>
-                <button id="btn-export-tours" type="button" class="px-3 py-2 border rounded">Export Tours Excel</button>
+              <div class="flex items-center justify-between gap-3">
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-sm">Sign in</button>
+                <div class="text-sm text-slate-500">
+                  <button id="btn-test-email" type="button" class="underline">Test Email</button>
+                </div>
               </div>
             </form>
-
-            <div id="tours-table-wrapper" class="overflow-x-auto">
-              <table id="tours-table" class="min-w-full">
-                <thead>
-                  <tr>
-                    <th>Reg Date</th><th>Lead</th><th>Pax</th><th>Tour Code</th><th>Departure</th><th>Price</th><th>Staff</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- SALES -->
-        <div id="view-sales" class="hidden space-y-4">
-          <div class="card">
-            <h3 class="font-semibold mb-2">Sales</h3>
-            <form id="form-sale" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-              <input name="transactionDate" type="date" class="border p-2 rounded" required />
-              <input name="invoiceNumber" placeholder="Invoice Number" class="border p-2 rounded" />
-              <input name="salesAmount" type="number" placeholder="Sales Amount" class="border p-2 rounded" />
-              <input name="profitAmount" type="number" placeholder="Profit Amount" class="border p-2 rounded" />
-              <textarea name="discountRemarks" placeholder="Discount Remarks" class="border p-2 rounded md:col-span-2"></textarea>
-              <div class="md:col-span-2 flex gap-2">
-                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Save Sale</button>
-                <button id="btn-refresh-sales" type="button" class="px-3 py-2 border rounded">Refresh</button>
-                <button id="btn-export-sales" type="button" class="px-3 py-2 border rounded">Export Sales Excel</button>
+        <!-- CONTENT (hidden until login) -->
+        <section id="content" class="hidden space-y-6">
+
+          <!-- Dashboard Cards -->
+          <div id="view-dashboard" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="card p-4">
+                <div class="text-xs text-slate-500">Total Tours</div>
+                <div id="total-tours" class="text-2xl font-bold mt-2">—</div>
+                <div class="text-xs text-slate-400 mt-2">Updated just now</div>
               </div>
-            </form>
 
-            <div id="sales-table-wrapper" class="overflow-x-auto">
-              <table id="sales-table" class="min-w-full">
-                <thead>
-                  <tr>
-                    <th>Tgl</th><th>Invoice</th><th>Sales</th><th>Profit</th><th>Staff</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- DOCUMENTS -->
-        <div id="view-documents" class="hidden space-y-4">
-          <div class="card">
-            <h3 class="font-semibold mb-2">Documents</h3>
-            <form id="form-document" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-              <input name="documentReceiveDate" type="date" class="border p-2 rounded" required />
-              <input name="guestNames" placeholder="Guest Names" class="border p-2 rounded" />
-              <input name="bookingCodeDMS" placeholder="Booking Code DMS" class="border p-2 rounded" />
-              <input name="tourCode" placeholder="Tour Code" class="border p-2 rounded" />
-              <textarea name="documentRemarks" placeholder="Remarks" class="border p-2 rounded md:col-span-2"></textarea>
-              <div class="md:col-span-2 flex gap-2">
-                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Save Document</button>
-                <button id="btn-refresh-docs" type="button" class="px-3 py-2 border rounded">Refresh</button>
+              <div class="card p-4">
+                <div class="text-xs text-slate-500">Total Sales</div>
+                <div id="total-sales" class="text-2xl font-bold mt-2">—</div>
+                <div class="text-xs text-slate-400 mt-2">Period: last 30 days</div>
               </div>
-            </form>
 
-            <div id="documents-table-wrapper" class="overflow-x-auto">
-              <table id="documents-table" class="min-w-full">
-                <thead>
-                  <tr>
-                    <th>Tgl Terima</th><th>Guest</th><th>Booking</th><th>Tour Code</th><th>Status</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
+              <div class="card p-4">
+                <div class="text-xs text-slate-500">Total Profit</div>
+                <div id="total-profit" class="text-2xl font-bold mt-2">—</div>
+                <div class="text-xs text-slate-400 mt-2">Gross profit</div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div class="card lg:col-span-2 p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="font-semibold">Sales Overview</h3>
+                  <div class="text-sm text-slate-500">Last 30 days</div>
+                </div>
+                <canvas id="salesChart" height="110"></canvas>
+              </div>
+
+              <div class="card p-4">
+                <h3 class="font-semibold mb-3">Quick Actions</h3>
+                <div class="flex flex-col gap-3">
+                  <button id="open-tours" class="px-3 py-2 bg-green-500 text-white rounded-lg">Add Tour</button>
+                  <button id="open-sales" class="px-3 py-2 bg-yellow-500 text-white rounded-lg">Add Sale</button>
+                  <button id="export-excel" class="px-3 py-2 border rounded-lg">Export Report (Excel)</button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- REPORTS -->
-        <div id="view-reports" class="hidden space-y-4">
-          <div class="card">
-            <h3 class="font-semibold mb-2">Reports & Export</h3>
-            <div class="space-y-3">
-              <button id="export-report-excel" class="px-3 py-2 border rounded">Download Full Report (Excel)</button>
-              <button id="export-report-csv" class="px-3 py-2 border rounded">Download Full Report (CSV)</button>
-              <button id="export-sales-excel" class="px-3 py-2 border rounded">Download Sales Excel</button>
+          <!-- TOURS -->
+          <div id="view-tours" class="hidden space-y-4">
+            <div class="card">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Tours</h3>
+                <div class="flex items-center gap-2">
+                  <button id="btn-refresh-tours" class="px-3 py-1 border rounded">Refresh</button>
+                  <button id="btn-export-tours" class="px-3 py-1 border rounded">Export Excel</button>
+                </div>
+              </div>
+
+              <form id="form-tour" class="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+                <div>
+                  <label class="text-xs text-slate-500">Lead Passenger</label>
+                  <input name="leadPassenger" class="w-full border rounded-xl px-3 py-2" required />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Tour Code</label>
+                  <input name="tourCode" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Registration Date</label>
+                  <input name="registrationDate" type="date" class="w-full border rounded-xl px-3 py-2" required />
+                </div>
+
+                <div>
+                  <label class="text-xs text-slate-500">Departure Date</label>
+                  <input name="departureDate" type="date" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Pax Count</label>
+                  <input name="paxCount" type="number" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Price (IDR)</label>
+                  <input name="tourPrice" type="number" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+
+                <div class="md:col-span-3">
+                  <label class="text-xs text-slate-500">All Passengers (comma separated)</label>
+                  <textarea name="allPassengers" rows="2" class="w-full border rounded-xl px-3 py-2"></textarea>
+                </div>
+
+                <div class="md:col-span-3 flex gap-2">
+                  <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+                  <button id="btn-clear-tour" type="button" class="px-4 py-2 border rounded-xl">Clear</button>
+                </div>
+              </form>
+
+              <div class="overflow-x-auto">
+                <table class="min-w-full zebra hover-row table-auto">
+                  <thead class="table-head">
+                    <tr>
+                      <th class="text-xs text-slate-500 p-3 text-left">Reg Date</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Lead</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Pax</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Tour Code</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Departure</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Price</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tours-table-body"></tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- notifications -->
-      <div id="toast" class="fixed right-6 bottom-6 hidden p-3 rounded shadow-lg"></div>
+          <!-- SALES -->
+          <div id="view-sales" class="hidden space-y-4">
+            <div class="card">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Sales</h3>
+                <div class="flex items-center gap-2">
+                  <button id="btn-refresh-sales" class="px-3 py-1 border rounded">Refresh</button>
+                  <button id="btn-export-sales" class="px-3 py-1 border rounded">Export Sales</button>
+                </div>
+              </div>
+
+              <form id="form-sale" class="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+                <div>
+                  <label class="text-xs text-slate-500">Transaction Date</label>
+                  <input name="transactionDate" type="date" class="w-full border rounded-xl px-3 py-2" required />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Invoice Number</label>
+                  <input name="invoiceNumber" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Sales Amount</label>
+                  <input name="salesAmount" type="number" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+
+                <div>
+                  <label class="text-xs text-slate-500">Profit Amount</label>
+                  <input name="profitAmount" type="number" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+                <div class="md:col-span-3">
+                  <label class="text-xs text-slate-500">Discount Remarks</label>
+                  <textarea name="discountRemarks" rows="2" class="w-full border rounded-xl px-3 py-2"></textarea>
+                </div>
+
+                <div class="md:col-span-3 flex gap-2">
+                  <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save Sale</button>
+                  <button id="btn-clear-sale" type="button" class="px-4 py-2 border rounded-xl">Clear</button>
+                </div>
+              </form>
+
+              <div class="overflow-x-auto">
+                <table class="min-w-full zebra hover-row table-auto">
+                  <thead class="table-head">
+                    <tr>
+                      <th class="text-xs text-slate-500 p-3 text-left">Date</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Invoice</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Sales</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Profit</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Staff</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sales-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- DOCUMENTS -->
+          <div id="view-documents" class="hidden space-y-4">
+            <div class="card">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">Documents</h3>
+                <div>
+                  <button id="btn-refresh-docs" class="px-3 py-1 border rounded">Refresh</button>
+                </div>
+              </div>
+
+              <form id="form-document" class="grid grid-cols-1 md:grid-cols-3 gap-3 my-4">
+                <div>
+                  <label class="text-xs text-slate-500">Receive Date</label>
+                  <input name="documentReceiveDate" type="date" class="w-full border rounded-xl px-3 py-2" required />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Guest Names</label>
+                  <input name="guestNames" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+                <div>
+                  <label class="text-xs text-slate-500">Booking Code</label>
+                  <input name="bookingCodeDMS" class="w-full border rounded-xl px-3 py-2" />
+                </div>
+
+                <div class="md:col-span-3">
+                  <label class="text-xs text-slate-500">Remarks</label>
+                  <textarea name="documentRemarks" rows="2" class="w-full border rounded-xl px-3 py-2"></textarea>
+                </div>
+
+                <div class="md:col-span-3 flex gap-2">
+                  <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save Doc</button>
+                  <button id="btn-clear-doc" type="button" class="px-4 py-2 border rounded-xl">Clear</button>
+                </div>
+              </form>
+
+              <div class="overflow-x-auto">
+                <table class="min-w-full zebra hover-row table-auto">
+                  <thead class="table-head">
+                    <tr>
+                      <th class="text-xs text-slate-500 p-3 text-left">Receive</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Guest</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Booking</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Tour</th>
+                      <th class="text-xs text-slate-500 p-3 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="documents-table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- REPORTS -->
+          <div id="view-reports" class="hidden space-y-4">
+            <div class="card p-4">
+              <h3 class="font-semibold mb-3">Reports & Exports</h3>
+              <div class="flex flex-wrap gap-3">
+                <button id="export-report-excel" class="px-4 py-2 border rounded-xl">Full Report (Excel)</button>
+                <button id="export-report-csv" class="px-4 py-2 border rounded-xl">Full Report (CSV)</button>
+                <button id="export-sales-excel" class="px-4 py-2 border rounded-xl">Sales (Excel)</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
+  <!-- toast -->
+  <div id="toast" class="fixed right-6 bottom-6 hidden"></div>
+
   <script>
-    // ---------------------------
-    // Configuration
-    // ---------------------------
-    const API_BASE = ''; // empty => same origin, adjust if API on different host e.g. 'https://api.example.com'
+    /* ======================
+       Config & helpers
+       ====================== */
+    const API_BASE = ''; // same origin
     const tokenKey = 'travel_token';
     const userKey = 'travel_user';
 
-    // ---------------------------
-    // Helpers
-    // ---------------------------
-    function showToast(msg, type='info') {
+    function showToast(message, type='info'){
       const t = document.getElementById('toast');
-      t.innerHTML = msg;
-      t.className = 'fixed right-6 bottom-6 p-3 rounded shadow-lg ' + (type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white');
-      t.style.display = 'block';
-      setTimeout(() => t.style.display = 'none', 3500);
+      t.innerHTML = message;
+      t.className = 'fixed right-6 bottom-6 p-3 rounded shadow-lg ' + (type==='error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white');
+      t.classList.add('show');
+      setTimeout(()=> t.classList.remove('show'), 3500);
     }
 
-    async function apiFetch(method, path, body) {
+    async function apiFetch(method, path, body){
       const headers = { 'Content-Type': 'application/json' };
       const token = localStorage.getItem(tokenKey);
       if (token) headers['Authorization'] = 'Bearer ' + token;
       const opts = { method, headers };
       if (body) opts.body = JSON.stringify(body);
       const res = await fetch(API_BASE + path, opts);
-      if (res.status === 401) {
+      if (res.status === 401){
         logout();
-        throw new Error('Unauthorized. You will be logged out.');
+        throw new Error('Unauthorized - please login again');
       }
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) return res.json();
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('application/json')) return res.json();
       return res;
     }
 
-    // ---------------------------
-    // Auth
-    // ---------------------------
+    function formatCurrency(n=0){
+      return new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 }).format(Number(n) || 0);
+    }
+
+    function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    /* ======================
+       Auth
+       ====================== */
     const loginForm = document.getElementById('login-form');
     const authArea = document.getElementById('auth-area');
     const contentArea = document.getElementById('content');
-    const userInfo = document.getElementById('user-info');
-    const userNameEl = document.getElementById('user-name');
-    const userRoleEl = document.getElementById('user-role');
-    const pageTitle = document.getElementById('page-title');
-    const pageSub = document.getElementById('page-sub');
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -282,11 +458,11 @@
       const password = document.getElementById('login-password').value;
       try {
         const res = await apiFetch('POST', '/api/auth/login', { username, password });
-        if (res.token) {
+        if (res.token){
           localStorage.setItem(tokenKey, res.token);
           localStorage.setItem(userKey, JSON.stringify(res.user));
           initAfterLogin();
-          showToast('Login berhasil', 'success');
+          showToast('Login berhasil');
         } else {
           showToast(res.error || 'Login gagal', 'error');
         }
@@ -295,128 +471,148 @@
       }
     });
 
-    document.getElementById('btn-test-email').addEventListener('click', async () => {
-      // Try calling script/test-email via API (if you add endpoint). For now, call /scripts/test-email.js not accessible via browser.
-      showToast('Test email run is a server-side script. Use `npm run test-email` on server.', 'info');
+    document.getElementById('btn-test-email').addEventListener('click', () => {
+      showToast('Test email: jalankan `npm run test-email` di server (server-side).', 'info');
     });
 
-    function logout() {
+    function logout(){
       localStorage.removeItem(tokenKey);
       localStorage.removeItem(userKey);
       location.reload();
     }
     document.getElementById('btn-logout').addEventListener('click', logout);
 
-    function initAfterLogin() {
+    function initAfterLogin(){
       const user = JSON.parse(localStorage.getItem(userKey) || '{}');
-      if (user && user.username) {
-        userInfo.style.display = 'block';
-        userNameEl.textContent = user.name || user.username;
-        userRoleEl.textContent = user.type || '';
+      if (user && user.username){
+        document.getElementById('user-name').textContent = user.name || user.username;
+        document.getElementById('user-role').textContent = user.type || '';
       }
-      authArea.style.display = 'none';
-      contentArea.style.display = 'block';
-      document.querySelectorAll('#navlinks [data-route]').forEach(btn => btn.addEventListener('click', navTo));
-      // default view
+      authArea.classList.add('hidden');
+      contentArea.classList.remove('hidden');
+      attachNavHandlers();
       showView('dashboard');
-      loadSummary();
-      loadTours();
-      loadSales();
-      loadDocuments();
+      loadSummary(); loadTours(); loadSales(); loadDocuments();
     }
 
-    // check saved token on load
-    (function checkAuthOnLoad(){
+    // on load, check token
+    (function(){
       const token = localStorage.getItem(tokenKey);
-      if (token) {
-        // try to reuse stored user or request profile later
-        const user = JSON.parse(localStorage.getItem(userKey) || '{}');
-        if (!user || !user.username) {
-          // optionally fetch /api/users/me if backend provides; for now just show content
-          localStorage.removeItem(userKey);
-        }
+      if (token){
         initAfterLogin();
       } else {
-        // show login
-        authArea.style.display = 'block';
-        contentArea.style.display = 'none';
+        authArea.classList.remove('hidden');
       }
     })();
 
-    // ---------------------------
-    // Navigation & Views
-    // ---------------------------
-    function navTo(e) {
-      const route = e.currentTarget.dataset.route;
-      showView(route);
-    }
-    function showView(name) {
-      pageTitle.textContent = name[0].toUpperCase() + name.slice(1);
-      document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
-      const view = document.getElementById('view-' + name);
-      if (view) view.classList.remove('hidden');
-      // highlight nav
-      document.querySelectorAll('#navlinks button').forEach(b => b.classList.remove('active-link'));
-      const btn = document.querySelector(`#navlinks [data-route="${name}"]`);
-      if (btn) btn.classList.add('active-link');
+    /* ======================
+       Navigation & UI utilities
+       ====================== */
+    function attachNavHandlers(){
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          const route = b.dataset.route;
+          showView(route);
+        });
+      });
+      document.getElementById('btn-hamburger').addEventListener('click', () => toggleMobileSidebar());
+      document.getElementById('open-tours').addEventListener('click', () => showView('tours'));
+      document.getElementById('open-sales').addEventListener('click', () => showView('sales'));
     }
 
-    // ---------------------------
-    // DASHBOARD SUMMARY + CHART
-    // ---------------------------
+    function showView(name){
+      document.getElementById('page-title').textContent = name[0].toUpperCase()+name.slice(1);
+      document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+      const el = document.getElementById('view-' + name);
+      if (el) el.classList.remove('hidden');
+      // close mobile sidebar if open
+      closeMobileSidebar();
+    }
+
+    // mobile sidebar
+    function toggleMobileSidebar(){
+      const sb = document.getElementById('sidebar');
+      const overlay = document.getElementById('overlay');
+      if (sb.classList.contains('open')){
+        sb.classList.remove('open');
+        overlay.classList.remove('show');
+      } else {
+        sb.classList.add('open');
+        overlay.classList.add('show');
+      }
+    }
+    function closeMobileSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+    document.getElementById('overlay').addEventListener('click', closeMobileSidebar);
+
+    /* ======================
+       Theme (dark / light)
+       ====================== */
+    const themeToggle = document.getElementById('toggle-theme');
+    function applySavedTheme(){
+      const t = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+      themeToggle.checked = (t === 'dark');
+    }
+    themeToggle.addEventListener('change', () => {
+      const t = themeToggle.checked ? 'dark' : 'light';
+      localStorage.setItem('theme', t);
+      document.documentElement.setAttribute('data-theme', t);
+    });
+    applySavedTheme();
+
+    /* ======================
+       Dashboard summary & chart
+       ====================== */
     let salesChart = null;
-    async function loadSummary() {
+    async function loadSummary(){
       try {
-        // backend endpoint returns summary counts and series
         const res = await apiFetch('GET', '/api/dashboard/summary');
-        // expected: { totalTours: n, totalSales: n, totalProfit: n, salesSeries: [{date, amount}, ...] }
-        const totalTours = res.totalTours ?? 0;
-        const totalSales = res.totalSales ?? 0;
-        const totalProfit = res.totalProfit ?? 0;
-        document.getElementById('total-tours').textContent = totalTours;
-        document.getElementById('total-sales').textContent = formatCurrency(totalSales);
-        document.getElementById('total-profit').textContent = formatCurrency(totalProfit);
+        // expected structure: { totalTours, totalSales, totalProfit, salesSeries: [{date, amount}, ...] }
+        document.getElementById('total-tours').textContent = res.totalTours ?? 0;
+        document.getElementById('total-sales').textContent = formatCurrency(res.totalSales ?? 0);
+        document.getElementById('total-profit').textContent = formatCurrency(res.totalProfit ?? 0);
 
         const series = res.salesSeries || [];
         renderSalesChart(series);
       } catch (err) {
-        console.warn('Summary load failed', err);
+        console.warn('loadSummary error', err);
       }
     }
 
-    function renderSalesChart(series) {
+    function renderSalesChart(series){
       const ctx = document.getElementById('salesChart').getContext('2d');
       const labels = series.map(s => s.date);
       const data = series.map(s => s.amount);
       if (salesChart) salesChart.destroy();
       salesChart = new Chart(ctx, {
         type: 'line',
-        data: { labels, datasets: [{ label: 'Sales', data, fill: true, tension: 0.3 }] },
-        options: { responsive: true, plugins: { legend: { display: false } } }
+        data: { labels, datasets: [{ label:'Sales', data, fill:true, tension:0.3, borderColor: 'var(--primary)', backgroundColor: 'rgba(37,99,235,0.08)', pointRadius:2 }]},
+        options: { responsive:true, plugins:{legend:{display:false}}}
       });
     }
 
-    function formatCurrency(n){ return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n || 0); }
-
-    // ---------------------------
-    // TOURS: load, add
-    // ---------------------------
-    const toursTableBody = document.querySelector('#tours-table tbody');
+    /* ======================
+       Tours
+       ====================== */
+    const toursTableBody = document.getElementById('tours-table-body');
     const formTour = document.getElementById('form-tour');
 
-    async function loadTours() {
+    async function loadTours(){
       try {
         const rows = await apiFetch('GET', '/api/tours');
         toursTableBody.innerHTML = '';
         rows.forEach(r => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${r.registrationDate||''}</td>
-                          <td>${escapeHtml(r.leadPassenger||'')}</td>
-                          <td>${r.paxCount||''}</td>
-                          <td>${r.tourCode||''}</td>
-                          <td>${r.departureDate||''}</td>
-                          <td>${formatCurrency(r.tourPrice||0)}</td>
-                          <td>${r.staff||''}</td>`;
+          tr.innerHTML = `
+            <td class="p-3 text-sm">${r.registrationDate||''}</td>
+            <td class="p-3 text-sm">${escapeHtml(r.leadPassenger||'')}</td>
+            <td class="p-3 text-sm">${r.paxCount||''}</td>
+            <td class="p-3 text-sm">${r.tourCode||''}</td>
+            <td class="p-3 text-sm">${r.departureDate||''}</td>
+            <td class="p-3 text-sm">${formatCurrency(r.tourPrice||0)}</td>
+            <td class="p-3 text-sm">${r.staff||''}</td>`;
           toursTableBody.appendChild(tr);
         });
       } catch (err) {
@@ -431,47 +627,39 @@
       const body = Object.fromEntries(fd.entries());
       try {
         const res = await apiFetch('POST', '/api/tours', body);
-        if (res.ok) {
+        if (res.ok){
           showToast('Tour tersimpan');
           formTour.reset();
-          loadTours();
-          loadSummary();
-        } else {
-          showToast(res.error || 'Gagal menyimpan tour', 'error');
-        }
-      } catch (err) {
-        showToast(err.message || 'Error', 'error');
-      }
+          loadTours(); loadSummary();
+        } else showToast(res.error || 'Gagal simpan tour', 'error');
+      } catch (err) { showToast(err.message || 'Error', 'error'); }
     });
 
     document.getElementById('btn-refresh-tours').addEventListener('click', loadTours);
-    document.getElementById('btn-export-tours').addEventListener('click', () => {
-      downloadFile('/api/export/report/excel', 'report_data.xlsx');
-    });
+    document.getElementById('btn-export-tours').addEventListener('click', () => downloadFile('/api/export/report/excel','report_data.xlsx'));
+    document.getElementById('btn-clear-tour').addEventListener('click', ()=> formTour.reset());
 
-    // ---------------------------
-    // SALES: load, add
-    // ---------------------------
-    const salesTableBody = document.querySelector('#sales-table tbody');
+    /* ======================
+       Sales
+       ====================== */
+    const salesTableBody = document.getElementById('sales-table-body');
     const formSale = document.getElementById('form-sale');
 
-    async function loadSales() {
+    async function loadSales(){
       try {
         const rows = await apiFetch('GET', '/api/sales');
         salesTableBody.innerHTML = '';
         rows.forEach(r => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${r.transactionDate||''}</td>
-                          <td>${r.invoiceNumber||''}</td>
-                          <td>${formatCurrency(r.salesAmount||0)}</td>
-                          <td>${formatCurrency(r.profitAmount||0)}</td>
-                          <td>${r.staff||''}</td>`;
+          tr.innerHTML = `
+            <td class="p-3 text-sm">${r.transactionDate||''}</td>
+            <td class="p-3 text-sm">${r.invoiceNumber||''}</td>
+            <td class="p-3 text-sm">${formatCurrency(r.salesAmount||0)}</td>
+            <td class="p-3 text-sm">${formatCurrency(r.profitAmount||0)}</td>
+            <td class="p-3 text-sm">${r.staff||''}</td>`;
           salesTableBody.appendChild(tr);
         });
-      } catch (err) {
-        console.error(err);
-        showToast('Gagal memuat sales', 'error');
-      }
+      } catch (err) { console.error(err); showToast('Gagal memuat sales', 'error'); }
     }
 
     formSale.addEventListener('submit', async (e) => {
@@ -480,47 +668,36 @@
       const body = Object.fromEntries(fd.entries());
       try {
         const res = await apiFetch('POST', '/api/sales', body);
-        if (res.ok) {
-          showToast('Sales tersimpan');
-          formSale.reset();
-          loadSales();
-          loadSummary();
-        } else {
-          showToast(res.error || 'Gagal menyimpan sales', 'error');
-        }
-      } catch (err) {
-        showToast(err.message || 'Error', 'error');
-      }
+        if (res.ok){ showToast('Sales tersimpan'); formSale.reset(); loadSales(); loadSummary(); }
+        else showToast(res.error || 'Gagal simpan sales', 'error');
+      } catch (err){ showToast(err.message || 'Error', 'error'); }
     });
 
     document.getElementById('btn-refresh-sales').addEventListener('click', loadSales);
-    document.getElementById('btn-export-sales').addEventListener('click', () => {
-      downloadFile('/api/export/sales/excel', 'sales_report.xlsx');
-    });
+    document.getElementById('btn-export-sales').addEventListener('click', () => downloadFile('/api/export/sales/excel','sales_report.xlsx'));
+    document.getElementById('btn-clear-sale').addEventListener('click', ()=> formSale.reset());
 
-    // ---------------------------
-    // DOCUMENTS
-    // ---------------------------
-    const documentsTableBody = document.querySelector('#documents-table tbody');
+    /* ======================
+       Documents
+       ====================== */
+    const documentsTableBody = document.getElementById('documents-table-body');
     const formDocument = document.getElementById('form-document');
 
-    async function loadDocuments() {
+    async function loadDocuments(){
       try {
         const rows = await apiFetch('GET', '/api/documents');
         documentsTableBody.innerHTML = '';
         rows.forEach(r => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${r.documentReceiveDate||''}</td>
-                          <td>${escapeHtml(r.guestNames||'')}</td>
-                          <td>${r.bookingCodeDMS||''}</td>
-                          <td>${r.tourCode||''}</td>
-                          <td>${r.documentStatus||''}</td>`;
+          tr.innerHTML = `
+            <td class="p-3 text-sm">${r.documentReceiveDate||''}</td>
+            <td class="p-3 text-sm">${escapeHtml(r.guestNames||'')}</td>
+            <td class="p-3 text-sm">${r.bookingCodeDMS||''}</td>
+            <td class="p-3 text-sm">${r.tourCode||''}</td>
+            <td class="p-3 text-sm">${r.documentStatus||''}</td>`;
           documentsTableBody.appendChild(tr);
         });
-      } catch (err) {
-        console.error(err);
-        showToast('Gagal memuat documents', 'error');
-      }
+      } catch (err) { console.error(err); showToast('Gagal memuat documents', 'error'); }
     }
 
     formDocument.addEventListener('submit', async (e) => {
@@ -529,89 +706,49 @@
       const body = Object.fromEntries(fd.entries());
       try {
         const res = await apiFetch('POST', '/api/documents', body);
-        if (res.ok) {
-          showToast('Document tersimpan');
-          formDocument.reset();
-          loadDocuments();
-        } else {
-          showToast(res.error || 'Gagal menyimpan document', 'error');
-        }
-      } catch (err) {
-        showToast(err.message || 'Error', 'error');
-      }
+        if (res.ok){ showToast('Dokumen tersimpan'); formDocument.reset(); loadDocuments(); }
+        else showToast(res.error || 'Gagal simpan dokumen', 'error');
+      } catch (err) { showToast(err.message || 'Error', 'error'); }
     });
 
     document.getElementById('btn-refresh-docs').addEventListener('click', loadDocuments);
+    document.getElementById('btn-clear-doc').addEventListener('click', ()=> formDocument.reset());
 
-    // ---------------------------
-    // EXPORTS & DOWNLOADS
-    // ---------------------------
-    async function downloadFile(path, defaultName) {
+    /* ======================
+       Exports
+       ====================== */
+    async function downloadFile(path, defaultName){
       try {
         const token = localStorage.getItem(tokenKey);
-        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
-        const res = await fetch(API_BASE + path, { method: 'GET', headers });
-        if (!res.ok) {
-          const txt = await res.text().catch(()=>null);
-          showToast('Export failed: ' + (txt || res.status), 'error');
-          return;
-        }
+        const headers = token ? {'Authorization':'Bearer ' + token} : {};
+        const res = await fetch(API_BASE + path, { method:'GET', headers });
+        if (!res.ok) { const txt = await res.text().catch(()=>null); showToast('Export failed: ' + (txt || res.status), 'error'); return; }
         const blob = await res.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = defaultName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        a.href = url; a.download = defaultName;
+        document.body.appendChild(a); a.click(); a.remove();
         window.URL.revokeObjectURL(url);
-      } catch (err) {
-        showToast('Export error', 'error');
-      }
+      } catch (err) { showToast('Export error', 'error'); }
     }
 
-    document.getElementById('export-excel').addEventListener('click', () => downloadFile('/api/export/report/excel', 'report_data.xlsx'));
-    document.getElementById('export-report-excel').addEventListener('click', () => downloadFile('/api/export/report/excel', 'report_data.xlsx'));
-    document.getElementById('export-report-csv').addEventListener('click', () => downloadFile('/api/export/report/csv', 'report_data.csv'));
-    document.getElementById('export-sales-excel').addEventListener('click', () => downloadFile('/api/export/sales/excel', 'sales_report.xlsx'));
+    document.getElementById('export-excel').addEventListener('click', () => downloadFile('/api/export/report/excel','report_data.xlsx'));
+    document.getElementById('export-report-excel').addEventListener('click', () => downloadFile('/api/export/report/excel','report_data.xlsx'));
+    document.getElementById('export-report-csv').addEventListener('click', () => downloadFile('/api/export/report/csv','report_data.csv'));
+    document.getElementById('export-sales-excel').addEventListener('click', () => downloadFile('/api/export/sales/excel','sales_report.xlsx'));
 
-    // ---------------------------
-    // Utilities
-    // ---------------------------
-    function escapeHtml(s='') {
-      return String(s).replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' })[m]);
-    }
+    /* ======================
+       Small init
+       ====================== */
+    // If user already logged in, initAfterLogin() was called earlier from the startup check.
+    // Otherwise, wait for login.
 
-    // ---------------------------
-    // Dark mode toggle
-    // ---------------------------
-    const themeToggle = document.getElementById('toggle-theme');
-    function applySavedTheme() {
-      const t = localStorage.getItem('theme') || 'light';
-      document.documentElement.setAttribute('data-theme', t);
-      themeToggle.checked = (t === 'dark');
-    }
-    themeToggle.addEventListener('change', () => {
-      const t = themeToggle.checked ? 'dark' : 'light';
-      localStorage.setItem('theme', t);
-      document.documentElement.setAttribute('data-theme', t);
-    });
-    applySavedTheme();
+    // make lucide icons render
+    document.addEventListener('DOMContentLoaded', () => { if (window.lucide) window.lucide.createIcons(); });
 
-    // ---------------------------
-    // Small helpers for opening forms
-    // ---------------------------
-    document.getElementById('open-tours').addEventListener('click', () => showView('tours'));
-    document.getElementById('open-sales').addEventListener('click', () => showView('sales'));
+    // Nice: allow pressing Escape to close mobile sidebar
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMobileSidebar(); });
 
-    // ---------------------------
-    // Init: attach default nav handlers for main nav (works after login)
-    // ---------------------------
-    // nothing further needed here
-
-    // ---------------------------
-    // Export: initial call to make sure UI connects on auth
-    // ---------------------------
   </script>
 </body>
 </html>
