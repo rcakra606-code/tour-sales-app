@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css">
+</head>
+<body class="bg-slate-50 text-slate-800 p-6">
+  <div class="max-w-7xl mx-auto space-y-8">
+    <h1 class="text-3xl font-bold">📊 Executive Dashboard</h1>
+
+    <!-- Filter -->
+    <div class="flex flex-wrap gap-4 items-end">
+      <div>
+        <label class="block text-sm">Tanggal Awal</label>
+        <input type="date" id="startDate" class="border rounded p-2">
+      </div>
+      <div>
+        <label class="block text-sm">Tanggal Akhir</label>
+        <input type="date" id="endDate" class="border rounded p-2">
+      </div>
+      <button id="filterBtn" class="bg-indigo-600 text-white px-4 py-2 rounded">Terapkan</button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="font-semibold text-slate-600">Total Sales</h2>
+        <p id="totalSales" class="text-2xl font-bold">0</p>
+      </div>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="font-semibold text-slate-600">Total Profit</h2>
+        <p id="totalProfit" class="text-2xl font-bold">0</p>
+      </div>
+      <div class="bg-white shadow rounded-lg p-4">
+        <h2 class="font-semibold text-slate-600">Total Documents</h2>
+        <p id="totalDocs" class="text-2xl font-bold">0</p>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid md:grid-cols-2 gap-6">
+      <canvas id="tourRegionChart"></canvas>
+      <canvas id="tourStatusChart"></canvas>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <canvas id="salesByStaffChart"></canvas>
+      <canvas id="documentStatusChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    async function fetchDashboard() {
+      const token = localStorage.getItem("travel_token");
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+
+      const url = new URL("/api/dashboard/executive", window.location.origin);
+      if (startDate && endDate) {
+        url.searchParams.append("startDate", startDate);
+        url.searchParams.append("endDate", endDate);
+      }
+
+      const res = await fetch(url, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      renderDashboard(data);
+    }
+
+    function renderDashboard(data) {
+      // KPI
+      document.getElementById("totalSales").textContent = new Intl.NumberFormat("id-ID").format(data.sales.totalSales || 0);
+      document.getElementById("totalProfit").textContent = new Intl.NumberFormat("id-ID").format(data.sales.totalProfit || 0);
+      document.getElementById("totalDocs").textContent = new Intl.NumberFormat("id-ID").format(data.documents.totalFiles || 0);
+
+      // Charts
+      renderChart("tourRegionChart", "Profit by Region", data.tourByRegion.map(r => r.region), data.tourByRegion.map(r => r.totalProfit));
+      renderChart("tourStatusChart", "Tours by Status", data.tourByStatus.map(s => s.departureStatus), data.tourByStatus.map(s => s.total));
+      renderChart("salesByStaffChart", "Sales by Staff", data.salesByStaff.map(s => s.staff), data.salesByStaff.map(s => s.totalSales));
+      renderChart("documentStatusChart", "Document Progress", ["Completed", "Pending", "Rejected"], [
+        data.documents.completed || 0, data.documents.pending || 0, data.documents.rejected || 0
+      ]);
+    }
+
+    function renderChart(id, label, labels, values) {
+      const ctx = document.getElementById(id).getContext("2d");
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            backgroundColor: ["#4f46e5", "#22d3ee", "#10b981", "#f97316", "#ef4444"]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    document.getElementById("filterBtn").addEventListener("click", fetchDashboard);
+    fetchDashboard();
+  </script>
+</body>
+</html>
