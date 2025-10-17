@@ -1,20 +1,38 @@
-// scripts/check-db.js
-const fs = require('fs');
-const path = require('path');
-const Database = require('better-sqlite3');
+// ============================================================
+// scripts/check-db.js — Travel Dashboard Enterprise v2.1
+// ============================================================
 
-const dbDir = path.join(__dirname, '..', 'data');
-const dbPath = path.join(dbDir, 'database.sqlite');
+const fs = require("fs");
+const path = require("path");
+const chalk = require("chalk");
 
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+console.log(chalk.cyan("🔍 Checking Travel Dashboard database status..."));
 
-try {
-  const db = new Database(dbPath);
-  db.prepare(`CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, checked_at TEXT)`).run();
-  db.prepare(`INSERT INTO health_check (checked_at) VALUES (?)`).run(new Date().toISOString());
-  console.log(`✅ Database check OK: ${dbPath}`);
-  db.close();
-} catch (err) {
-  console.error('❌ Database check failed:', err.message);
-  process.exit(1);
+const dbPath = path.join(__dirname, "..", "data", "database.sqlite");
+const dbDir = path.dirname(dbPath);
+
+// 1️⃣ Pastikan folder data/ ada
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+  console.log(chalk.yellow(`📁 Created directory: ${dbDir}`));
 }
+
+// 2️⃣ Cek file database
+if (!fs.existsSync(dbPath)) {
+  console.log(chalk.red("⚠️ Database file not found!"));
+  console.log(chalk.yellow("💡 Running initDatabase.js to create a new database..."));
+
+  try {
+    require("./initDatabase.js");
+    console.log(chalk.green("✅ Database successfully initialized."));
+  } catch (err) {
+    console.error(chalk.red("❌ Failed to initialize database:"), err.message);
+    process.exit(1);
+  }
+} else {
+  const stats = fs.statSync(dbPath);
+  const sizeKB = (stats.size / 1024).toFixed(2);
+  console.log(chalk.green(`✅ Database found: ${dbPath} (${sizeKB} KB)`));
+}
+
+console.log(chalk.cyan("🟢 Database check completed successfully!\n"));
