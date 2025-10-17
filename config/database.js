@@ -66,7 +66,7 @@ try {
   /* ---------- DEFAULT ADMIN ---------- */
   const admin = db.prepare("SELECT * FROM users WHERE username = 'admin'").get();
   if (!admin) {
-    const bcrypt = require("bcrypt");
+    const bcrypt = require("bcryptjs");
     const hash = bcrypt.hashSync("admin123", 10);
     db.prepare(
       `INSERT INTO users (name, username, email, password, role, type)
