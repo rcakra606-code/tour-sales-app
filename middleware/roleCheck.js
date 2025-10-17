@@ -1,23 +1,17 @@
 /**
- * =======================================
- * 🛡️ ROLE-BASED ACCESS CONTROL MIDDLEWARE
- * =======================================
+ * 🧭 Role Check Middleware
  */
-module.exports = function roleCheck(roles = []) {
-  if (typeof roles === "string") roles = [roles];
-
+function roleCheck(requiredRoles = []) {
   return (req, res, next) => {
-    if (!req.user || !req.user.role) {
-      return res.status(401).json({ message: "Unauthorized: Missing user data" });
-    }
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
 
-    const userRole = req.user.role;
-    if (roles.length && !roles.includes(userRole)) {
-      return res.status(403).json({
-        message: `Forbidden: Role '${userRole}' not authorized for this route`,
-      });
+    if (!requiredRoles.includes(user.role)) {
+      return res.status(403).json({ message: "Access denied" });
     }
 
     next();
   };
-};
+}
+
+module.exports = roleCheck;
