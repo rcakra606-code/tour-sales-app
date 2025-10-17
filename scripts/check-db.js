@@ -2,9 +2,10 @@
 // scripts/check-db.js — Travel Dashboard Enterprise v2.1
 // ============================================================
 
-const fs = require("fs");
-const path = require("path");
-const chalk = require("chalk");
+// jalankan dengan node --experimental-modules jika error require
+import fs from "fs";
+import path from "path";
+import chalk from "chalk";
 
 console.log(chalk.cyan("🔍 Checking Travel Dashboard database status..."));
 
