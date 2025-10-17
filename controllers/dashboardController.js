@@ -1,109 +1,88 @@
-// controllers/dashboardController.js
+// controllers/dashboardController.js — Executive Dashboard Analytics
 const path = require("path");
 const Database = require("better-sqlite3");
 
 const db = new Database(path.join(__dirname, "..", "data", "database.sqlite"));
 
-/**
- * GET /api/dashboard/summary
- * Ringkasan utama dashboard
- */
-exports.summary = (req, res) => {
+exports.getExecutiveSummary = (req, res) => {
   try {
-    const totalTours = db.prepare("SELECT COUNT(*) AS c FROM tours").get().c || 0;
+    const user = req.user;
+    const { startDate, endDate } = req.query;
+    const filters = [];
+    const params = [];
 
-    const salesRow = db
-      .prepare(
-        "SELECT IFNULL(SUM(salesAmount),0) AS totalSales, IFNULL(SUM(profitAmount),0) AS totalProfit FROM sales"
-      )
-      .get();
-
-    const totalSales = salesRow.totalSales || 0;
-    const totalProfit = salesRow.totalProfit || 0;
-
-    // 30 hari terakhir
-    const salesData = db
-      .prepare(
-        `SELECT transactionDate AS date, IFNULL(SUM(salesAmount),0) AS amount
-         FROM sales
-         WHERE transactionDate >= date('now', '-29 days')
-         GROUP BY transactionDate
-         ORDER BY transactionDate ASC`
-      )
-      .all();
-
-    const salesSeries = [];
-    const dayMap = {};
-    salesData.forEach((r) => (dayMap[r.date] = Number(r.amount || 0)));
-    for (let i = 29; i >= 0; i--) {
-      const d = db.prepare("SELECT date('now', ? || ' days') AS dt").get(-i);
-      const dateStr = d.dt;
-      salesSeries.push({ date: dateStr, amount: dayMap[dateStr] || 0 });
+    // Role filter
+    if (user.type === "basic") {
+      filters.push("staff = ?");
+      params.push(user.username);
     }
 
-    // region top tours
-    const topRegions = db
-      .prepare(
-        `SELECT region, COUNT(*) AS total 
-         FROM tours WHERE region != '' 
-         GROUP BY region 
-         ORDER BY total DESC 
-         LIMIT 6`
-      )
-      .all();
+    // Date filter
+    if (startDate && endDate) {
+      filters.push("date(reportDate) BETWEEN date(?) AND date(?)");
+      params.push(startDate, endDate);
+    }
 
-    res.json({ totalTours, totalSales, totalProfit, salesSeries, topRegions });
+    const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+
+    /* === TOURS === */
+    const tourStats = db.prepare(`
+      SELECT 
+        COUNT(*) AS totalTours,
+        SUM(salesAmount) AS totalSales,
+        SUM(profitAmount) AS totalProfit
+      FROM report_tours ${where}
+    `).get(...params);
+
+    const tourByRegion = db.prepare(`
+      SELECT region, COUNT(*) AS totalTours, SUM(profitAmount) AS totalProfit
+      FROM report_tours ${where}
+      GROUP BY region
+      ORDER BY totalProfit DESC
+    `).all(...params);
+
+    const tourByStatus = db.prepare(`
+      SELECT departureStatus, COUNT(*) AS total 
+      FROM report_tours ${where}
+      GROUP BY departureStatus
+    `).all(...params);
+
+    /* === SALES === */
+    const salesStats = db.prepare(`
+      SELECT 
+        SUM(salesAmount) AS totalSales,
+        SUM(profitAmount) AS totalProfit,
+        SUM(totalInvoices) AS totalInvoices
+      FROM report_sales ${where}
+    `).get(...params);
+
+    const salesByStaff = db.prepare(`
+      SELECT staff, SUM(salesAmount) AS totalSales, SUM(profitAmount) AS totalProfit
+      FROM report_sales ${where}
+      GROUP BY staff
+      ORDER BY totalSales DESC
+    `).all(...params);
+
+    /* === DOCUMENTS === */
+    const docStats = db.prepare(`
+      SELECT 
+        SUM(totalFiles) AS totalFiles,
+        SUM(completed) AS completed,
+        SUM(pending) AS pending,
+        SUM(rejected) AS rejected
+      FROM report_documents ${where}
+    `).get(...params);
+
+    res.json({
+      tours: tourStats || {},
+      tourByRegion,
+      tourByStatus,
+      sales: salesStats || {},
+      salesByStaff,
+      documents: docStats || {},
+    });
   } catch (err) {
-    console.error("Dashboard summary error:", err.message);
-    res.status(500).json({ error: "Gagal mengambil ringkasan dashboard." });
-  }
-};
-
-/**
- * GET /api/dashboard/detailed
- * Detail statistik tambahan untuk insight dashboard:
- * - per staff
- * - per region (revenue)
- * - tours per month (registrationDate)
- */
-exports.detailed = (req, res) => {
-  try {
-    // total penjualan per staff
-    const staffStats = db
-      .prepare(
-        `SELECT staff, SUM(salesAmount) AS totalSales, SUM(profitAmount) AS totalProfit
-         FROM sales 
-         WHERE staff IS NOT NULL AND staff != ''
-         GROUP BY staff 
-         ORDER BY totalSales DESC`
-      )
-      .all();
-
-    // total revenue per region
-    const regionRevenue = db
-      .prepare(
-        `SELECT region, SUM(tourPrice) AS totalValue, COUNT(*) AS count
-         FROM tours 
-         WHERE region IS NOT NULL AND region != ''
-         GROUP BY region 
-         ORDER BY totalValue DESC`
-      )
-      .all();
-
-    // jumlah tour per bulan
-    const tourMonth = db
-      .prepare(
-        `SELECT SUBSTR(registrationDate, 1, 7) AS month, COUNT(*) AS total
-         FROM tours
-         WHERE registrationDate IS NOT NULL AND registrationDate != ''
-         GROUP BY month
-         ORDER BY month ASC`
-      )
-      .all();
-
-    res.json({ staffStats, regionRevenue, tourMonth });
-  } catch (err) {
-    console.error("Dashboard detailed error:", err.message);
-    res.status(500).json({ error: "Gagal mengambil data detail dashboard." });
+    console.error("getExecutiveSummary error:", err.message);
+    res.status(500).json({ error: "Gagal mengambil data dashboard." });
   }
 };
