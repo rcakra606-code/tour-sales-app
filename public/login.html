@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Masuk — Travel Dashboard</title>
 
+  <!-- Font & Tailwind -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module" src="https://unpkg.com/lucide@0.260.0/dist/esm/index.js"></script>
@@ -12,19 +13,20 @@
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
       color: #fff;
+      overflow: hidden;
     }
     [data-theme="dark"] body {
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     }
     .card {
       backdrop-filter: blur(16px);
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.15);
       border-radius: 16px;
       width: 100%;
@@ -34,7 +36,7 @@
       animation: fadeIn .5s ease;
     }
     @keyframes fadeIn {
-      from { opacity:0; transform: translateY(20px); }
+      from { opacity:0; transform: translateY(15px); }
       to { opacity:1; transform: translateY(0); }
     }
     input {
@@ -95,7 +97,7 @@
     const refreshKey = 'travel_refresh';
     const userKey = 'travel_user';
 
-    // Jika sudah login valid, redirect langsung ke dashboard
+    // 🚀 Jika sudah login valid, langsung redirect ke dashboard
     async function checkExistingSession() {
       const token = localStorage.getItem(tokenKey);
       if (!token) return;
@@ -108,18 +110,15 @@
         if (res.ok && data.valid) {
           window.location.href = '/index.html';
         } else {
-          // Jika token tidak valid, bersihkan
           localStorage.removeItem(tokenKey);
           localStorage.removeItem(refreshKey);
           localStorage.removeItem(userKey);
         }
-      } catch {
-        // jika offline atau error, biarkan login manual
-      }
+      } catch {}
     }
     checkExistingSession();
 
-    // Handler login
+    // 🎯 Handler login
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const username = document.getElementById('username').value.trim();
@@ -140,12 +139,10 @@
         const data = await res.json();
 
         if (res.ok && data.token) {
-          // Simpan token ke localStorage
           localStorage.setItem(tokenKey, data.token);
           localStorage.setItem(refreshKey, data.refreshToken);
           localStorage.setItem(userKey, JSON.stringify(data.user));
 
-          // Transisi sebelum redirect
           btn.textContent = 'Berhasil!';
           btn.classList.add('bg-green-500','text-white');
           setTimeout(() => window.location.href = '/index.html', 800);
@@ -162,7 +159,7 @@
       }
     });
 
-    // Test email tombol
+    // 🧩 Test email tombol
     document.getElementById('btn-test-email').addEventListener('click', () => {
       alert('Gunakan perintah: npm run test-email di server untuk menguji pengiriman email.');
     });
