@@ -1,8 +1,11 @@
-// server.js
+/**
+ * 🌍 MAIN SERVER
+ * Express + Helmet + CORS + Better SQLite + Logger + Secure CSP
+ */
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
 const helmet = require("helmet");
+const cors = require("cors");
 const morgan = require("morgan");
 const path = require("path");
 const { logger, httpLogger } = require("./config/logger");
@@ -10,8 +13,11 @@ const { logger, httpLogger } = require("./config/logger");
 // === Init Database ===
 require("./config/database");
 
+const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const regionRoutes = require("./routes/regions");
+
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // === Middleware ===
 app.use(express.json());
@@ -19,23 +25,23 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(httpLogger);
 
-// ✅ Helmet CSP fix (tanpa unsafe-eval)
+// === Helmet + CSP (allow Tailwind + Chart.js) ===
 app.use(
   helmet({
     contentSecurityPolicy: {
-      useDefaults: true,
       directives: {
-        "default-src": ["'self'"],
-        "script-src": [
+        defaultSrc: ["'self'"],
+        scriptSrc: [
           "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
           "https://cdn.tailwindcss.com",
           "https://cdn.jsdelivr.net",
-          "https://cdn.jsdelivr.net/npm/chart.js",
         ],
-        "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "img-src": ["'self'", "data:", "https:"],
-        "connect-src": ["'self'", "https://cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -46,24 +52,16 @@ app.use(
 // === Static Frontend ===
 app.use(express.static(path.join(__dirname, "public")));
 
-// === API Routes ===
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/dashboard", require("./routes/dashboard"));
-app.use("/api/sales", require("./routes/sales"));
-app.use("/api/tours", require("./routes/tours"));
-app.use("/api/regions", require("./routes/regions"));
-app.use("/api/users", require("./routes/users"));
+// === Routes ===
+app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/regions", regionRoutes);
 
-// === SPA Fallback ===
+// === SPA fallback ===
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// === Error Handling ===
-app.use((err, req, res, next) => {
-  logger.error(err.stack);
-  res.status(500).json({ error: "Internal Server Error" });
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
 // === Start Server ===
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => logger.info(`✅ Server running on port ${PORT}`));
