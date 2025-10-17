@@ -1,42 +1,45 @@
-// server.js
+// inside server.js
 const express = require("express");
+const app = express();
 const path = require("path");
 const cors = require("cors");
-const helmet = require("helmet");
 const bodyParser = require("body-parser");
-const { logger, httpLogger } = require("./config/logger");
-const db = require("./config/database");
+require("dotenv").config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// === Middleware Global ===
 app.use(cors());
-app.use(helmet({ contentSecurityPolicy: false }));
 app.use(bodyParser.json());
-app.use(httpLogger);
 app.use(express.static(path.join(__dirname, "public")));
 
-// === Routes ===
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/dashboard", require("./routes/dashboard"));
-app.use("/api/regions", require("./routes/regions"));
-app.use("/api/tours", require("./routes/tours"));
-app.use("/api/sales", require("./routes/sales"));
-app.use("/api/users", require("./routes/users"));
+// === ROUTES ===
+const authRoutes = require("./routes/auth");
+app.use("/api/auth", authRoutes);
 
-// === Health Check ===
-app.get("/health", (req, res) => res.json({ status: "ok" }));
+// protect dashboard routes
+function authMiddleware(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header) return res.status(401).json({ error: "Unauthorized" });
+  const token = header.split(" ")[1];
+  const jwt = require("jsonwebtoken");
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+}
 
-// === SPA Fallback ===
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+// example protected route
+app.get("/api/dashboard/summary", authMiddleware, (req, res) => {
+  // ... your existing summary logic here
 });
 
-// === Start Server ===
-app.listen(PORT, () => {
-  logger.info(`✅ Server running on port ${PORT}`);
+// fallback
+app.get("/", (req, res) => {
+  res.redirect("/login.html");
 });
 
-process.on("uncaughtException", (err) => logger.error("💥 Uncaught Exception: " + err.message));
-process.on("unhandledRejection", (err) => logger.error("💥 Unhandled Rejection: " + err));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () =>
+  console.log(`🚀 Server running on port ${PORT}`)
+);
