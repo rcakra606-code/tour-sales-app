@@ -1,11 +1,10 @@
 /**
- * ===================================
- * 🧱 DATABASE INITIALIZATION (SQLite)
- * ===================================
+ * ✅ Database Initialization (Better-SQLite3)
  */
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
+const bcrypt = require("bcryptjs");
 const { logger } = require("./logger");
 
 const dataDir = path.join(__dirname, "..", "data");
@@ -14,8 +13,8 @@ if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
 const dbPath = path.join(dataDir, "database.sqlite");
 const db = new Database(dbPath);
 
+// === CREATE TABLES ===
 try {
-  /* ---------- CREATE TABLES ---------- */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +24,7 @@ try {
       password TEXT NOT NULL,
       role TEXT DEFAULT 'basic',
       type TEXT DEFAULT 'basic'
-    );
+    )
   `).run();
 
   db.prepare(`
@@ -39,7 +38,7 @@ try {
       departureStatus TEXT,
       registrationDate TEXT DEFAULT CURRENT_TIMESTAMP,
       staff TEXT
-    );
+    )
   `).run();
 
   db.prepare(`
@@ -52,7 +51,7 @@ try {
       staff TEXT,
       tourId INTEGER,
       FOREIGN KEY (tourId) REFERENCES tours(id)
-    );
+    )
   `).run();
 
   db.prepare(`
@@ -60,26 +59,24 @@ try {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT UNIQUE NOT NULL,
       description TEXT
-    );
+    )
   `).run();
 
-  /* ---------- DEFAULT ADMIN ---------- */
-  const admin = db.prepare("SELECT * FROM users WHERE username = 'admin'").get();
-  if (!admin) {
-    const bcrypt = require("bcryptjs");
+  logger.info(`✅ Database connected at: ${dbPath}`);
+
+  // === Create Default Admin ===
+  const adminExists = db.prepare("SELECT * FROM users WHERE username = ?").get("admin");
+  if (!adminExists) {
     const hash = bcrypt.hashSync("admin123", 10);
     db.prepare(
-      `INSERT INTO users (name, username, email, password, role, type)
-       VALUES ('Administrator', 'admin', 'admin@example.com', ?, 'admin', 'admin')`
-    ).run(hash);
+      `INSERT INTO users (name, username, password, role, type) VALUES (?,?,?,?,?)`
+    ).run("Administrator", "admin", hash, "admin", "admin");
     logger.info("👤 Default admin user created: admin / admin123");
   } else {
     logger.info("✅ Admin account already exists");
   }
-
-  logger.info(`✅ Database connected at: ${dbPath}`);
 } catch (err) {
-  logger.error(`❌ Database initialization error: ${err.message}`);
+  logger.error("❌ Database initialization error: " + err.message);
   process.exit(1);
 }
 
