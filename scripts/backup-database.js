@@ -1,5 +1,5 @@
 // ============================================================
-// scripts/backup-database.js — Travel Dashboard Enterprise v2.1
+// scripts/backup-database.js — Travel Dashboard Enterprise v2.2
 // ============================================================
 
 const fs = require("fs");
@@ -10,6 +10,7 @@ console.log(chalk.cyan("💾 Starting database backup..."));
 
 const dbPath = path.join(__dirname, "..", "data", "database.sqlite");
 const backupDir = path.join(__dirname, "..", "backups");
+const RETENTION_DAYS = 7; // berapa hari backup disimpan
 
 // 1️⃣ Pastikan folder backups/ ada
 if (!fs.existsSync(backupDir)) {
@@ -37,4 +38,23 @@ try {
   process.exit(1);
 }
 
-console.log(chalk.cyan("🎉 Database backup completed successfully!\n"));
+// ============================================================
+// 🧹 AUTO PURGE OLD BACKUPS (>7 days)
+// ============================================================
+const now = Date.now();
+const files = fs.readdirSync(backupDir);
+
+files.forEach(file => {
+  if (file.startsWith("backup_") && file.endsWith(".sqlite")) {
+    const filePath = path.join(backupDir, file);
+    const stats = fs.statSync(filePath);
+    const ageDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+
+    if (ageDays > RETENTION_DAYS) {
+      fs.unlinkSync(filePath);
+      console.log(chalk.yellow(`🧹 Deleted old backup: ${file}`));
+    }
+  }
+});
+
+console.log(chalk.cyan("🎉 Database backup & purge completed successfully!\n"));
