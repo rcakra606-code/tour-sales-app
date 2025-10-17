@@ -1,242 +1,136 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tour & Sales Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tour & Sales Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { box-sizing: border-box; }
+    .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width:30px; height:30px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
+  </style>
+</head>
 
-    <style>
-      .loading-spinner {
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #3498db;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
-  </head>
-
-  <body class="h-full bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
-    <!-- ================= LOADING OVERLAY ================= -->
-    <div
-      id="loadingOverlay"
-      class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden"
-    >
-      <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl text-center">
-        <div class="loading-spinner mx-auto mb-4"></div>
-        <p class="text-gray-600 dark:text-gray-200">Memuat...</p>
-      </div>
+<body class="h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <!-- ================= LOADING OVERLAY ================= -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl text-center">
+      <div class="loading-spinner mx-auto mb-4"></div>
+      <p class="text-gray-600 dark:text-gray-300">Memuat...</p>
     </div>
+  </div>
 
-    <!-- ================= TOASTS ================= -->
-    <div
-      id="errorToast"
-      class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden"
-    >
-      <div class="flex items-center justify-between">
-        <span id="errorMessage">Terjadi kesalahan</span>
-        <button id="closeErrorToast" class="ml-4">✕</button>
+  <!-- ================= LOGIN PAGE ================= -->
+  <div id="loginPage" class="min-h-full flex items-center justify-center py-12 px-4">
+    <div class="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg">
+      <div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold">Masuk ke Sistem</h2>
+        <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">Tour & Sales Management Dashboard</p>
       </div>
-    </div>
-
-    <div
-      id="successToast"
-      class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden"
-    >
-      <div class="flex items-center justify-between">
-        <span id="successMessage">Berhasil</span>
-        <button id="closeSuccessToast" class="ml-4">✕</button>
-      </div>
-    </div>
-
-    <!-- ================= LOGIN PAGE ================= -->
-    <div
-      id="loginPage"
-      class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
-    >
-      <div class="max-w-md w-full space-y-8">
-        <div>
-          <h2
-            class="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white"
-          >
-            Masuk ke Sistem
-          </h2>
-          <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
-            Tour & Sales Management Dashboard
-          </p>
+      <form id="loginForm" class="mt-8 space-y-6">
+        <div class="space-y-4">
+          <input id="username" name="username" type="text" required autocomplete="username"
+                 class="w-full border rounded px-3 py-2 focus:outline-blue-500" placeholder="Username" />
+          <input id="password" name="password" type="password" required autocomplete="current-password"
+                 class="w-full border rounded px-3 py-2 focus:outline-blue-500" placeholder="Password" />
         </div>
-
-        <form id="loginForm" class="mt-8 space-y-6">
-          <div class="rounded-md shadow-sm -space-y-px">
-            <div>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                autocomplete="username"
-                class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Username"
-              />
-            </div>
-            <div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autocomplete="current-password"
-                class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Masuk
-            </button>
-          </div>
-        </form>
-      </div>
+        <button type="submit"
+                class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold">
+          Masuk
+        </button>
+      </form>
     </div>
+  </div>
 
-    <!-- ================= MAIN APP ================= -->
-    <div id="mainApp" class="hidden min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900">
+  <!-- ================= MAIN APP ================= -->
+  <div id="mainApp" class="hidden min-h-screen flex flex-col md:flex-row">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="bg-white dark:bg-gray-800 shadow-lg p-4 w-64 hidden md:block">
+      <!-- Sidebar generated by buildSidebar() -->
+    </aside>
+
+    <!-- TOGGLE SIDEBAR (Mobile) -->
+    <button id="sidebarToggle" class="md:hidden fixed top-4 left-4 bg-blue-600 text-white px-3 py-2 rounded z-40">
+      ☰
+    </button>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-6 overflow-y-auto">
       <!-- HEADER -->
-      <header
-        class="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center"
-      >
-        <div class="flex items-center gap-3">
-          <button
-            id="sidebarToggle"
-            class="text-gray-700 dark:text-gray-200 hover:text-blue-500"
-          >
-            ☰
-          </button>
-          <h1 class="text-2xl font-bold">Dashboard</h1>
-        </div>
+      <header class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold" id="pageTitle">Dashboard</h1>
         <div class="flex items-center gap-4">
-          <button
-            onclick="toggleTheme()"
-            class="text-gray-700 dark:text-gray-200 hover:text-yellow-400"
-          >
-            🌞 / 🌙
-          </button>
-          <span id="userInfo" class="font-medium text-gray-700 dark:text-gray-200"></span>
-          <button
-            id="logoutBtn"
-            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-          >
-            Logout
-          </button>
+          <span id="userInfo" class="text-sm font-medium"></span>
+          <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Logout</button>
         </div>
       </header>
 
-      <div class="flex flex-1">
-        <!-- SIDEBAR -->
-        <aside
-          id="sidebar"
-          class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 hidden md:block"
-        >
-          <nav class="space-y-2">
-            <button
-              onclick="showPage('dashboard')"
-              class="w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900"
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onclick="showPage('regionManagement')"
-              class="w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900"
-            >
-              🌍 Manage Region
-            </button>
-          </nav>
-        </aside>
+      <!-- DASHBOARD CONTENT -->
+      <section id="dashboardPage" class="page-section space-y-6">
+        <!-- SUMMARY CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-blue-100 dark:bg-blue-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Sales</h3>
+            <p id="totalSales" class="text-xl font-bold">Rp 0</p>
+          </div>
+          <div class="bg-green-100 dark:bg-green-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Profit</h3>
+            <p id="totalProfit" class="text-xl font-bold">Rp 0</p>
+          </div>
+          <div class="bg-yellow-100 dark:bg-yellow-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Registrants</h3>
+            <p id="totalRegistrants" class="text-xl font-bold">0</p>
+          </div>
+          <div class="bg-purple-100 dark:bg-purple-900 p-4 rounded shadow">
+            <h3 class="text-sm text-gray-600 dark:text-gray-300">Total Pax</h3>
+            <p id="totalPax" class="text-xl font-bold">0</p>
+          </div>
+        </div>
 
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 p-6 space-y-6 overflow-y-auto">
-          <!-- DASHBOARD -->
-          <section id="dashboardPage" class="page-section">
-            <h2 class="text-xl font-bold mb-4">Ringkasan Dashboard</h2>
+        <!-- CHARTS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-3">Sales & Profit per Staff</h2>
+            <canvas id="salesChart" height="200"></canvas>
+          </div>
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-3">Registrasi per Region</h2>
+            <canvas id="regionChart" height="200"></canvas>
+          </div>
+          <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow md:col-span-2">
+            <h2 class="text-lg font-semibold mb-3">Penjualan Harian</h2>
+            <canvas id="dailySalesChart" height="200"></canvas>
+          </div>
+        </div>
+      </section>
 
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div class="p-4 bg-blue-500 text-white rounded shadow">
-                Total Sales: <span id="totalSales">Rp 0</span>
-              </div>
-              <div class="p-4 bg-green-500 text-white rounded shadow">
-                Total Profit: <span id="totalProfit">Rp 0</span>
-              </div>
-              <div class="p-4 bg-indigo-500 text-white rounded shadow">
-                Registrants: <span id="totalRegistrants">0</span>
-              </div>
-              <div class="p-4 bg-yellow-500 text-white rounded shadow">
-                Total Pax: <span id="totalPax">0</span>
-              </div>
-            </div>
+      <!-- REGION MANAGEMENT -->
+      <section id="regionManagementPage" class="page-section hidden">
+        <h2 class="text-xl font-bold mb-4">Manajemen Region</h2>
+        <form id="regionForm" class="mb-4 space-y-3">
+          <input type="hidden" id="regionId">
+          <input type="text" id="regionName" placeholder="Nama Region" class="border p-2 w-full rounded">
+          <textarea id="regionDesc" placeholder="Deskripsi" class="border p-2 w-full rounded"></textarea>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Simpan</button>
+        </form>
+        <table class="w-full border text-left">
+          <thead class="bg-gray-200 dark:bg-gray-700">
+            <tr>
+              <th class="p-2">Nama</th>
+              <th class="p-2">Deskripsi</th>
+              <th class="p-2 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="regionTableBody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <canvas id="salesChart" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"></canvas>
-              <canvas id="regionChart" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"></canvas>
-            </div>
-
-            <div class="mt-6">
-              <canvas id="dailySalesChart" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow"></canvas>
-            </div>
-          </section>
-
-          <!-- REGION MANAGEMENT -->
-          <section id="regionManagementPage" class="page-section hidden">
-            <h2 class="text-xl font-bold mb-4">Manajemen Region</h2>
-            <form id="regionForm" class="flex gap-2 mb-4">
-              <input type="hidden" id="regionId" />
-              <input
-                type="text"
-                id="regionName"
-                placeholder="Nama Region"
-                class="border p-2 rounded w-1/3"
-              />
-              <input
-                type="text"
-                id="regionDesc"
-                placeholder="Deskripsi"
-                class="border p-2 rounded w-1/2"
-              />
-              <button
-                type="submit"
-                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Simpan
-              </button>
-            </form>
-
-            <table class="w-full border-collapse border">
-              <thead class="bg-gray-200 dark:bg-gray-700">
-                <tr>
-                  <th class="p-2 border">Nama</th>
-                  <th class="p-2 border">Deskripsi</th>
-                  <th class="p-2 border">Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="regionTableBody"></tbody>
-            </table>
-          </section>
-        </main>
-      </div>
-    </div>
-
-    <!-- ================= SCRIPTS ================= -->
-    <script src="/js/app.js"></script>
-  </body>
+  <!-- ================= JS FILES ================= -->
+  <script src="/js/app.js"></script>
+</body>
 </html>
