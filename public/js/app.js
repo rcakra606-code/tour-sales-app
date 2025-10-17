@@ -15,15 +15,17 @@ function showLoading(show = true) {
 }
 function showError(msg) {
   const el = document.getElementById("errorToast");
-  if (!el) return alert(msg);
-  el.textContent = msg;
+  const message = document.getElementById("errorMessage");
+  if (!el || !message) return alert(msg);
+  message.textContent = msg;
   el.classList.remove("hidden");
   setTimeout(() => el.classList.add("hidden"), 4000);
 }
 function showSuccess(msg) {
   const el = document.getElementById("successToast");
-  if (!el) return alert(msg);
-  el.textContent = msg;
+  const message = document.getElementById("successMessage");
+  if (!el || !message) return alert(msg);
+  message.textContent = msg;
   el.classList.remove("hidden");
   setTimeout(() => el.classList.add("hidden"), 3000);
 }
@@ -66,7 +68,7 @@ async function handleLogin(e) {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(currentUser));
     bootAfterLogin();
-  } catch (err) {
+  } catch {
     showError("Terjadi kesalahan saat login");
   } finally {
     showLoading(false);
@@ -86,11 +88,14 @@ function logout() {
    🚀 BOOT AFTER LOGIN
 ================================= */
 function bootAfterLogin() {
+  const userLabel = document.getElementById("userInfo");
+  if (userLabel) userLabel.textContent = currentUser?.name || "User";
+
   document.getElementById("loginPage")?.classList.add("hidden");
   document.getElementById("mainApp")?.classList.remove("hidden");
   buildSidebar();
   updateCharts();
-  showSuccess(`Selamat datang, ${currentUser.name}`);
+  showSuccess(`Selamat datang, ${currentUser?.name || ""}`);
 }
 
 /* ================================
@@ -99,16 +104,17 @@ function bootAfterLogin() {
 function buildSidebar() {
   const sidebar = document.getElementById("sidebar");
   if (!sidebar) return;
-  sidebar.classList.remove("hidden");
 
-  // tampilkan menu khusus admin
-  if (currentUser.type === "super") {
-    const usersBtn = document.createElement("button");
-    usersBtn.textContent = "👥 Manage Users";
-    usersBtn.className = "w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-gray-700";
-    usersBtn.onclick = () => showPage("users");
-    sidebar.querySelector("nav").appendChild(usersBtn);
-  }
+  sidebar.innerHTML = `
+    <nav class="flex flex-col gap-2">
+      <button onclick="showPage('dashboard')" class="w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-gray-700">📊 Dashboard</button>
+      <button onclick="showPage('regionManagement')" class="w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-gray-700">🌍 Regions</button>
+      ${currentUser?.type === "super" ? `
+        <button onclick="showPage('users')" class="w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-gray-700">👥 Manage Users</button>
+      ` : ""}
+      <button onclick="toggleTheme()" class="w-full text-left px-4 py-2 rounded hover:bg-blue-100 dark:hover:bg-gray-700">🌓 Toggle Theme</button>
+    </nav>
+  `;
 }
 
 /* ================================
@@ -150,7 +156,7 @@ async function updateCharts() {
     const chartsData = await apiFetch("/dashboard/charts");
     renderSalesChart(chartsData.staffRows || []);
     renderRegionChart(chartsData.regionRows || []);
-  } catch (err) {
+  } catch {
     showError("Gagal memuat data dashboard");
   }
 }
