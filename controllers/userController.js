@@ -1,51 +1,56 @@
-// controllers/userController.js — Final Version
+// controllers/userController.js — Final with Role-based User Management
 const path = require("path");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 
 const db = new Database(path.join(__dirname, "..", "data", "database.sqlite"));
 
-/**
- * GET /api/users
- * Ambil daftar user (dengan pagination & search)
- */
+/* ===========================================================
+   📌 Helper function: role access
+=========================================================== */
+function canManage(targetUser, currentUser) {
+  if (!currentUser) return false;
+  if (currentUser.type === "super") return true; // admin can manage all
+  if (currentUser.type === "semi" && targetUser.type === "basic") return true; // semi can manage basic
+  return false;
+}
+
+/* ===========================================================
+   📄 GET /api/users
+   Role-based: 
+   - basic → hanya dirinya
+   - semi → semua basic
+   - admin → semua
+=========================================================== */
 exports.getAllUsers = (req, res) => {
   try {
-    const search = req.query.search ? `%${req.query.search}%` : "%%";
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
+    const role = req.user?.type;
+    const username = req.user?.username;
 
-    const totalRow = db
-      .prepare(
-        `SELECT COUNT(*) AS c FROM users 
-         WHERE username LIKE ? OR name LIKE ? OR email LIKE ?`
-      )
-      .get(search, search, search);
-    const total = totalRow.c || 0;
-    const totalPages = Math.ceil(total / limit);
+    let users = [];
+    if (role === "super") {
+      users = db.prepare("SELECT username, name, email, type, created_at FROM users ORDER BY username ASC").all();
+    } else if (role === "semi") {
+      users = db
+        .prepare("SELECT username, name, email, type, created_at FROM users WHERE type = 'basic' ORDER BY username ASC")
+        .all();
+    } else {
+      users = db
+        .prepare("SELECT username, name, email, type, created_at FROM users WHERE username = ?")
+        .all(username);
+    }
 
-    const users = db
-      .prepare(
-        `SELECT username, name, email, type, created_at
-         FROM users 
-         WHERE username LIKE ? OR name LIKE ? OR email LIKE ?
-         ORDER BY username ASC 
-         LIMIT ? OFFSET ?`
-      )
-      .all(search, search, search, limit, offset);
-
-    res.json({ data: users, total, page, totalPages });
+    res.json(users);
   } catch (err) {
     console.error("getAllUsers error:", err.message);
     res.status(500).json({ error: "Gagal mengambil data user." });
   }
 };
 
-/**
- * POST /api/users
- * Tambah user baru (super admin only)
- */
+/* ===========================================================
+   ➕ POST /api/users
+   Admin only
+=========================================================== */
 exports.createUser = (req, res) => {
   try {
     const { username, password, name, email, type } = req.body;
@@ -56,11 +61,8 @@ exports.createUser = (req, res) => {
     if (exists)
       return res.status(400).json({ error: "Username sudah digunakan." });
 
-    if (password.length < 6)
-      return res.status(400).json({ error: "Password minimal 6 karakter." });
-
     const hash = bcrypt.hashSync(password, 8);
-    db.prepare("INSERT INTO users (username,password,name,email,type) VALUES (?,?,?,?,?)")
+    db.prepare("INSERT INTO users (username, password, name, email, type) VALUES (?,?,?,?,?)")
       .run(username, hash, name || username, email || "", type || "basic");
 
     res.json({ ok: true, message: "User berhasil ditambahkan." });
@@ -70,31 +72,30 @@ exports.createUser = (req, res) => {
   }
 };
 
-/**
- * PUT /api/users
- * Update user (nama, email, role, password opsional)
- */
+/* ===========================================================
+   ✏️ PUT /api/users
+   Admin: update semua
+   Semi: update basic only
+=========================================================== */
 exports.updateUser = (req, res) => {
   try {
-    const { username, name, email, type, password } = req.body;
+    const { username, name, email, type } = req.body;
     if (!username)
       return res.status(400).json({ error: "Username wajib diisi." });
 
-    const exists = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
-    if (!exists)
+    const target = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+    if (!target)
       return res.status(404).json({ error: "User tidak ditemukan." });
 
-    if (password && password.trim() !== "") {
-      if (password.length < 6)
-        return res.status(400).json({ error: "Password minimal 6 karakter." });
+    if (!canManage(target, req.user))
+      return res.status(403).json({ error: "Tidak diizinkan mengubah user ini." });
 
-      const hash = bcrypt.hashSync(password, 8);
-      db.prepare("UPDATE users SET password=?, name=?, email=?, type=? WHERE username=?")
-        .run(hash, name || exists.name, email || exists.email, type || exists.type, username);
-    } else {
-      db.prepare("UPDATE users SET name=?, email=?, type=? WHERE username=?")
-        .run(name || exists.name, email || exists.email, type || exists.type, username);
-    }
+    // hanya admin yang bisa ubah role
+    let newType = target.type;
+    if (req.user.type === "super" && type) newType = type;
+
+    db.prepare("UPDATE users SET name=?, email=?, type=? WHERE username=?")
+      .run(name || target.name, email || target.email, newType, username);
 
     res.json({ ok: true, message: "User berhasil diperbarui." });
   } catch (err) {
@@ -103,18 +104,15 @@ exports.updateUser = (req, res) => {
   }
 };
 
-/**
- * DELETE /api/users/:username
- * Hapus user (kecuali admin utama)
- */
+/* ===========================================================
+   🗑️ DELETE /api/users/:username
+   Hanya admin
+=========================================================== */
 exports.deleteUser = (req, res) => {
   try {
     const { username } = req.params;
-    if (!username)
-      return res.status(400).json({ error: "Username wajib diisi." });
-
-    if (username === "admin")
-      return res.status(400).json({ error: "User admin utama tidak bisa dihapus." });
+    if (!username) return res.status(400).json({ error: "Username wajib diisi." });
+    if (username === "admin") return res.status(400).json({ error: "Admin utama tidak bisa dihapus." });
 
     db.prepare("DELETE FROM users WHERE username = ?").run(username);
     res.json({ ok: true, message: "User berhasil dihapus." });
@@ -124,34 +122,59 @@ exports.deleteUser = (req, res) => {
   }
 };
 
-/**
- * POST /api/users/change-password
- * Ganti password sendiri (user login)
- */
+/* ===========================================================
+   🔑 POST /api/users/change-password
+   Semua user bisa ganti password sendiri
+=========================================================== */
 exports.changePassword = (req, res) => {
   try {
     const username = req.user?.username;
     const { oldPassword, newPassword } = req.body;
-    if (!username)
-      return res.status(401).json({ error: "Unauthorized" });
-    if (!oldPassword || !newPassword)
-      return res.status(400).json({ error: "Password lama & baru wajib diisi." });
 
-    if (newPassword.length < 6)
-      return res.status(400).json({ error: "Password minimal 6 karakter." });
+    if (!username) return res.status(401).json({ error: "Unauthorized." });
+    if (!oldPassword || !newPassword)
+      return res.status(400).json({ error: "Password lama dan baru wajib diisi." });
 
     const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if (!user) return res.status(404).json({ error: "User tidak ditemukan." });
 
     const valid = bcrypt.compareSync(oldPassword, user.password);
-    if (!valid)
-      return res.status(400).json({ error: "Password lama salah." });
+    if (!valid) return res.status(400).json({ error: "Password lama salah." });
 
     const hash = bcrypt.hashSync(newPassword, 8);
-    db.prepare("UPDATE users SET password = ? WHERE username = ?").run(hash, username);
+    db.prepare("UPDATE users SET password=? WHERE username=?").run(hash, username);
+
     res.json({ ok: true, message: "Password berhasil diubah." });
   } catch (err) {
     console.error("changePassword error:", err.message);
     res.status(500).json({ error: "Gagal mengubah password." });
+  }
+};
+
+/* ===========================================================
+   🔁 POST /api/users/reset-password
+   - Admin dapat reset semua user
+   - Semi admin hanya dapat reset basic user
+=========================================================== */
+exports.resetPassword = (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: "Username wajib diisi." });
+
+    const target = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
+    if (!target)
+      return res.status(404).json({ error: "User tidak ditemukan." });
+
+    if (!canManage(target, req.user))
+      return res.status(403).json({ error: "Tidak diizinkan mereset password user ini." });
+
+    const defaultPassword = `${username}123`;
+    const hash = bcrypt.hashSync(defaultPassword, 8);
+
+    db.prepare("UPDATE users SET password=? WHERE username=?").run(hash, username);
+    res.json({ ok: true, message: `Password user direset menjadi: ${defaultPassword}` });
+  } catch (err) {
+    console.error("resetPassword error:", err.message);
+    res.status(500).json({ error: "Gagal mereset password." });
   }
 };
