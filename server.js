@@ -1,61 +1,77 @@
 /**
- * ===============================
- * 🚀 MAIN SERVER CONFIGURATION
- * ===============================
+ * ✅ SERVER.JS — main entrypoint untuk Travel Dashboard
  */
-
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
 const path = require("path");
+const helmet = require("helmet");
+const cors = require("cors");
 const { logger, httpLogger } = require("./config/logger");
+const morgan = require("morgan");
+
+// === Inisialisasi Database ===
 const db = require("./config/database");
 
+// === Import Routes ===
+const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const salesRoutes = require("./routes/sales");
+const toursRoutes = require("./routes/tours");
+const usersRoutes = require("./routes/users");
+
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-/* ---------- MIDDLEWARE ---------- */
-app.use(cors());
+// === Middleware ===
 app.use(express.json());
-app.use(httpLogger);
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(httpLogger); // pakai morgan → winston logger
 
-// Serve frontend (public folder)
+// === Helmet: Security Headers + CSP ===
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://cdn.tailwindcss.com",
+          "https://cdn.jsdelivr.net",
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+
+// === Serve Frontend ===
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ---------- ROUTES ---------- */
-try {
-  const authRoutes = require("./routes/auth");
-  const tourRoutes = require("./routes/tours");
-  const salesRoutes = require("./routes/sales");
-  const dashboardRoutes = require("./routes/dashboard");
-  const regionRoutes = require("./routes/regions");
-  const userRoutes = require("./routes/users");
+// === Routes API ===
+app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/tours", toursRoutes);
+app.use("/api/users", usersRoutes);
 
-  app.use("/api/auth", authRoutes);
-  app.use("/api/tours", tourRoutes);
-  app.use("/api/sales", salesRoutes);
-  app.use("/api/dashboard", dashboardRoutes);
-  app.use("/api/regions", regionRoutes);
-  app.use("/api/users", userRoutes);
-
-  logger.info("✅ All routes initialized successfully");
-} catch (err) {
-  logger.error(`❌ Failed to load routes: ${err.message}`);
-}
-
-/* ---------- HEALTH CHECK ---------- */
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", uptime: process.uptime(), db: !!db });
+// === Fallback (SPA) ===
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* ---------- ERROR HANDLER ---------- */
-app.use((err, req, res, next) => {
-  logger.error(`❌ ${err.message}`);
-  res.status(500).json({ message: "Internal Server Error", error: err.message });
-});
-
-/* ---------- SERVER START ---------- */
+// === Jalankan Server ===
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info(`✅ Server running on port ${PORT}`);
 });
+
+module.exports = app;
