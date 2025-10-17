@@ -120,11 +120,29 @@ if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 nodeCron.schedule(process.env.CRON_BACKUP_SCHEDULE || "0 3 * * *", () => {
   const date = new Date().toISOString().split("T")[0];
   const backupPath = path.join(backupDir, `backup_${date}.sqlite`);
+
   try {
+    // Copy database
     fs.copyFileSync(dbPath, backupPath);
-    console.log(`[${new Date().toISOString()}] 💾 Database backup created: ${backupPath}`);
+    console.log(`[${new Date().toISOString()}] 💾 Backup created: ${backupPath}`);
+
+    // Auto purge old backups (>7 days)
+    const RETENTION_DAYS = 7;
+    const now = Date.now();
+    const files = fs.readdirSync(backupDir);
+    files.forEach(file => {
+      if (file.startsWith("backup_") && file.endsWith(".sqlite")) {
+        const filePath = path.join(backupDir, file);
+        const stats = fs.statSync(filePath);
+        const ageDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+        if (ageDays > RETENTION_DAYS) {
+          fs.unlinkSync(filePath);
+          console.log(`[${new Date().toISOString()}] 🧹 Deleted old backup: ${file}`);
+        }
+      }
+    });
   } catch (err) {
-    console.error("❌ Backup failed:", err.message);
+    console.error(`[${new Date().toISOString()}] ❌ Backup or purge failed: ${err.message}`);
   }
 });
 
