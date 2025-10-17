@@ -1,28 +1,17 @@
 // routes/users.js
 const express = require("express");
 const router = express.Router();
-const usersController = require("../controllers/usersController");
-const authMiddleware = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
+const userController = require("../controllers/userController");
 
-// semua routes butuh login
-router.use(authMiddleware);
+// middleware admin-only
+function adminOnly(req, res, next) {
+  if (req.user?.type !== "super") return res.status(403).json({ error: "Hanya admin yang dapat mengakses." });
+  next();
+}
 
-// GET /api/users -> list pengguna (untuk dropdowns/dll)
-router.get("/", usersController.getAll);
-
-// GET /api/users/me -> data user yang login
-router.get("/me", usersController.getMe);
-
-// POST /api/users/change-password -> user sendiri ganti password
-router.post("/change-password", usersController.changePassword);
-
-// Admin-only routes
-router.post("/", roleCheck(["admin"]), usersController.create);
-router.put("/:id", roleCheck(["admin"]), usersController.update);
-router.delete("/:id", roleCheck(["admin"]), usersController.delete);
-
-// Admin reset password by username
-router.post("/reset-password/:username", roleCheck(["admin"]), usersController.resetPassword);
+router.get("/", adminOnly, userController.getAllUsers);
+router.post("/", adminOnly, userController.createUser);
+router.put("/", adminOnly, userController.updateUser);
+router.delete("/:username", adminOnly, userController.deleteUser);
 
 module.exports = router;
