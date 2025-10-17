@@ -41,11 +41,31 @@ app.use(cors({
 // ✅ Helmet (secure headers but CSP disabled for HTML inline scripts)
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Allow Tailwind + inline scripts
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "script-src": [
+          "'self'",
+          "'unsafe-inline'",   // allows inline <script>
+          "'unsafe-eval'",     // <— add this line
+          "https://cdn.jsdelivr.net",
+          "https://cdn.tailwindcss.com",
+          "https://unpkg.com"
+        ],
+        "style-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "https://cdn.jsdelivr.net",
+          "https://fonts.googleapis.com"
+        ],
+        "font-src": ["'self'", "https://fonts.gstatic.com"],
+        "img-src": ["'self'", "data:"],
+        "connect-src": ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+      },
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    referrerPolicy: { policy: "no-referrer" },
-    hidePoweredBy: true,
   })
 );
 
