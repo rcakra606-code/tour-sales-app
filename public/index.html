@@ -1,149 +1,617 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tour & Sales Dashboard</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Travel Dashboard</title>
+
+  <!-- Tailwind CDN (utility) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    /* minor polishing to match target UI */
+    .sidebar { min-height: 100vh; }
+    .active-link { background: rgba(15,23,42,0.08); }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 1rem; box-shadow: 0 6px 18px rgba(2,6,23,0.06); }
+    :root { --card-bg: #ffffff; --text: #0f172a; --muted: #64748b; }
+    [data-theme="dark"] { --card-bg: #0b1220; --text: #e6eef8; --muted: #94a3b8; }
+    body { color: var(--text); background: linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%); }
+    [data-theme="dark"] body { background: #071024; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid rgba(15, 23, 42, 0.06); text-align: left; }
+  </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body data-theme="light" class="min-h-screen antialiased">
 
-  <!-- === LOGIN PAGE === -->
-  <section id="loginPage" class="flex items-center justify-center min-h-screen">
-    <div class="bg-white shadow-xl rounded-xl p-8 w-full max-w-md">
-      <h1 class="text-2xl font-bold text-center mb-6">Login</h1>
-      <form id="loginForm" class="space-y-4">
+  <div id="app" class="flex">
+    <!-- SIDEBAR -->
+    <aside class="sidebar w-64 p-4 bg-white dark:bg-slate-900 border-r hidden lg:block">
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold">Travel Dashboard</h2>
+        <p class="text-sm text-gray-500">Manage tours · sales · reports</p>
+      </div>
+      <nav id="navlinks" class="space-y-1">
+        <button data-route="dashboard" class="w-full text-left p-2 rounded hover:bg-gray-100 active-link">Dashboard</button>
+        <button data-route="tours" class="w-full text-left p-2 rounded hover:bg-gray-100">Tours</button>
+        <button data-route="sales" class="w-full text-left p-2 rounded hover:bg-gray-100">Sales</button>
+        <button data-route="documents" class="w-full text-left p-2 rounded hover:bg-gray-100">Documents</button>
+        <button data-route="reports" class="w-full text-left p-2 rounded hover:bg-gray-100">Reports & Export</button>
+        <button id="btn-logout" class="w-full text-left p-2 rounded hover:bg-gray-100 text-red-600 mt-4">Logout</button>
+      </nav>
+      <div class="mt-8">
+        <label class="flex items-center gap-2">
+          <input id="toggle-theme" type="checkbox" class="h-4 w-4">
+          <span class="text-sm text-gray-600">Dark Mode</span>
+        </label>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="flex-1 p-6">
+      <!-- top bar -->
+      <header class="flex items-center justify-between mb-6">
         <div>
-          <label class="block text-sm font-medium mb-1">Username</label>
-          <input id="username" type="text" class="w-full border rounded px-3 py-2 focus:outline-blue-500" />
+          <h1 id="page-title" class="text-2xl font-bold">Dashboard</h1>
+          <p id="page-sub" class="text-sm text-gray-500">Overview & quick actions</p>
         </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Password</label>
-          <input id="password" type="password" class="w-full border rounded px-3 py-2 focus:outline-blue-500" />
+        <div class="flex items-center gap-3">
+          <div id="user-info" class="text-right hidden sm:block">
+            <div id="user-name" class="font-medium"></div>
+            <div id="user-role" class="text-xs text-gray-500"></div>
+          </div>
         </div>
-        <button class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
-      </form>
+      </header>
+
+      <!-- AUTH (if not logged in show login form) -->
+      <div id="auth-area" class="max-w-md mx-auto">
+        <div id="login-card" class="card">
+          <h3 class="text-lg font-semibold mb-2">Sign in</h3>
+          <form id="login-form" class="space-y-3">
+            <div>
+              <label class="text-sm">Username</label>
+              <input id="login-username" required class="w-full border rounded px-3 py-2" />
+            </div>
+            <div>
+              <label class="text-sm">Password</label>
+              <input id="login-password" type="password" required class="w-full border rounded px-3 py-2" />
+            </div>
+            <div class="flex justify-between items-center">
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Sign in</button>
+              <button type="button" id="btn-test-email" class="text-sm text-gray-600">Test Email</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- CONTENT AREAS -->
+      <section id="content" class="hidden">
+        <!-- DASHBOARD -->
+        <div id="view-dashboard" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="card">
+              <div class="text-sm text-gray-500">Total Tours</div>
+              <div id="total-tours" class="text-2xl font-bold">—</div>
+            </div>
+            <div class="card">
+              <div class="text-sm text-gray-500">Total Sales</div>
+              <div id="total-sales" class="text-2xl font-bold">—</div>
+            </div>
+            <div class="card">
+              <div class="text-sm text-gray-500">Total Profit</div>
+              <div id="total-profit" class="text-2xl font-bold">—</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 card">
+              <h3 class="font-semibold mb-2">Sales Overview</h3>
+              <canvas id="salesChart" height="120"></canvas>
+            </div>
+            <div class="card">
+              <h3 class="font-semibold mb-2">Quick Actions</h3>
+              <div class="space-y-2">
+                <button id="open-tours" class="w-full px-3 py-2 bg-green-600 text-white rounded">Add Tour</button>
+                <button id="open-sales" class="w-full px-3 py-2 bg-yellow-600 text-white rounded">Add Sale</button>
+                <button id="export-excel" class="w-full px-3 py-2 border rounded">Export Report Excel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TOURS -->
+        <div id="view-tours" class="hidden space-y-4">
+          <div class="card">
+            <h3 class="font-semibold mb-2">Tours</h3>
+            <form id="form-tour" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+              <input name="leadPassenger" placeholder="Lead Passenger" class="border p-2 rounded" required />
+              <input name="tourCode" placeholder="Tour Code" class="border p-2 rounded" />
+              <input name="registrationDate" type="date" placeholder="Registration Date" class="border p-2 rounded" required />
+              <input name="departureDate" type="date" placeholder="Departure Date" class="border p-2 rounded" />
+              <input name="paxCount" type="number" placeholder="Pax Count" class="border p-2 rounded" />
+              <input name="tourPrice" type="number" placeholder="Tour Price" class="border p-2 rounded" />
+              <textarea name="allPassengers" placeholder="All passengers (comma separated)" class="border p-2 rounded md:col-span-2"></textarea>
+              <div class="md:col-span-2 flex gap-2">
+                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Save Tour</button>
+                <button id="btn-refresh-tours" type="button" class="px-3 py-2 border rounded">Refresh</button>
+                <button id="btn-export-tours" type="button" class="px-3 py-2 border rounded">Export Tours Excel</button>
+              </div>
+            </form>
+
+            <div id="tours-table-wrapper" class="overflow-x-auto">
+              <table id="tours-table" class="min-w-full">
+                <thead>
+                  <tr>
+                    <th>Reg Date</th><th>Lead</th><th>Pax</th><th>Tour Code</th><th>Departure</th><th>Price</th><th>Staff</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SALES -->
+        <div id="view-sales" class="hidden space-y-4">
+          <div class="card">
+            <h3 class="font-semibold mb-2">Sales</h3>
+            <form id="form-sale" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+              <input name="transactionDate" type="date" class="border p-2 rounded" required />
+              <input name="invoiceNumber" placeholder="Invoice Number" class="border p-2 rounded" />
+              <input name="salesAmount" type="number" placeholder="Sales Amount" class="border p-2 rounded" />
+              <input name="profitAmount" type="number" placeholder="Profit Amount" class="border p-2 rounded" />
+              <textarea name="discountRemarks" placeholder="Discount Remarks" class="border p-2 rounded md:col-span-2"></textarea>
+              <div class="md:col-span-2 flex gap-2">
+                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Save Sale</button>
+                <button id="btn-refresh-sales" type="button" class="px-3 py-2 border rounded">Refresh</button>
+                <button id="btn-export-sales" type="button" class="px-3 py-2 border rounded">Export Sales Excel</button>
+              </div>
+            </form>
+
+            <div id="sales-table-wrapper" class="overflow-x-auto">
+              <table id="sales-table" class="min-w-full">
+                <thead>
+                  <tr>
+                    <th>Tgl</th><th>Invoice</th><th>Sales</th><th>Profit</th><th>Staff</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- DOCUMENTS -->
+        <div id="view-documents" class="hidden space-y-4">
+          <div class="card">
+            <h3 class="font-semibold mb-2">Documents</h3>
+            <form id="form-document" class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+              <input name="documentReceiveDate" type="date" class="border p-2 rounded" required />
+              <input name="guestNames" placeholder="Guest Names" class="border p-2 rounded" />
+              <input name="bookingCodeDMS" placeholder="Booking Code DMS" class="border p-2 rounded" />
+              <input name="tourCode" placeholder="Tour Code" class="border p-2 rounded" />
+              <textarea name="documentRemarks" placeholder="Remarks" class="border p-2 rounded md:col-span-2"></textarea>
+              <div class="md:col-span-2 flex gap-2">
+                <button type="submit" class="px-3 py-2 bg-blue-600 text-white rounded">Save Document</button>
+                <button id="btn-refresh-docs" type="button" class="px-3 py-2 border rounded">Refresh</button>
+              </div>
+            </form>
+
+            <div id="documents-table-wrapper" class="overflow-x-auto">
+              <table id="documents-table" class="min-w-full">
+                <thead>
+                  <tr>
+                    <th>Tgl Terima</th><th>Guest</th><th>Booking</th><th>Tour Code</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPORTS -->
+        <div id="view-reports" class="hidden space-y-4">
+          <div class="card">
+            <h3 class="font-semibold mb-2">Reports & Export</h3>
+            <div class="space-y-3">
+              <button id="export-report-excel" class="px-3 py-2 border rounded">Download Full Report (Excel)</button>
+              <button id="export-report-csv" class="px-3 py-2 border rounded">Download Full Report (CSV)</button>
+              <button id="export-sales-excel" class="px-3 py-2 border rounded">Download Sales Excel</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- notifications -->
+      <div id="toast" class="fixed right-6 bottom-6 hidden p-3 rounded shadow-lg"></div>
     </div>
-  </section>
+  </div>
 
-  <!-- === MAIN APP === -->
-  <section id="mainApp" class="hidden min-h-screen">
-    <!-- Header -->
-    <header class="bg-blue-700 text-white flex justify-between items-center p-4">
-      <h1 class="font-bold text-lg">Tour & Sales Dashboard</h1>
-      <div class="flex gap-4 items-center">
-        <span id="currentUser" class="font-medium"></span>
-        <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Logout</button>
-      </div>
-    </header>
+  <script>
+    // ---------------------------
+    // Configuration
+    // ---------------------------
+    const API_BASE = ''; // empty => same origin, adjust if API on different host e.g. 'https://api.example.com'
+    const tokenKey = 'travel_token';
+    const userKey = 'travel_user';
 
-    <!-- Navigation -->
-    <nav class="bg-blue-600 text-white flex gap-4 px-6 py-2">
-      <a href="#" class="navLink" data-page="dashboard">Dashboard</a>
-      <a href="#" class="navLink" data-page="inputData">Tours</a>
-      <a href="#" class="navLink" data-page="inputSales">Sales</a>
-      <a href="#" class="navLink" data-page="manageUsers">Users</a>
-    </nav>
+    // ---------------------------
+    // Helpers
+    // ---------------------------
+    function showToast(msg, type='info') {
+      const t = document.getElementById('toast');
+      t.innerHTML = msg;
+      t.className = 'fixed right-6 bottom-6 p-3 rounded shadow-lg ' + (type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white');
+      t.style.display = 'block';
+      setTimeout(() => t.style.display = 'none', 3500);
+    }
 
-    <!-- Pages -->
-    <main class="p-6 space-y-6">
-      <!-- Dashboard Page -->
-      <div id="dashboardPage" class="page">
-        <div class="grid grid-cols-4 gap-4">
-          <div class="bg-white p-4 rounded-lg shadow text-center">
-            <h3>Total Sales</h3>
-            <p id="totalSales" class="text-2xl font-bold">Rp 0</p>
-          </div>
-          <div class="bg-white p-4 rounded-lg shadow text-center">
-            <h3>Total Profit</h3>
-            <p id="totalProfit" class="text-2xl font-bold">Rp 0</p>
-          </div>
-          <div class="bg-white p-4 rounded-lg shadow text-center">
-            <h3>Registrants</h3>
-            <p id="totalRegistrants" class="text-2xl font-bold">0</p>
-          </div>
-          <div class="bg-white p-4 rounded-lg shadow text-center">
-            <h3>Total Pax</h3>
-            <p id="totalPax" class="text-2xl font-bold">0</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-6 mt-6">
-          <canvas id="salesChart"></canvas>
-          <canvas id="regionChart"></canvas>
-        </div>
-      </div>
+    async function apiFetch(method, path, body) {
+      const headers = { 'Content-Type': 'application/json' };
+      const token = localStorage.getItem(tokenKey);
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const opts = { method, headers };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API_BASE + path, opts);
+      if (res.status === 401) {
+        logout();
+        throw new Error('Unauthorized. You will be logged out.');
+      }
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) return res.json();
+      return res;
+    }
 
-      <!-- Tours Page -->
-      <div id="inputDataPage" class="page hidden">
-        <h2 class="text-lg font-semibold mb-3">Input Tour</h2>
-        <form id="dataForm" class="grid grid-cols-2 gap-4 bg-white p-4 rounded shadow">
-          <input name="leadPassenger" placeholder="Lead Passenger" class="border rounded px-3 py-2" />
-          <input name="tourCode" placeholder="Tour Code" class="border rounded px-3 py-2" />
-          <input name="region" placeholder="Region" class="border rounded px-3 py-2" />
-          <input name="paxCount" placeholder="Pax Count" type="number" class="border rounded px-3 py-2" />
-          <input name="staff" placeholder="Staff" class="border rounded px-3 py-2" />
-          <input name="tourPrice" placeholder="Tour Price" type="number" class="border rounded px-3 py-2" />
-          <button class="col-span-2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Save Tour</button>
-        </form>
-        <table class="w-full mt-6 bg-white shadow rounded">
-          <thead class="bg-blue-600 text-white">
-            <tr>
-              <th class="p-2">Date</th>
-              <th class="p-2">Lead Passenger</th>
-              <th class="p-2">Code</th>
-              <th class="p-2">Region</th>
-              <th class="p-2">Pax</th>
-              <th class="p-2">Staff</th>
-              <th class="p-2">Price</th>
-              <th class="p-2">Status</th>
-            </tr>
-          </thead>
-          <tbody id="dataTableBody"></tbody>
-        </table>
-      </div>
+    // ---------------------------
+    // Auth
+    // ---------------------------
+    const loginForm = document.getElementById('login-form');
+    const authArea = document.getElementById('auth-area');
+    const contentArea = document.getElementById('content');
+    const userInfo = document.getElementById('user-info');
+    const userNameEl = document.getElementById('user-name');
+    const userRoleEl = document.getElementById('user-role');
+    const pageTitle = document.getElementById('page-title');
+    const pageSub = document.getElementById('page-sub');
 
-      <!-- Sales Page -->
-      <div id="inputSalesPage" class="page hidden">
-        <h2 class="text-lg font-semibold mb-3">Input Sales</h2>
-        <form id="salesForm" class="grid grid-cols-2 gap-4 bg-white p-4 rounded shadow">
-          <input name="invoiceNumber" placeholder="Invoice Number" class="border rounded px-3 py-2" />
-          <input name="salesAmount" placeholder="Sales Amount" type="number" class="border rounded px-3 py-2" />
-          <input name="profitAmount" placeholder="Profit Amount" type="number" class="border rounded px-3 py-2" />
-          <input name="staff" placeholder="Staff" class="border rounded px-3 py-2" />
-          <button class="col-span-2 bg-green-600 text-white py-2 rounded hover:bg-green-700">Save Sale</button>
-        </form>
-        <table class="w-full mt-6 bg-white shadow rounded">
-          <thead class="bg-green-600 text-white">
-            <tr>
-              <th class="p-2">Date</th>
-              <th class="p-2">Invoice</th>
-              <th class="p-2">Sales</th>
-              <th class="p-2">Profit</th>
-              <th class="p-2">Staff</th>
-            </tr>
-          </thead>
-          <tbody id="salesTableBody"></tbody>
-        </table>
-      </div>
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      try {
+        const res = await apiFetch('POST', '/api/auth/login', { username, password });
+        if (res.token) {
+          localStorage.setItem(tokenKey, res.token);
+          localStorage.setItem(userKey, JSON.stringify(res.user));
+          initAfterLogin();
+          showToast('Login berhasil', 'success');
+        } else {
+          showToast(res.error || 'Login gagal', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Login error', 'error');
+      }
+    });
 
-      <!-- Users Page -->
-      <div id="manageUsersPage" class="page hidden">
-        <h2 class="text-lg font-semibold mb-3">User List</h2>
-        <table class="w-full bg-white shadow rounded">
-          <thead class="bg-gray-600 text-white">
-            <tr>
-              <th class="p-2">Name</th>
-              <th class="p-2">Username</th>
-              <th class="p-2">Role</th>
-            </tr>
-          </thead>
-          <tbody id="usersTableBody"></tbody>
-        </table>
-      </div>
-    </main>
-  </section>
+    document.getElementById('btn-test-email').addEventListener('click', async () => {
+      // Try calling script/test-email via API (if you add endpoint). For now, call /scripts/test-email.js not accessible via browser.
+      showToast('Test email run is a server-side script. Use `npm run test-email` on server.', 'info');
+    });
 
-  <script src="/js/app.js"></script>
+    function logout() {
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(userKey);
+      location.reload();
+    }
+    document.getElementById('btn-logout').addEventListener('click', logout);
+
+    function initAfterLogin() {
+      const user = JSON.parse(localStorage.getItem(userKey) || '{}');
+      if (user && user.username) {
+        userInfo.style.display = 'block';
+        userNameEl.textContent = user.name || user.username;
+        userRoleEl.textContent = user.type || '';
+      }
+      authArea.style.display = 'none';
+      contentArea.style.display = 'block';
+      document.querySelectorAll('#navlinks [data-route]').forEach(btn => btn.addEventListener('click', navTo));
+      // default view
+      showView('dashboard');
+      loadSummary();
+      loadTours();
+      loadSales();
+      loadDocuments();
+    }
+
+    // check saved token on load
+    (function checkAuthOnLoad(){
+      const token = localStorage.getItem(tokenKey);
+      if (token) {
+        // try to reuse stored user or request profile later
+        const user = JSON.parse(localStorage.getItem(userKey) || '{}');
+        if (!user || !user.username) {
+          // optionally fetch /api/users/me if backend provides; for now just show content
+          localStorage.removeItem(userKey);
+        }
+        initAfterLogin();
+      } else {
+        // show login
+        authArea.style.display = 'block';
+        contentArea.style.display = 'none';
+      }
+    })();
+
+    // ---------------------------
+    // Navigation & Views
+    // ---------------------------
+    function navTo(e) {
+      const route = e.currentTarget.dataset.route;
+      showView(route);
+    }
+    function showView(name) {
+      pageTitle.textContent = name[0].toUpperCase() + name.slice(1);
+      document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+      const view = document.getElementById('view-' + name);
+      if (view) view.classList.remove('hidden');
+      // highlight nav
+      document.querySelectorAll('#navlinks button').forEach(b => b.classList.remove('active-link'));
+      const btn = document.querySelector(`#navlinks [data-route="${name}"]`);
+      if (btn) btn.classList.add('active-link');
+    }
+
+    // ---------------------------
+    // DASHBOARD SUMMARY + CHART
+    // ---------------------------
+    let salesChart = null;
+    async function loadSummary() {
+      try {
+        // backend endpoint returns summary counts and series
+        const res = await apiFetch('GET', '/api/dashboard/summary');
+        // expected: { totalTours: n, totalSales: n, totalProfit: n, salesSeries: [{date, amount}, ...] }
+        const totalTours = res.totalTours ?? 0;
+        const totalSales = res.totalSales ?? 0;
+        const totalProfit = res.totalProfit ?? 0;
+        document.getElementById('total-tours').textContent = totalTours;
+        document.getElementById('total-sales').textContent = formatCurrency(totalSales);
+        document.getElementById('total-profit').textContent = formatCurrency(totalProfit);
+
+        const series = res.salesSeries || [];
+        renderSalesChart(series);
+      } catch (err) {
+        console.warn('Summary load failed', err);
+      }
+    }
+
+    function renderSalesChart(series) {
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      const labels = series.map(s => s.date);
+      const data = series.map(s => s.amount);
+      if (salesChart) salesChart.destroy();
+      salesChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Sales', data, fill: true, tension: 0.3 }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function formatCurrency(n){ return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n || 0); }
+
+    // ---------------------------
+    // TOURS: load, add
+    // ---------------------------
+    const toursTableBody = document.querySelector('#tours-table tbody');
+    const formTour = document.getElementById('form-tour');
+
+    async function loadTours() {
+      try {
+        const rows = await apiFetch('GET', '/api/tours');
+        toursTableBody.innerHTML = '';
+        rows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.registrationDate||''}</td>
+                          <td>${escapeHtml(r.leadPassenger||'')}</td>
+                          <td>${r.paxCount||''}</td>
+                          <td>${r.tourCode||''}</td>
+                          <td>${r.departureDate||''}</td>
+                          <td>${formatCurrency(r.tourPrice||0)}</td>
+                          <td>${r.staff||''}</td>`;
+          toursTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal memuat tours', 'error');
+      }
+    }
+
+    formTour.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(formTour);
+      const body = Object.fromEntries(fd.entries());
+      try {
+        const res = await apiFetch('POST', '/api/tours', body);
+        if (res.ok) {
+          showToast('Tour tersimpan');
+          formTour.reset();
+          loadTours();
+          loadSummary();
+        } else {
+          showToast(res.error || 'Gagal menyimpan tour', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Error', 'error');
+      }
+    });
+
+    document.getElementById('btn-refresh-tours').addEventListener('click', loadTours);
+    document.getElementById('btn-export-tours').addEventListener('click', () => {
+      downloadFile('/api/export/report/excel', 'report_data.xlsx');
+    });
+
+    // ---------------------------
+    // SALES: load, add
+    // ---------------------------
+    const salesTableBody = document.querySelector('#sales-table tbody');
+    const formSale = document.getElementById('form-sale');
+
+    async function loadSales() {
+      try {
+        const rows = await apiFetch('GET', '/api/sales');
+        salesTableBody.innerHTML = '';
+        rows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.transactionDate||''}</td>
+                          <td>${r.invoiceNumber||''}</td>
+                          <td>${formatCurrency(r.salesAmount||0)}</td>
+                          <td>${formatCurrency(r.profitAmount||0)}</td>
+                          <td>${r.staff||''}</td>`;
+          salesTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal memuat sales', 'error');
+      }
+    }
+
+    formSale.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(formSale);
+      const body = Object.fromEntries(fd.entries());
+      try {
+        const res = await apiFetch('POST', '/api/sales', body);
+        if (res.ok) {
+          showToast('Sales tersimpan');
+          formSale.reset();
+          loadSales();
+          loadSummary();
+        } else {
+          showToast(res.error || 'Gagal menyimpan sales', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Error', 'error');
+      }
+    });
+
+    document.getElementById('btn-refresh-sales').addEventListener('click', loadSales);
+    document.getElementById('btn-export-sales').addEventListener('click', () => {
+      downloadFile('/api/export/sales/excel', 'sales_report.xlsx');
+    });
+
+    // ---------------------------
+    // DOCUMENTS
+    // ---------------------------
+    const documentsTableBody = document.querySelector('#documents-table tbody');
+    const formDocument = document.getElementById('form-document');
+
+    async function loadDocuments() {
+      try {
+        const rows = await apiFetch('GET', '/api/documents');
+        documentsTableBody.innerHTML = '';
+        rows.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${r.documentReceiveDate||''}</td>
+                          <td>${escapeHtml(r.guestNames||'')}</td>
+                          <td>${r.bookingCodeDMS||''}</td>
+                          <td>${r.tourCode||''}</td>
+                          <td>${r.documentStatus||''}</td>`;
+          documentsTableBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal memuat documents', 'error');
+      }
+    }
+
+    formDocument.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(formDocument);
+      const body = Object.fromEntries(fd.entries());
+      try {
+        const res = await apiFetch('POST', '/api/documents', body);
+        if (res.ok) {
+          showToast('Document tersimpan');
+          formDocument.reset();
+          loadDocuments();
+        } else {
+          showToast(res.error || 'Gagal menyimpan document', 'error');
+        }
+      } catch (err) {
+        showToast(err.message || 'Error', 'error');
+      }
+    });
+
+    document.getElementById('btn-refresh-docs').addEventListener('click', loadDocuments);
+
+    // ---------------------------
+    // EXPORTS & DOWNLOADS
+    // ---------------------------
+    async function downloadFile(path, defaultName) {
+      try {
+        const token = localStorage.getItem(tokenKey);
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        const res = await fetch(API_BASE + path, { method: 'GET', headers });
+        if (!res.ok) {
+          const txt = await res.text().catch(()=>null);
+          showToast('Export failed: ' + (txt || res.status), 'error');
+          return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = defaultName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        showToast('Export error', 'error');
+      }
+    }
+
+    document.getElementById('export-excel').addEventListener('click', () => downloadFile('/api/export/report/excel', 'report_data.xlsx'));
+    document.getElementById('export-report-excel').addEventListener('click', () => downloadFile('/api/export/report/excel', 'report_data.xlsx'));
+    document.getElementById('export-report-csv').addEventListener('click', () => downloadFile('/api/export/report/csv', 'report_data.csv'));
+    document.getElementById('export-sales-excel').addEventListener('click', () => downloadFile('/api/export/sales/excel', 'sales_report.xlsx'));
+
+    // ---------------------------
+    // Utilities
+    // ---------------------------
+    function escapeHtml(s='') {
+      return String(s).replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;' })[m]);
+    }
+
+    // ---------------------------
+    // Dark mode toggle
+    // ---------------------------
+    const themeToggle = document.getElementById('toggle-theme');
+    function applySavedTheme() {
+      const t = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t);
+      themeToggle.checked = (t === 'dark');
+    }
+    themeToggle.addEventListener('change', () => {
+      const t = themeToggle.checked ? 'dark' : 'light';
+      localStorage.setItem('theme', t);
+      document.documentElement.setAttribute('data-theme', t);
+    });
+    applySavedTheme();
+
+    // ---------------------------
+    // Small helpers for opening forms
+    // ---------------------------
+    document.getElementById('open-tours').addEventListener('click', () => showView('tours'));
+    document.getElementById('open-sales').addEventListener('click', () => showView('sales'));
+
+    // ---------------------------
+    // Init: attach default nav handlers for main nav (works after login)
+    // ---------------------------
+    // nothing further needed here
+
+    // ---------------------------
+    // Export: initial call to make sure UI connects on auth
+    // ---------------------------
+  </script>
 </body>
 </html>
