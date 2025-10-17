@@ -10,17 +10,25 @@ let charts = { sales: null, region: null, daily: null };
    🔧 HELPER FUNCTIONS
 ================================= */
 function showLoading(show = true) {
-  document.getElementById("loadingOverlay").classList.toggle("hidden", !show);
+  const overlay = document.getElementById("loadingOverlay");
+  if (!overlay) return;
+  overlay.classList.toggle("hidden", !show);
 }
+
 function showError(msg) {
   const el = document.getElementById("errorToast");
-  document.getElementById("errorMessage").textContent = msg;
+  const msgEl = document.getElementById("errorMessage");
+  if (!el || !msgEl) return alert(msg);
+  msgEl.textContent = msg;
   el.classList.remove("hidden");
   setTimeout(() => el.classList.add("hidden"), 4000);
 }
+
 function showSuccess(msg) {
   const el = document.getElementById("successToast");
-  document.getElementById("successMessage").textContent = msg;
+  const msgEl = document.getElementById("successMessage");
+  if (!el || !msgEl) return console.log(msg);
+  msgEl.textContent = msg;
   el.classList.remove("hidden");
   setTimeout(() => el.classList.add("hidden"), 3000);
 }
@@ -33,6 +41,7 @@ async function apiFetch(path, opts = {}) {
   if (!opts.headers["Content-Type"] && !(opts.body instanceof FormData))
     opts.headers["Content-Type"] = "application/json";
   if (token) opts.headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(API_BASE + path, opts);
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw json;
@@ -45,8 +54,8 @@ async function apiFetch(path, opts = {}) {
 async function handleLogin(e) {
   e.preventDefault();
   showLoading(true);
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value;
+  const username = document.getElementById("username")?.value.trim();
+  const password = document.getElementById("password")?.value;
   try {
     const res = await fetch(API_BASE + "/auth/login", {
       method: "POST",
@@ -73,14 +82,19 @@ function logout() {
   currentUser = null;
   localStorage.removeItem("token");
   localStorage.removeItem("user");
-  document.getElementById("loginPage").classList.remove("hidden");
-  document.getElementById("mainApp").classList.add("hidden");
+  document.getElementById("mainApp")?.classList.add("hidden");
+  document.getElementById("loginPage")?.classList.remove("hidden");
 }
 
 function bootAfterLogin() {
-  document.getElementById("userInfo").textContent = currentUser.name;
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("mainApp").classList.remove("hidden");
+  const userInfo = document.getElementById("userInfo") || document.getElementById("currentUser");
+  if (userInfo) userInfo.textContent = currentUser?.name || "User";
+
+  const loginPage = document.getElementById("loginPage");
+  const mainApp = document.getElementById("mainApp");
+  loginPage?.classList.add("hidden");
+  mainApp?.classList.remove("hidden");
+
   showPage("dashboard");
   updateCharts();
 }
@@ -91,7 +105,7 @@ function bootAfterLogin() {
 function showPage(pageId) {
   document.querySelectorAll(".page-section").forEach((s) => s.classList.add("hidden"));
   const el = document.getElementById(pageId + "Page");
-  if (el) el.classList.remove("hidden");
+  el?.classList.remove("hidden");
 
   // Load data sesuai halaman
   if (pageId === "dashboard") updateCharts();
@@ -104,10 +118,10 @@ function showPage(pageId) {
 async function updateCharts() {
   try {
     const summary = await apiFetch("/dashboard/summary");
-    document.getElementById("totalSales").textContent = `Rp ${Number(summary.totalSales || 0).toLocaleString()}`;
-    document.getElementById("totalProfit").textContent = `Rp ${Number(summary.totalProfit || 0).toLocaleString()}`;
-    document.getElementById("totalRegistrants").textContent = summary.totalRegistrants || 0;
-    document.getElementById("totalPax").textContent = summary.totalPax || 0;
+    document.getElementById("totalSales")?.textContent = `Rp ${Number(summary.totalSales || 0).toLocaleString()}`;
+    document.getElementById("totalProfit")?.textContent = `Rp ${Number(summary.totalProfit || 0).toLocaleString()}`;
+    document.getElementById("totalRegistrants")?.textContent = summary.totalRegistrants || 0;
+    document.getElementById("totalPax")?.textContent = summary.totalPax || 0;
 
     const chartsData = await apiFetch("/dashboard/charts");
     renderSalesChart(chartsData.staffRows || []);
@@ -120,11 +134,14 @@ async function updateCharts() {
   }
 }
 
+/* ---------- Chart: Sales vs Profit per Staff ---------- */
 function renderSalesChart(staffRows) {
-  const ctx = document.getElementById("salesChart").getContext("2d");
+  const ctx = document.getElementById("salesChart")?.getContext("2d");
+  if (!ctx) return;
   const labels = staffRows.map((r) => r.staff || "Unknown");
   const sales = staffRows.map((r) => r.sales || 0);
   const profit = staffRows.map((r) => r.profit || 0);
+
   if (charts.sales) charts.sales.destroy();
   charts.sales = new Chart(ctx, {
     type: "bar",
@@ -142,8 +159,10 @@ function renderSalesChart(staffRows) {
   });
 }
 
+/* ---------- Chart: Registrasi per Region ---------- */
 function renderRegionChart(regionRows) {
-  const ctx = document.getElementById("regionChart").getContext("2d");
+  const ctx = document.getElementById("regionChart")?.getContext("2d");
+  if (!ctx) return;
   const labels = regionRows.map((r) => r.region || "Unknown");
   const data = regionRows.map((r) => r.count || 0);
   if (charts.region) charts.region.destroy();
@@ -157,8 +176,10 @@ function renderRegionChart(regionRows) {
   });
 }
 
+/* ---------- Chart: Penjualan Harian ---------- */
 function renderDailySalesChart(rows) {
-  const ctx = document.getElementById("dailySalesChart").getContext("2d");
+  const ctx = document.getElementById("dailySalesChart")?.getContext("2d");
+  if (!ctx) return;
   const labels = rows.map((r) => r.date);
   const sales = rows.map((r) => r.totalSales || 0);
   const profit = rows.map((r) => r.totalProfit || 0);
@@ -183,10 +204,10 @@ function renderDailySalesChart(rows) {
    🌍 REGION MANAGEMENT
 ================================= */
 async function initRegionManagement() {
+  const tbody = document.getElementById("regionTableBody");
+  if (!tbody) return;
   try {
-    const tbody = document.getElementById("regionTableBody");
     tbody.innerHTML = "<tr><td colspan='3' class='p-4 text-center text-gray-500'>Loading...</td></tr>";
-
     const regions = await apiFetch("/regions");
     tbody.innerHTML = "";
     regions.forEach((r) => {
@@ -200,16 +221,16 @@ async function initRegionManagement() {
         </td>`;
       tbody.appendChild(tr);
     });
-  } catch (err) {
+  } catch {
     showError("Gagal memuat region");
   }
 }
 
 async function saveRegion(e) {
   e.preventDefault();
-  const id = document.getElementById("regionId").value;
-  const name = document.getElementById("regionName").value.trim();
-  const description = document.getElementById("regionDesc").value.trim();
+  const id = document.getElementById("regionId")?.value;
+  const name = document.getElementById("regionName")?.value.trim();
+  const description = document.getElementById("regionDesc")?.value.trim();
 
   try {
     await apiFetch(`/regions${id ? "/" + id : ""}`, {
@@ -217,8 +238,8 @@ async function saveRegion(e) {
       body: JSON.stringify({ name, description }),
     });
     showSuccess("Region berhasil disimpan");
-    document.getElementById("regionForm").reset();
-    document.getElementById("regionId").value = "";
+    document.getElementById("regionForm")?.reset();
+    if (document.getElementById("regionId")) document.getElementById("regionId").value = "";
     initRegionManagement();
   } catch (err) {
     showError(err.message);
@@ -257,8 +278,8 @@ window.addEventListener("DOMContentLoaded", () => {
 /* ================================
    🚀 INIT
 ================================= */
-document.getElementById("loginForm").addEventListener("submit", handleLogin);
-document.getElementById("logoutBtn").addEventListener("click", logout);
+document.getElementById("loginForm")?.addEventListener("submit", handleLogin);
+document.getElementById("logoutBtn")?.addEventListener("click", logout);
 document.getElementById("regionForm")?.addEventListener("submit", saveRegion);
 
 window.addEventListener("DOMContentLoaded", () => {
