@@ -1,4 +1,9 @@
-// config/logger.js
+/**
+ * ✅ Advanced Logger Configuration
+ * Menggunakan Winston + Morgan untuk logging terstruktur.
+ * Dilengkapi fallback agar tidak menyebabkan error bila dipanggil dari module lain.
+ */
+
 const fs = require("fs");
 const path = require("path");
 const winston = require("winston");
@@ -6,7 +11,7 @@ const morgan = require("morgan");
 
 // === Folder Logs ===
 const logDir = path.join(__dirname, "..", "logs");
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
 
 // === Format ===
 const logFormat = winston.format.printf(({ level, message, timestamp }) => {
@@ -23,7 +28,7 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.File({
       filename: path.join(logDir, "app.log"),
-      maxsize: 5 * 1024 * 1024,
+      maxsize: 5 * 1024 * 1024, // 5MB
       maxFiles: 5,
       tailable: true,
     }),
@@ -34,6 +39,13 @@ const logger = winston.createLogger({
       ),
     }),
   ],
+});
+
+// === Tambahkan fallback sederhana agar tidak error ===
+["info", "warn", "error", "debug"].forEach((method) => {
+  if (typeof logger[method] !== "function") {
+    logger[method] = (...args) => console.log(`[${method.toUpperCase()}]`, ...args);
+  }
 });
 
 // === Morgan HTTP Logger ===
