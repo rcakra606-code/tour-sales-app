@@ -1,6 +1,4 @@
-/**
- * ✅ Logger Configuration (Winston + Morgan)
- */
+// config/logger.js
 const fs = require("fs");
 const path = require("path");
 const winston = require("winston");
@@ -23,6 +21,7 @@ const logger = winston.createLogger({
     new winston.transports.File({
       filename: path.join(logDir, "app.log"),
       maxsize: 5 * 1024 * 1024,
+      maxFiles: 5,
       tailable: true,
     }),
     new winston.transports.Console({
