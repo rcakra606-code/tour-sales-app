@@ -1,252 +1,122 @@
-// server.js — Travel Dashboard Backend (Final 2025)
-// 🚀 Auto init database, safe CSP, full ready for Render deploy.
-
+// server.js — Travel Dashboard Enterprise v2.0
 require("dotenv").config();
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
 const cors = require("cors");
 const helmet = require("helmet");
-const bodyParser = require("body-parser");
-const jwt = require("jsonwebtoken");
 const morgan = require("morgan");
-const winston = require("winston");
 const nodeCron = require("node-cron");
-const fsExtra = require("fs-extra");
+const path = require("path");
+const fs = require("fs");
 const Database = require("better-sqlite3");
-const bcrypt = require("bcryptjs");
 
+// === Express App ===
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
-const BACKUP_SCHEDULE = process.env.BACKUP_SCHEDULE || "0 23 * * *";
-const DB_PATH = process.env.DB_PATH || "./data/database.sqlite";
-const BACKUP_DIR = process.env.DB_BACKUP_DIR || "./backups";
-const NODE_ENV = process.env.NODE_ENV || "production";
 
-// ===========================
-// 🧾 LOGGER SETUP
-// ===========================
-if (!fs.existsSync("./logs")) fs.mkdirSync("./logs");
-const logger = winston.createLogger({
-  level: "info",
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.printf(({ level, message, timestamp }) => `[${timestamp}] ${level.toUpperCase()}: ${message}`)
-  ),
-  transports: [
-    new winston.transports.File({ filename: "./logs/error.log", level: "error" }),
-    new winston.transports.File({ filename: "./logs/combined.log" }),
-    new winston.transports.Console()
-  ]
-});
+// === Database Setup ===
+const dbPath = path.join(__dirname, "data", "database.sqlite");
+if (!fs.existsSync(path.dirname(dbPath))) fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const db = new Database(dbPath);
+console.log(`[${new Date().toISOString()}] INFO: ✅ Database connected at ${dbPath}`);
 
-// ===========================
-// 🧠 AUTO DATABASE INITIALIZATION
-// ===========================
-function initDatabase() {
-  const dataDir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-  const db = new Database(DB_PATH);
-  db.exec("PRAGMA journal_mode = WAL;");
-
-  // Create tables
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      password TEXT NOT NULL,
-      name TEXT,
-      email TEXT,
-      type TEXT DEFAULT 'basic',
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-    CREATE TABLE IF NOT EXISTS tours (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      registrationDate TEXT,
-      leadPassenger TEXT,
-      allPassengers TEXT,
-      paxCount INTEGER,
-      tourCode TEXT,
-      region TEXT,
-      departureDate TEXT,
-      bookingCode TEXT,
-      tourPrice INTEGER,
-      discountRemarks TEXT,
-      staff TEXT,
-      salesAmount INTEGER,
-      profitAmount INTEGER,
-      departureStatus TEXT
-    );
-    CREATE TABLE IF NOT EXISTS sales (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      transactionDate TEXT,
-      invoiceNumber TEXT,
-      salesAmount INTEGER,
-      profitAmount INTEGER,
-      staff TEXT
-    );
-    CREATE TABLE IF NOT EXISTS documents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      documentReceiveDate TEXT,
-      guestNames TEXT,
-      bookingCodeDMS TEXT,
-      tourCode TEXT,
-      documentRemarks TEXT,
-      documentStatus TEXT
-    );
-  `);
-
-  // Admin user check
-  const admin = db.prepare("SELECT username FROM users WHERE username = ?").get("admin");
-  if (!admin) {
-    const hash = bcrypt.hashSync(process.env.INIT_ADMIN_PASSWORD || "admin123", 8);
-    db.prepare("INSERT INTO users (username,password,name,email,type) VALUES (?,?,?,?,?)")
-      .run("admin", hash, "Administrator", "admin@example.com", "super");
-    logger.info("✅ Default admin created: username=admin / password=admin123");
-  }
-
-  // Seed sample data if empty
-  const tourCount = db.prepare("SELECT COUNT(*) AS c FROM tours").get().c;
-  if (tourCount === 0) {
-    db.prepare(`
-      INSERT INTO tours (registrationDate,leadPassenger,paxCount,tourCode,region,departureDate,tourPrice,staff,departureStatus)
-      VALUES (?,?,?,?,?,?,?,?,?)
-    `).run("2025-10-10", "Budi Santoso", 2, "EU-001", "Europe", "2025-12-01", 25000000, "Agent A", "CONFIRMED");
-    logger.info("✅ Sample tour added");
-  }
-
-  const salesCount = db.prepare("SELECT COUNT(*) AS c FROM sales").get().c;
-  if (salesCount === 0) {
-    db.prepare(`
-      INSERT INTO sales (transactionDate,invoiceNumber,salesAmount,profitAmount,staff)
-      VALUES (?,?,?,?,?)
-    `).run("2025-10-12", "INV-001", 15000000, 3000000, "Agent A");
-    logger.info("✅ Sample sale added");
-  }
-
-  db.close();
-}
-initDatabase();
-
-// ===========================
-// 🧱 GLOBAL MIDDLEWARE
-// ===========================
-app.use(morgan("dev"));
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Allow cross-origin requests (Render frontend + CDN)
-app.use(
-  cors({
-    origin: ["https://tour-sales-app.onrender.com", "http://localhost:5000"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  })
-);
-
-// Helmet with CSP whitelist for CDN (Tailwind, Chart.js, Lucide)
+// === Middleware ===
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 app.use(
   helmet({
     contentSecurityPolicy: {
       useDefaults: true,
       directives: {
-        "default-src": ["'self'"],
-        "script-src": [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-          "https://unpkg.com"
-        ],
-        "style-src": [
-          "'self'",
-          "'unsafe-inline'",
-          "https://fonts.googleapis.com",
-          "https://cdn.jsdelivr.net"
-        ],
-        "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
+        "script-src": ["'self'", "https://cdn.jsdelivr.net", "https://cdn.tailwindcss.com", "https://unpkg.com"],
+        "style-src": ["'self'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
+        "img-src": ["'self'", "data:"],
       },
     },
-    crossOriginEmbedderPolicy: false,
   })
 );
-
-// Serve static frontend
+app.use(morgan("dev"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ===========================
-// 🔐 JWT AUTH MIDDLEWARE
-// ===========================
-function authMiddleware(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header) return res.status(401).json({ error: "Unauthorized" });
+// === Utility: Logger (simple console + file append) ===
+const logDir = path.join(__dirname, "logs");
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+const logStream = fs.createWriteStream(path.join(logDir, "access.log"), { flags: "a" });
 
+// === JWT Middleware ===
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
+
+function authMiddleware(req, res, next) {
+  const header = req.headers["authorization"];
+  if (!header) return res.status(401).json({ error: "Token tidak ditemukan." });
   const token = header.split(" ")[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch {
-    return res.status(401).json({ error: "Invalid or expired token" });
+    return res.status(403).json({ error: "Token tidak valid atau kedaluwarsa." });
   }
 }
 
-// ===========================
-// 🚏 ROUTES
-// ===========================
-try {
-  const authRoutes = require("./routes/auth");
-  const usersRoutes = require("./routes/users");
-  const toursRoutes = require("./routes/tours");
-  const dashboardRoutes = require("./routes/dashboard");
+// === Route Modules ===
+const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/users");
+const profileRoutes = require("./routes/profile");
 
-  app.use("/api/auth", authRoutes);
-  app.use("/api/users", authMiddleware, usersRoutes);
-  app.use("/api/tours", authMiddleware, toursRoutes);
-  app.use("/api/dashboard", authMiddleware, dashboardRoutes);
+const tourRoutes = require("./routes/tours");
+const reportTourRoutes = require("./routes/reportTour");
 
-  logger.info("✅ Routes loaded successfully.");
-} catch (err) {
-  logger.error("❌ Failed to load routes: " + err.message);
-}
+const reportSalesRoutes = require("./routes/reportSales");
+const reportDocumentRoutes = require("./routes/reportDocument");
 
-// ===========================
-// 🌍 DEFAULT ROUTE
-// ===========================
-app.get("/", (req, res) => res.redirect("/login.html"));
+const dashboardRoutes = require("./routes/dashboard");
+const executiveReportRoutes = require("./routes/executiveReport");
 
-// ===========================
-// 💾 BACKUP SCHEDULER
-// ===========================
-nodeCron.schedule(BACKUP_SCHEDULE, async () => {
-  try {
-    await fsExtra.ensureDir(BACKUP_DIR);
-    if (fs.existsSync(DB_PATH)) {
-      const ts = new Date().toISOString().replace(/[:T]/g, "-").split(".")[0];
-      const dest = path.join(BACKUP_DIR, `backup-${ts}.sqlite`);
-      await fsExtra.copy(DB_PATH, dest);
-      logger.info(`📦 Database backup saved: ${dest}`);
-    }
-  } catch (err) {
-    logger.error("Backup failed: " + err.message);
-  }
+// === Use Routes ===
+app.use("/api/auth", authRoutes);
+app.use("/api/users", authMiddleware, userRoutes);
+app.use("/api/profile", authMiddleware, profileRoutes);
+
+app.use("/api/tours", authMiddleware, tourRoutes);
+app.use("/api/report/tours", authMiddleware, reportTourRoutes);
+app.use("/api/report/sales", authMiddleware, reportSalesRoutes);
+app.use("/api/report/documents", authMiddleware, reportDocumentRoutes);
+
+app.use("/api/dashboard", authMiddleware, dashboardRoutes);
+app.use("/api/executive", authMiddleware, executiveReportRoutes);
+
+// === Health Check ===
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true, message: "Server running", time: new Date().toISOString() });
 });
 
-// ===========================
-// ⚠️ GLOBAL ERROR HANDLER
-// ===========================
+// === Static Routes (Frontend Pages) ===
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
+app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public", "executive-dashboard.html")));
+app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "public", "profile.html")));
+
+// === Backup Cron Job (daily) ===
+const backupDir = path.join(__dirname, "backups");
+if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+
+nodeCron.schedule("0 3 * * *", () => {
+  const date = new Date().toISOString().split("T")[0];
+  const backupPath = path.join(backupDir, `backup_${date}.sqlite`);
+  fs.copyFileSync(dbPath, backupPath);
+  console.log(`[${new Date().toISOString()}] ✅ Database backed up to ${backupPath}`);
+});
+
+// === 404 Handler ===
+app.use((req, res) => res.status(404).json({ error: "Endpoint tidak ditemukan." }));
+
+// === Error Handler ===
 app.use((err, req, res, next) => {
-  logger.error("Unhandled error: " + err.message);
-  res.status(500).json({ error: "Internal server error." });
+  console.error("🔥 Server Error:", err.message);
+  res.status(500).json({ error: "Terjadi kesalahan server." });
 });
 
-// ===========================
-// 🚀 START SERVER
-// ===========================
-app.listen(PORT, () => {
-  logger.info(`🚀 Server running at http://localhost:${PORT}`);
-  logger.info(`🗂 Database: ${DB_PATH}`);
-  logger.info(`🕒 Backup Schedule: ${BACKUP_SCHEDULE}`);
-});
+// === Start Server ===
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
