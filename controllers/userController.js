@@ -1,86 +1,40 @@
-// controllers/usersController.js
+// controllers/userController.js
 const db = require("../config/database");
 const bcrypt = require("bcryptjs");
 
-/**
- * Ambil semua user (khusus admin/super)
- */
-exports.getAllUsers = (req, res) => {
+// 🔹 Ambil semua user
+exports.getAll = (req, res) => {
   try {
-    const users = db
-      .prepare("SELECT id, name, username, email, role, type FROM users ORDER BY id ASC")
-      .all();
+    const users = db.prepare("SELECT id, name, username, email, type FROM users ORDER BY id DESC").all();
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/**
- * Ganti password oleh user sendiri
- */
-exports.changePassword = async (req, res) => {
+// 🔹 Ambil user berdasarkan ID
+exports.getById = (req, res) => {
   try {
-    const { oldPassword, newPassword } = req.body;
-    if (!oldPassword || !newPassword)
-      return res.status(400).json({ message: "Data tidak lengkap" });
-
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+    const user = db.prepare("SELECT id, name, username, email, type FROM users WHERE id = ?").get(req.params.id);
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
-
-    const valid = await bcrypt.compare(oldPassword, user.password);
-    if (!valid) return res.status(401).json({ message: "Password lama salah" });
-
-    const hashed = await bcrypt.hash(newPassword, 10);
-    db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashed, req.user.id);
-
-    res.json({ message: "Password berhasil diubah" });
+    res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/**
- * Reset password oleh admin/super
- */
-exports.resetPassword = async (req, res) => {
+// 🔹 Tambah user (admin)
+exports.create = (req, res) => {
   try {
-    const { id } = req.params;
-    const { newPassword } = req.body;
-    if (!newPassword)
-      return res.status(400).json({ message: "Password baru wajib diisi" });
+    const { name, username, email, password, type } = req.body;
+    if (!name || !username || !password) return res.status(400).json({ message: "Field wajib belum lengkap" });
 
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
-    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+    const exists = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+    if (exists) return res.status(409).json({ message: "Username sudah digunakan" });
 
-    const hashed = await bcrypt.hash(newPassword, 10);
-    db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashed, id);
-
-    res.json({ message: "Password user berhasil direset" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-/**
- * Tambah user baru (oleh admin/super)
- */
-exports.createUser = async (req, res) => {
-  try {
-    const { name, username, email, password, role, type } = req.body;
-    if (!name || !username || !password)
-      return res.status(400).json({ message: "Nama, username, dan password wajib diisi" });
-
-    const exists = db
-      .prepare("SELECT id FROM users WHERE username = ? OR email = ?")
-      .get(username, email || null);
-    if (exists) return res.status(409).json({ message: "Username atau email sudah terdaftar" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    db.prepare(`
-      INSERT INTO users (name, username, email, password, role, type)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(name, username, email || null, hashed, role || "basic", type || "basic");
+    const hash = bcrypt.hashSync(password, 10);
+    const stmt = db.prepare("INSERT INTO users (name, username, email, password, type) VALUES (?, ?, ?, ?, ?)");
+    stmt.run(name, username, email || null, hash, type || "basic");
 
     res.status(201).json({ message: "User berhasil ditambahkan" });
   } catch (err) {
@@ -88,17 +42,70 @@ exports.createUser = async (req, res) => {
   }
 };
 
-/**
- * Hapus user (oleh admin/super)
- */
-exports.deleteUser = (req, res) => {
+// 🔹 Update data user (admin)
+exports.update = (req, res) => {
   try {
     const { id } = req.params;
-    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
+    const { name, email, type } = req.body;
+
+    const user = db.prepare("SELECT id FROM users WHERE id = ?").get(id);
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+
+    db.prepare("UPDATE users SET name = ?, email = ?, type = ? WHERE id = ?").run(name, email, type, id);
+    res.json({ message: "User diperbarui" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 🔹 Hapus user (admin)
+exports.remove = (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = db.prepare("SELECT id FROM users WHERE id = ?").get(id);
     if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
 
     db.prepare("DELETE FROM users WHERE id = ?").run(id);
-    res.json({ message: "User berhasil dihapus" });
+    res.json({ message: "User dihapus" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 🔹 User ganti password sendiri
+exports.changePassword = (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { oldPassword, newPassword } = req.body;
+
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(userId);
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+
+    const valid = bcrypt.compareSync(oldPassword, user.password);
+    if (!valid) return res.status(401).json({ message: "Password lama salah" });
+
+    const hash = bcrypt.hashSync(newPassword, 10);
+    db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hash, userId);
+
+    res.json({ message: "Password berhasil diubah" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// 🔹 Admin reset password user lain
+exports.resetPassword = (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id);
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+
+    const hash = bcrypt.hashSync(newPassword || "password123", 10);
+    db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hash, id);
+
+    res.json({ message: `Password user '${user.username}' berhasil direset` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
