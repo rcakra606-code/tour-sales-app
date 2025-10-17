@@ -1,55 +1,33 @@
 /**
  * ✅ Auth Middleware
- * Melindungi semua route yang memerlukan JWT authentication.
- * Mengizinkan rute public seperti /api/auth/login, /api/auth/register, /public/*, /health.
+ * Memverifikasi JWT token dari header Authorization.
+ * Jika token valid → lanjut ke route berikutnya.
+ * Jika tidak → tolak dengan status 401.
  */
 
 const jwt = require("jsonwebtoken");
-const logger = require("../config/logger");
-const JWT_SECRET = process.env.JWT_SECRET || "change_this_in_env";
+const { logger } = require("../config/logger");
 
-function authMiddleware(req, res, next) {
+const SECRET_KEY = process.env.JWT_SECRET || "your_jwt_secret_key"; // fallback dev
+
+module.exports = (req, res, next) => {
   try {
-    // === Izinkan rute public tanpa token ===
-    const openPaths = [
-      "/api/auth/login",
-      "/api/auth/register",
-      "/health"
-    ];
-
-    if (
-      openPaths.includes(req.path) ||
-      req.path.startsWith("/public") ||
-      req.path.startsWith("/css") ||
-      req.path.startsWith("/js")
-    ) {
-      return next();
-    }
-
-    // === Cek header Authorization ===
     const authHeader = req.headers["authorization"];
     if (!authHeader) {
-      logger.warn(`Unauthorized access attempt: ${req.path} (no Authorization header)`);
-      return res.status(401).json({ message: "Missing Authorization header" });
+      return res.status(401).json({ message: "Token tidak ditemukan." });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.split(" ")[1]; // "Bearer <token>"
     if (!token) {
-      logger.warn(`Unauthorized access attempt: ${req.path} (no token part)`);
-      return res.status(401).json({ message: "Missing token" });
+      return res.status(401).json({ message: "Token tidak valid." });
     }
 
-    // === Verifikasi JWT ===
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // simpan data user (id, username, type)
-
-    logger.debug(`✅ Authenticated user: ${decoded.username || decoded.id}`);
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded; // simpan data user di request
     next();
-
   } catch (err) {
-    logger.error(`JWT verification failed: ${err.message}`);
-    return res.status(401).json({ message: "Invalid or expired token" });
+    console.error("❌ Auth error:", err.message);
+    if (logger && typeof logger.error === "function") logger.error("Auth error: " + err.message);
+    return res.status(401).json({ message: "Token tidak valid atau sudah kadaluarsa." });
   }
-}
-
-module.exports = authMiddleware;
+};
