@@ -3,16 +3,10 @@ const path = require("path");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 
-// Koneksi ke database SQLite
 const db = new Database(path.join(__dirname, "..", "data", "database.sqlite"));
 
 /**
- * GET /api/users
- * Mendapatkan daftar user dengan pagination dan pencarian
- * Query params:
- * - search (opsional)
- * - page (opsional, default 1)
- * - limit (opsional, default 10)
+ * Ambil daftar user (search + pagination)
  */
 exports.getAllUsers = (req, res) => {
   try {
@@ -27,7 +21,6 @@ exports.getAllUsers = (req, res) => {
          WHERE username LIKE ? OR name LIKE ? OR email LIKE ?`
       )
       .get(search, search, search);
-
     const total = totalRow.c || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
@@ -41,12 +34,7 @@ exports.getAllUsers = (req, res) => {
       )
       .all(search, search, search, limit, offset);
 
-    res.json({
-      data: users,
-      total,
-      page,
-      totalPages,
-    });
+    res.json({ data: users, total, page, totalPages });
   } catch (err) {
     console.error("Error getAllUsers:", err.message);
     res.status(500).json({ error: "Gagal mengambil data user." });
@@ -54,23 +42,19 @@ exports.getAllUsers = (req, res) => {
 };
 
 /**
- * POST /api/users
- * Menambahkan user baru (hanya untuk admin)
- * Body: { username, password, name, email, type }
+ * Tambah user baru
  */
 exports.createUser = (req, res) => {
   try {
     const { username, password, name, email, type } = req.body;
     if (!username || !password)
-      return res
-        .status(400)
-        .json({ error: "Username dan password wajib diisi." });
+      return res.status(400).json({ error: "Username dan password wajib diisi." });
 
-    const exists = db
-      .prepare("SELECT username FROM users WHERE username = ?")
-      .get(username);
-    if (exists)
-      return res.status(400).json({ error: "Username sudah digunakan." });
+    if (password.length < 6)
+      return res.status(400).json({ error: "Password minimal 6 karakter." });
+
+    const exists = db.prepare("SELECT username FROM users WHERE username = ?").get(username);
+    if (exists) return res.status(400).json({ error: "Username sudah digunakan." });
 
     const hashed = bcrypt.hashSync(password, 8);
     db.prepare(
@@ -85,9 +69,7 @@ exports.createUser = (req, res) => {
 };
 
 /**
- * PUT /api/users
- * Mengupdate user (nama, email, type, atau password)
- * Body: { username, name, email, type, password? }
+ * Update user (nama, email, role, password opsional)
  */
 exports.updateUser = (req, res) => {
   try {
@@ -95,23 +77,19 @@ exports.updateUser = (req, res) => {
     if (!username)
       return res.status(400).json({ error: "Username wajib diisi." });
 
-    const exists = db
-      .prepare("SELECT * FROM users WHERE username = ?")
-      .get(username);
+    const exists = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if (!exists) return res.status(404).json({ error: "User tidak ditemukan." });
 
     if (password && password.trim() !== "") {
+      if (password.length < 6)
+        return res.status(400).json({ error: "Password minimal 6 karakter." });
       const hashed = bcrypt.hashSync(password, 8);
       db.prepare(
         "UPDATE users SET password=?, name=?, email=?, type=? WHERE username=?"
       ).run(hashed, name || exists.name, email || exists.email, type || exists.type, username);
     } else {
-      db.prepare("UPDATE users SET name=?, email=?, type=? WHERE username=?").run(
-        name || exists.name,
-        email || exists.email,
-        type || exists.type,
-        username
-      );
+      db.prepare("UPDATE users SET name=?, email=?, type=? WHERE username=?")
+        .run(name || exists.name, email || exists.email, type || exists.type, username);
     }
 
     res.json({ ok: true, message: "User berhasil diperbarui." });
@@ -122,23 +100,15 @@ exports.updateUser = (req, res) => {
 };
 
 /**
- * DELETE /api/users/:username
- * Menghapus user berdasarkan username
+ * Hapus user
  */
 exports.deleteUser = (req, res) => {
   try {
     const { username } = req.params;
-    if (!username)
-      return res.status(400).json({ error: "Username tidak diberikan." });
-
     if (username === "admin")
-      return res
-        .status(400)
-        .json({ error: "User admin utama tidak bisa dihapus." });
+      return res.status(400).json({ error: "User admin utama tidak bisa dihapus." });
 
-    const exists = db
-      .prepare("SELECT username FROM users WHERE username = ?")
-      .get(username);
+    const exists = db.prepare("SELECT username FROM users WHERE username = ?").get(username);
     if (!exists) return res.status(404).json({ error: "User tidak ditemukan." });
 
     db.prepare("DELETE FROM users WHERE username = ?").run(username);
@@ -150,23 +120,32 @@ exports.deleteUser = (req, res) => {
 };
 
 /**
- * GET /api/users/:username
- * Mengambil data user spesifik (opsional jika ingin diakses dari UI)
+ * Ganti password sendiri (user login)
+ * Body: { oldPassword, newPassword }
  */
-exports.getUserByUsername = (req, res) => {
+exports.changePassword = (req, res) => {
   try {
-    const { username } = req.params;
-    if (!username)
-      return res.status(400).json({ error: "Username tidak diberikan." });
+    const username = req.user?.username;
+    if (!username) return res.status(401).json({ error: "Unauthorized" });
 
-    const user = db
-      .prepare("SELECT username, name, email, type FROM users WHERE username = ?")
-      .get(username);
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword)
+      return res.status(400).json({ error: "Password lama dan baru wajib diisi." });
 
+    if (newPassword.length < 6)
+      return res.status(400).json({ error: "Password minimal 6 karakter." });
+
+    const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if (!user) return res.status(404).json({ error: "User tidak ditemukan." });
-    res.json(user);
+
+    const valid = bcrypt.compareSync(oldPassword, user.password);
+    if (!valid) return res.status(400).json({ error: "Password lama salah." });
+
+    const hashed = bcrypt.hashSync(newPassword, 8);
+    db.prepare("UPDATE users SET password = ? WHERE username = ?").run(hashed, username);
+    res.json({ ok: true, message: "Password berhasil diubah." });
   } catch (err) {
-    console.error("Error getUserByUsername:", err.message);
-    res.status(500).json({ error: "Gagal mengambil data user." });
+    console.error("Error changePassword:", err.message);
+    res.status(500).json({ error: "Gagal mengubah password." });
   }
 };
