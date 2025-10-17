@@ -1,12 +1,18 @@
-// routes/sales.js
+// routes/sales.js — Final Version
 const express = require("express");
 const router = express.Router();
 const salesController = require("../controllers/salesController");
-const authMiddleware = require("../middleware/authMiddleware");
 
-router.use(authMiddleware);
+// GET all sales (paginated)
+router.get("/", salesController.getSales);
 
-router.get("/", salesController.getAllSales);
+// POST create new sale
 router.post("/", salesController.createSale);
+
+// DELETE sale by ID
+router.delete("/:id", salesController.deleteSale);
+
+// GET summary for dashboard
+router.get("/summary", salesController.getSalesSummary);
 
 module.exports = router;
