@@ -11,8 +11,8 @@ const router = express.Router();
 const dashboardController = require("../controllers/dashboardController");
 
 // Middlewares
-const authMiddleware = require("../middlewares/authMiddleware");
-const roleCheck = require("../middlewares/roleCheck");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleCheck = require("../middleware/roleCheck");
 
 // Semua route dashboard butuh login
 router.use(authMiddleware);
