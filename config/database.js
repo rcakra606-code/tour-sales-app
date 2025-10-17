@@ -1,23 +1,21 @@
 /**
  * ✅ Database Initialization (Better-SQLite3)
- * Handles schema creation, default data seeding, and connection.
+ * Handles schema creation, seeding, and connection.
  */
 const path = require("path");
 const fs = require("fs");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
-const { logger } = require("./logger");
+const { logger } = require("../utils/logger");
 
-// === Define data directory ===
 const dataDir = path.join(__dirname, "..", "data");
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const dbPath = path.join(dataDir, "database.sqlite");
 const db = new Database(dbPath);
 
-// === SCHEMA CREATION ===
 try {
-  // Users table
+  // === CREATE TABLES ===
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +29,6 @@ try {
     )
   `).run();
 
-  // Regions table
   db.prepare(`
     CREATE TABLE IF NOT EXISTS regions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +37,6 @@ try {
     )
   `).run();
 
-  // Tours table
   db.prepare(`
     CREATE TABLE IF NOT EXISTS tours (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +51,6 @@ try {
     )
   `).run();
 
-  // Sales table
   db.prepare(`
     CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,14 +64,13 @@ try {
     )
   `).run();
 
-  // === Indexes for performance ===
   db.prepare(`CREATE INDEX IF NOT EXISTS idx_sales_tourId ON sales(tourId)`).run();
   db.prepare(`CREATE INDEX IF NOT EXISTS idx_tours_region ON tours(region)`).run();
   db.prepare(`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)`).run();
 
   logger.info(`✅ Database initialized successfully at: ${dbPath}`);
 
-  // === Default admin account ===
+  // === Default admin ===
   const admin = db.prepare("SELECT id FROM users WHERE username = ?").get("admin");
   if (!admin) {
     const hash = bcrypt.hashSync("admin123", 10);
@@ -85,11 +79,9 @@ try {
       VALUES (?, ?, ?, ?, ?)
     `).run("Administrator", "admin", hash, "admin", "admin");
     logger.info("👤 Default admin user created → username: admin / password: admin123");
-  } else {
-    logger.info("✅ Admin user already exists");
   }
 
-  // === Default regions (if empty) ===
+  // === Default regions ===
   const regionCount = db.prepare("SELECT COUNT(*) AS c FROM regions").get().c;
   if (regionCount === 0) {
     const defaultRegions = [
@@ -97,19 +89,17 @@ try {
       { name: "Europe", description: "European destinations" },
       { name: "America", description: "American destinations" },
     ];
-    const insertRegion = db.prepare(`INSERT INTO regions (name, description) VALUES (?, ?)`);
-    const transaction = db.transaction(() => {
-      defaultRegions.forEach(r => insertRegion.run(r.name, r.description));
+    const insert = db.prepare(`INSERT INTO regions (name, description) VALUES (?, ?)`);
+    const tx = db.transaction(() => {
+      defaultRegions.forEach(r => insert.run(r.name, r.description));
     });
-    transaction();
-    logger.info("🌍 Default regions inserted (Asia, Europe, America)");
+    tx();
+    logger.info("🌍 Default regions inserted");
   }
 
 } catch (err) {
   logger.error("❌ Database initialization failed: " + err.message);
-  console.error(err);
   process.exit(1);
 }
 
-// === Export DB Connection ===
 module.exports = db;
