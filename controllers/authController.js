@@ -61,8 +61,24 @@ exports.login = (req, res) => {
     const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username);
     if (!user) return res.status(401).json({ error: "User tidak ditemukan." });
 
+    if (user.locked)
+      return res.status(403).json({ error: "Akun terkunci. Hubungi admin untuk membuka kunci." });
+
     const valid = bcrypt.compareSync(password, user.password);
-    if (!valid) return res.status(401).json({ error: "Password salah." });
+    if (!valid) {
+      const newAttempts = (user.failed_attempts || 0) + 1;
+      db.prepare("UPDATE users SET failed_attempts = ? WHERE username = ?").run(newAttempts, username);
+
+      if (newAttempts >= 3) {
+        db.prepare("UPDATE users SET locked = 1 WHERE username = ?").run(username);
+        return res.status(403).json({ error: "Akun dikunci karena 3x gagal login." });
+      }
+
+      return res.status(401).json({ error: `Password salah (${newAttempts}/3).` });
+    }
+
+    // Reset counter jika sukses login
+    db.prepare("UPDATE users SET failed_attempts = 0 WHERE username = ?").run(username);
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
