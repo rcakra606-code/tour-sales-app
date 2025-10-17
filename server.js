@@ -9,7 +9,7 @@ const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const db = require("./config/database");
 const { logger } = require("./config/logger");
 
