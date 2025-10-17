@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   email TEXT,
   type TEXT DEFAULT 'basic', -- 'basic', 'semi', 'super'
+  failed_attempts INTEGER DEFAULT 0,
+  locked INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now'))
 );
 `);
