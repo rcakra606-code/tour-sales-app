@@ -1,67 +1,69 @@
 /**
- * 🌍 MAIN SERVER
- * Express + Helmet + CORS + Better SQLite + Logger + Secure CSP
+ * 🌐 MAIN SERVER
+ * Express + SQLite + JWT + Logger
  */
+
 require("dotenv").config();
 const express = require("express");
-const helmet = require("helmet");
-const cors = require("cors");
-const morgan = require("morgan");
 const path = require("path");
-const { logger, httpLogger } = require("./config/logger");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
+const bcrypt = require("bcrypt");
+const db = require("./config/database");
+const { logger } = require("./config/logger");
 
-// === Init Database ===
-require("./config/database");
-
-const authRoutes = require("./routes/auth");
-const dashboardRoutes = require("./routes/dashboard");
-const regionRoutes = require("./routes/regions");
-
+// === Express app ===
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 // === Middleware ===
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(httpLogger);
+app.use(helmet({
+  contentSecurityPolicy: false, // Matikan CSP ketat agar tidak blok eval dari chart.js
+}));
+app.use(morgan("dev"));
 
-// === Helmet + CSP (allow Tailwind + Chart.js) ===
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-        ],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
-
-// === Static Frontend ===
+// === Static public files ===
 app.use(express.static(path.join(__dirname, "public")));
 
-// === Routes ===
+// === ROUTES ===
+const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const regionRoutes = require("./routes/region");
+
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/regions", regionRoutes);
 
-// === SPA fallback ===
+// === HEALTH CHECK ===
+app.get("/health", (_, res) => res.json({ status: "ok" }));
+
+// === AUTO-CREATE DEFAULT ADMIN ===
+try {
+  const existing = db.prepare("SELECT * FROM users WHERE username = ?").get("admin");
+  if (!existing) {
+    const hashed = bcrypt.hashSync("admin123", 10);
+    db.prepare(`
+      INSERT INTO users (name, username, email, password, role, type)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run("Administrator", "admin", "admin@example.com", hashed, "admin", "admin");
+    logger.info("👤 Default admin user created: admin / admin123");
+  } else {
+    logger.info("✅ Admin account already exists");
+  }
+} catch (err) {
+  logger.error("❌ Error checking/creating admin:", err.message);
+}
+
+// === FALLBACK FRONTEND ROUTE ===
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// === Start Server ===
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => logger.info(`✅ Server running on port ${PORT}`));
+// === START SERVER ===
+app.listen(PORT, () => {
+  logger.info(`✅ Server running on port ${PORT}`);
+});
