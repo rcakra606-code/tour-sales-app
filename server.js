@@ -1,54 +1,61 @@
+/**
+ * ===============================
+ * 🚀 MAIN SERVER CONFIGURATION
+ * ===============================
+ */
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
 const path = require("path");
 const { logger, httpLogger } = require("./config/logger");
-
-// === Initialize DB ===
-require("./config/database");
+const db = require("./config/database");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// === Middleware ===
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+/* ---------- MIDDLEWARE ---------- */
 app.use(cors());
+app.use(express.json());
 app.use(httpLogger);
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
+app.use(express.urlencoded({ extended: true }));
 
-// === Routes ===
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/dashboard", require("./routes/dashboard"));
-app.use("/api/sales", require("./routes/sales"));
-app.use("/api/tours", require("./routes/tours"));
-app.use("/api/users", require("./routes/users"));
-app.use("/api/regions", require("./routes/regions"));
-
-// === Static Frontend ===
+// Serve frontend (public folder)
 app.use(express.static(path.join(__dirname, "public")));
-app.get("*", (req, res) =>
-  res.sendFile(path.join(__dirname, "public", "index.html"))
-);
 
-// === Start Server ===
-const PORT = process.env.PORT || 5000;
+/* ---------- ROUTES ---------- */
+try {
+  const authRoutes = require("./routes/auth");
+  const tourRoutes = require("./routes/tours");
+  const salesRoutes = require("./routes/sales");
+  const dashboardRoutes = require("./routes/dashboard");
+  const regionRoutes = require("./routes/regions");
+  const userRoutes = require("./routes/users");
+
+  app.use("/api/auth", authRoutes);
+  app.use("/api/tours", tourRoutes);
+  app.use("/api/sales", salesRoutes);
+  app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api/regions", regionRoutes);
+  app.use("/api/users", userRoutes);
+
+  logger.info("✅ All routes initialized successfully");
+} catch (err) {
+  logger.error(`❌ Failed to load routes: ${err.message}`);
+}
+
+/* ---------- HEALTH CHECK ---------- */
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", uptime: process.uptime(), db: !!db });
+});
+
+/* ---------- ERROR HANDLER ---------- */
+app.use((err, req, res, next) => {
+  logger.error(`❌ ${err.message}`);
+  res.status(500).json({ message: "Internal Server Error", error: err.message });
+});
+
+/* ---------- SERVER START ---------- */
 app.listen(PORT, () => {
   logger.info(`✅ Server running on port ${PORT}`);
 });
