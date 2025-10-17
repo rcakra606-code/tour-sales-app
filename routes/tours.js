@@ -1,12 +1,10 @@
-// routes/tours.js
 const express = require("express");
 const router = express.Router();
-const toursController = require("../controllers/tourController");
-const authMiddleware = require("../middleware/authMiddleware");
+const tourController = require("../controllers/tourController");
 
-router.use(authMiddleware);
-
-router.get("/", toursController.getAllTours);
-router.post("/", toursController.createTour);
+router.get("/", tourController.getTours);
+router.post("/", tourController.createTour);
+router.delete("/:id", tourController.deleteTour);
+router.get("/summary", tourController.getTourSummary);
 
 module.exports = router;
