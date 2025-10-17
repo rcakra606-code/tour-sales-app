@@ -10,7 +10,9 @@
     "dev": "nodemon server.js",
     "init-db": "node scripts/init-db.js",
     "backup-db": "node scripts/backup-database.js",
-    "test-email": "node scripts/test-email.js"
+    "test-email": "node scripts/test-email.js",
+    "lint": "eslint . --ext .js",
+    "fix": "eslint . --ext .js --fix"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -18,16 +20,22 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
+    "exceljs": "^4.4.0",
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.14",
-    "winston": "^3.14.2"
+    "winston": "^3.14.2",
+    "fs-extra": "^11.2.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "^3.3.3"
   },
   "engines": {
     "node": ">=18 <25"
@@ -35,10 +43,14 @@
   "keywords": [
     "express",
     "sqlite",
+    "exceljs",
     "dashboard",
     "tours",
     "sales",
-    "auth"
+    "auth",
+    "reporting",
+    "backup",
+    "email"
   ],
   "author": "Raden Cakra",
   "license": "MIT"
