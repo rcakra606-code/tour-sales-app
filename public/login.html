@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - Travel Dashboard</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css">
 </head>
@@ -10,42 +10,53 @@
 
   <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md space-y-6">
     <div class="text-center">
-      <h1 class="text-2xl font-bold text-indigo-600">Travel Dashboard</h1>
-      <p class="text-sm text-gray-500 mt-1">Silakan login untuk melanjutkan</p>
+      <h1 class="text-3xl font-bold text-indigo-600">Travel Dashboard</h1>
+      <p class="text-sm text-gray-500 mt-1">Masuk ke sistem</p>
     </div>
 
     <!-- Login Form -->
     <form id="loginForm" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700">Username</label>
+        <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
         <input type="text" id="username" required class="border border-gray-300 rounded w-full p-2 focus:ring focus:ring-indigo-200 focus:outline-none">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700">Password</label>
+        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
         <input type="password" id="password" required class="border border-gray-300 rounded w-full p-2 focus:ring focus:ring-indigo-200 focus:outline-none">
       </div>
 
-      <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-all">
+      <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-all font-medium">
         Masuk
       </button>
     </form>
 
-    <div id="messageBox" class="text-center text-sm mt-4"></div>
+    <p id="messageBox" class="text-center text-sm mt-4 font-medium"></p>
   </div>
 
   <script>
+    // === LOGIN LOGIC ===
     const form = document.getElementById("loginForm");
-    const msgBox = document.getElementById("messageBox");
+    const messageBox = document.getElementById("messageBox");
 
     function showMessage(text, type = "error") {
-      msgBox.textContent = text;
-      msgBox.className =
+      messageBox.textContent = text;
+      messageBox.className =
         "text-center text-sm mt-4 font-medium " +
         (type === "success" ? "text-green-600" : "text-red-600");
     }
 
-    async function loginUser(username, password) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!username || !password) {
+        showMessage("Masukkan username dan password!");
+        return;
+      }
+
       try {
         const res = await fetch("/api/auth/login", {
           method: "POST",
@@ -54,25 +65,17 @@
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Login gagal.");
 
-        // Simpan token & user info
+        if (!res.ok) throw new Error(data.error || "Login gagal");
+
         localStorage.setItem("travel_token", data.token);
         localStorage.setItem("travel_user", JSON.stringify(data.user));
 
         showMessage("Login berhasil! Mengarahkan...", "success");
         setTimeout(() => (window.location.href = "/dashboard"), 1000);
       } catch (err) {
-        showMessage(err.message, "error");
+        showMessage(err.message || "Terjadi kesalahan saat login");
       }
-    }
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-      if (!username || !password) return showMessage("Isi username dan password.", "error");
-      loginUser(username, password);
     });
   </script>
 
