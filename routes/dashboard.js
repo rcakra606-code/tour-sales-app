@@ -1,156 +1,139 @@
-// routes/dashboard.js
-const express = require("express");
-const router = express.Router();
-const controller = require("../controllers/dashboardController");
-
-router.get("/executive", controller.getExecutiveSummary);
-
-module.exports = router;/**
- * routes/dashboard.js
- * FINAL BUILD (v2025.10)
- * ----------------------------------------------
- * Mengatur semua endpoint dashboard & notifikasi.
- * Terintegrasi dengan role-based access (middleware auth.js)
+/**
+ * ==========================================================
+ * routes/dashboard.js — Travel Dashboard Enterprise v3.3
+ * ==========================================================
+ * Endpoint untuk ringkasan dashboard & data recent
+ * - /api/dashboard/summary  -> totals & aggregates (mengutamakan data dari tours)
+ * - /api/dashboard/recent   -> recent tours & recent sales (limit 5)
+ *
+ * Notes:
+ * - Protected by auth middleware (user must be logged in)
+ * - Uses getDB() (better-sqlite3) with safe prepared queries
+ * - totalPax computed from 'pax_count' if column exists, otherwise from 'allPassengers'
+ * ==========================================================
  */
 
 const express = require("express");
 const router = express.Router();
-const { getDB } = require("../db"); // helper koneksi sqlite
-const authMiddleware = require("../middleware/auth"); // JWT verify middleware
+const { getDB } = require("../db");
+const auth = require("../middleware/auth");
 
-// 🔐 Semua route di bawah ini wajib login
-router.use(authMiddleware);
+// Apply auth to all dashboard routes
+router.use(auth);
 
-/* =====================================================
-   GET /api/dashboard/summary
-   Ringkasan data untuk dashboard utama (Tour & Sales)
-   ===================================================== */
-router.get("/summary", async (req, res) => {
+/**
+ * Utility: check if column exists in a table
+ */
+function columnExists(db, tableName, columnName) {
   try {
-    const db = getDB();
-
-    const totalSales = db.prepare("SELECT IFNULL(SUM(sales_amount),0) AS total FROM sales").get().total;
-    const totalProfit = db.prepare("SELECT IFNULL(SUM(profit_amount),0) AS total FROM sales").get().total;
-    const totalRegistrants = db.prepare("SELECT COUNT(*) AS total FROM tours").get().total;
-    const totalPax = db.prepare("SELECT IFNULL(SUM(pax_count),0) AS total FROM tours").get().total;
-
-    const regions = db.prepare("SELECT region AS name, COUNT(*) AS count FROM tours GROUP BY region").all();
-
-    res.json({
-      totalSales,
-      totalProfit,
-      totalRegistrants,
-      totalPax,
-      regions
-    });
+    const cols = db.prepare(`PRAGMA table_info(${tableName})`).all();
+    return cols.some(c => c.name === columnName);
   } catch (err) {
-    console.error("Dashboard summary error:", err);
-    res.status(500).json({ error: err.message });
+    return false;
   }
-});
-
-/* =====================================================
-   GET /api/dashboard/notifications
-   Notifikasi realtime untuk header 🔔
-   ===================================================== */
-router.get("/notifications", async (req, res) => {
-  try {
-    const db = getDB();
-
-    // Cek event baru dalam 24 jam terakhir
-    const newTours = db.prepare(`
-      SELECT COUNT(*) AS c FROM tours 
-      WHERE datetime(created_at) >= datetime('now', '-1 day')
-    `).get().c;
-
-    const newSales = db.prepare(`
-      SELECT COUNT(*) AS c FROM sales 
-      WHERE datetime(created_at) >= datetime('now', '-1 day')
-    `).get().c;
-
-    const newDocs = db.prepare(`
-      SELECT COUNT(*) AS c FROM documents 
-      WHERE datetime(created_at) >= datetime('now', '-1 day')
-    `).get().c;
-
-    res.json({
-      total: newTours + newSales + newDocs,
-      tours: newTours,
-      sales: newSales,
-      documents: newDocs
-    });
-  } catch (err) {
-    console.error("Notif error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* =====================================================
-   GET /api/dashboard/executive
-   Executive summary untuk grafik manajerial
-   ===================================================== */
-router.get("/executive", async (req, res) => {
-  try {
-    const db = getDB();
-
-    // Top staff berdasarkan total sales
-    const topStaff = db.prepare(`
-      SELECT s.staff_username AS username,
-             SUM(s.sales_amount) AS sales,
-             SUM(s.profit_amount) AS profit
-      FROM sales s
-      GROUP BY s.staff_username
-      ORDER BY sales DESC
-      LIMIT 10
-    `).all();
-
-    // Total per bulan
-    const monthlySales = db.prepare(`
-      SELECT substr(transaction_date,1,7) AS month,
-             SUM(sales_amount) AS totalSales,
-             SUM(profit_amount) AS totalProfit
-      FROM sales
-      GROUP BY substr(transaction_date,1,7)
-      ORDER BY month DESC
-      LIMIT 12
-    `).all();
-
-    res.json({
-      topStaff,
-      monthlySales
-    });
-  } catch (err) {
-    console.error("Executive report error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* =====================================================
-   Middleware tambahan: role guard (optional)
-   Untuk batasi endpoint khusus super/semi
-   ===================================================== */
-function requireRole(...roles) {
-  return (req, res, next) => {
-    const user = req.user; // dari middleware auth.js
-    if (!user || !roles.includes(user.type)) {
-      return res.status(403).json({ error: "Akses ditolak (tidak memiliki hak akses)." });
-    }
-    next();
-  };
 }
 
-/* =====================================================
-   Contoh: endpoint khusus admin (super saja)
-   ===================================================== */
-router.get("/admin/overview", requireRole("super"), async (req, res) => {
+/**
+ * GET /api/dashboard/summary
+ * Returns aggregate numbers used in the dashboard summary cards
+ */
+router.get("/summary", (req, res) => {
   try {
     const db = getDB();
-    const users = db.prepare("SELECT username, name, type FROM users ORDER BY username").all();
-    res.json({ users });
+
+    // 1) Totals from tours table (sales & profit are aggregates per tour)
+    const toursTotals = db.prepare(`
+      SELECT
+        IFNULL(SUM(salesAmount), 0) AS totalSalesTours,
+        IFNULL(SUM(profitAmount), 0) AS totalProfitTours,
+        COUNT(*) AS totalRegistrants -- number of tour entries
+      FROM tours
+    `).get();
+
+    // 2) totalPax: try pax_count column first, otherwise derive from allPassengers
+    let totalPax = 0;
+    if (columnExists(db, "tours", "pax_count")) {
+      const row = db.prepare("SELECT IFNULL(SUM(pax_count), 0) AS paxSum FROM tours").get();
+      totalPax = row ? Number(row.paxSum) : 0;
+    } else {
+      // derive from allPassengers by counting commas +1 per non-empty field
+      const allRows = db.prepare("SELECT allPassengers FROM tours WHERE IFNULL(allPassengers,'') != ''").all();
+      totalPax = allRows.reduce((acc, r) => {
+        try {
+          const text = (r.allPassengers || "").trim();
+          if (!text) return acc;
+          // split by comma or newline; filter empties
+          const parts = text.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+          return acc + parts.length;
+        } catch (err) {
+          return acc;
+        }
+      }, 0);
+    }
+
+    // 3) Totals from sales table (optional extra insight)
+    const salesTotals = db.prepare(`
+      SELECT IFNULL(SUM(sales_amount), 0) AS totalSalesTransactions,
+             IFNULL(SUM(profit_amount), 0) AS totalProfitTransactions,
+             COUNT(*) AS salesCount
+      FROM sales
+    `).get();
+
+    // Build response
+    const payload = {
+      ok: true,
+      totals: {
+        // primary dashboard metrics (tours-based as requested)
+        totalSalesTours: Number(toursTotals.totalSalesTours) || 0,
+        totalProfitTours: Number(toursTotals.totalProfitTours) || 0,
+        totalRegistrants: Number(toursTotals.totalRegistrants) || 0,
+        totalPax: Number(totalPax) || 0,
+
+        // additional financial insight from sales (invoice-level)
+        totalSalesTransactions: Number(salesTotals.totalSalesTransactions) || 0,
+        totalProfitTransactions: Number(salesTotals.totalProfitTransactions) || 0,
+        salesTransactionCount: Number(salesTotals.salesCount) || 0
+      },
+      timestamp: new Date()
+    };
+
+    res.json(payload);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Dashboard summary error:", err);
+    res.status(500).json({ ok: false, error: "Gagal memuat ringkasan dashboard" });
+  }
+});
+
+/**
+ * GET /api/dashboard/recent
+ * Returns recent tours and recent sales (limit 5 each)
+ */
+router.get("/recent", (req, res) => {
+  try {
+    const db = getDB();
+
+    const recentTours = db.prepare(`
+      SELECT id, registrationDate, leadPassenger, allPassengers, tourCode, region,
+             departureDate, salesAmount, profitAmount, departureStatus, created_at
+      FROM tours
+      ORDER BY id DESC
+      LIMIT 5
+    `).all();
+
+    const recentSales = db.prepare(`
+      SELECT id, transaction_date AS transactionDate, invoice_number AS invoiceNumber,
+             sales_amount AS salesAmount, profit_amount AS profitAmount, discount_amount AS discountAmount,
+             staff_username AS staff, created_at
+      FROM sales
+      ORDER BY id DESC
+      LIMIT 5
+    `).all();
+
+    res.json({ ok: true, recentTours, recentSales, timestamp: new Date() });
+  } catch (err) {
+    console.error("Dashboard recent error:", err);
+    res.status(500).json({ ok: false, error: "Gagal memuat data recent" });
   }
 });
 
 module.exports = router;
-
