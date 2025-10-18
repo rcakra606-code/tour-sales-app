@@ -4,4 +4,105 @@ uploads
 temp
 backups
 ssl
-.env*
+.env*# ==========================================================
+# 🚀 Travel Dashboard Enterprise v2.3
+# Git Ignore Configuration
+# ==========================================================
+
+# ----------------------------
+# 🧱 ENVIRONMENT CONFIG
+# ----------------------------
+.env
+.env.local
+.env.*.local
+
+# ----------------------------
+# 📦 NODE DEPENDENCIES
+# ----------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+
+# ----------------------------
+# 💾 DATABASE & BACKUPS
+# ----------------------------
+data/
+backups/
+*.sqlite
+*.db
+
+# ----------------------------
+# 🔐 PRIVATE KEYS & SSL FILES
+# ----------------------------
+*.pem
+*.key
+*.crt
+*.csr
+certs/
+ssl/
+scripts/generate-ssl.js
+scripts/setup-ssl.sh
+
+# ----------------------------
+# 🧩 SYSTEM BUILD / DIST FILES
+# ----------------------------
+dist/
+build/
+.cache/
+.next/
+*.log
+.DS_Store
+
+# ----------------------------
+# 🧪 TESTS / TEMP
+# ----------------------------
+coverage/
+tests/
+temp/
+tmp/
+*.test.js
+*.spec.js
+
+# ----------------------------
+# 🧰 EDITOR & TOOLING
+# ----------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+*.old
+
+# ----------------------------
+# ⚙️ OS / PLATFORM SPECIFIC
+# ----------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ----------------------------
+# ⚡ DEPLOYMENT HELPER FILES
+# ----------------------------
+deploy.sh
+setup.sh
+scripts/setup-cron.js
+scripts/test-email.js
+scripts/migrate-add-username-type.js
+
+# ----------------------------
+# 📜 LOG FILES
+# ----------------------------
+*.log
+logs/
+winston.log
+
+# ----------------------------
+# 📁 FRONTEND BUILD FILES (if any)
+# ----------------------------
+public/js/*.map
+public/css/*.map
