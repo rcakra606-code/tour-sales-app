@@ -1,5 +1,6 @@
 // =========================================================
-// server.js — Travel Dashboard Enterprise v2.3 (AUTO INIT + SECURE)
+// 🚀 Travel Dashboard Enterprise v2.4
+// server.js — Full Stable + Secure + CSP Fixed
 // =========================================================
 
 require("dotenv").config();
@@ -7,9 +8,9 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const nodeCron = require("node-cron");
 const path = require("path");
 const fs = require("fs");
+const nodeCron = require("node-cron");
 const Database = require("better-sqlite3");
 const jwt = require("jsonwebtoken");
 
@@ -18,14 +19,13 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
 
 // =========================================================
-// 🧱 DATABASE INITIALIZATION (AUTO CHECK & INIT)
+// 🧱 DATABASE INITIALIZATION (AUTO)
 // =========================================================
 const dbPath = path.join(__dirname, "data", "database.sqlite");
 const dbDir = path.dirname(dbPath);
 
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-// 🔹 Jika database belum ada, jalankan initDatabase.js otomatis
 if (!fs.existsSync(dbPath)) {
   console.log("⚠️ Database not found. Initializing new database...");
   try {
@@ -46,14 +46,13 @@ console.log(`[${new Date().toISOString()}] ✅ Database connected: ${dbPath}`);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ CORS (untuk koneksi frontend)
 app.use(cors({
   origin: process.env.FRONTEND_URL || "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// ✅ Helmet (CSP fix agar Tailwind/Chart.js tidak terblokir)
+// ✅ Helmet CSP fixed for Tailwind, Chart.js & inline script
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -67,7 +66,7 @@ app.use(
           "https://cdn.jsdelivr.net",
           "https://cdn.tailwindcss.com",
           "https://unpkg.com",
-          "https://cdn.jsdelivr.net/npm/sweetalert2@11"
+          "https://cdn.jsdelivr.net/npm/chart.js"
         ],
         "style-src": [
           "'self'",
@@ -76,14 +75,8 @@ app.use(
           "https://fonts.googleapis.com"
         ],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
-        "connect-src": [
-          "'self'",
-          "https://cdn.jsdelivr.net",
-          "https://unpkg.com",
-          process.env.FRONTEND_URL || "http://localhost:5000"
-        ],
-        "frame-src": ["'self'"],
+        "img-src": ["'self'", "data:"],
+        "connect-src": ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
         "object-src": ["'none'"],
         "base-uri": ["'self'"],
         "form-action": ["'self'"]
@@ -91,15 +84,14 @@ app.use(
     },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    referrerPolicy: { policy: "no-referrer" },
     hidePoweredBy: true,
   })
 );
 
-// ✅ Logging request
+// Logging HTTP requests
 app.use(morgan("dev"));
 
-// ✅ Serve static files (frontend HTML)
+// Serve static frontend files
 app.use(express.static(path.join(__dirname, "public")));
 
 // =========================================================
@@ -150,16 +142,34 @@ app.use("/api/dashboard", authMiddleware, dashboardRoutes);
 app.use("/api/executive", authMiddleware, executiveReportRoutes);
 
 // =========================================================
-// 🌐 STATIC FRONTEND ROUTES
+// 🌐 FRONTEND ROUTES
 // =========================================================
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
-app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
-app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public", "dashboard.html")));
-app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "public", "profile.html")));
-app.get("/users", (req, res) => res.sendFile(path.join(__dirname, "public", "user-management.html")));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+app.get("/profile", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "profile.html"));
+});
+
+app.get("/users", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "user-management.html"));
+});
+
+app.get("/executive-dashboard", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "executive-dashboard.html"));
+});
 
 // =========================================================
-// 💾 AUTO BACKUP (JAM 03:00)
+// 💾 AUTO BACKUP (03:00 AM)
 // =========================================================
 const backupDir = process.env.BACKUP_DIR || path.join(__dirname, "backups");
 if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
