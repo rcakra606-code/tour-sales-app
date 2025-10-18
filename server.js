@@ -1,16 +1,15 @@
 /**
  * ==========================================================
- * 🌐 server.js — Travel Dashboard Enterprise v3.0 (Final Build)
+ * 🌐 server.js — Travel Dashboard Enterprise v3.1 (Final)
  * ==========================================================
  * Express + SQLite + JWT + Helmet + Backup + Healthcheck
  * ----------------------------------------------------------
- * Features:
  * ✅ JWT Auth + RBAC
- * ✅ CSP Secure + CORS
- * ✅ Realtime Notification + Audit Logging
+ * ✅ Helmet + CSP Secure
  * ✅ SQLite Auto Init
- * ✅ Healthcheck Endpoint
  * ✅ Daily Auto Backup @ 03:00 (Asia/Jakarta)
+ * ✅ Auto Delete Backups Older Than 7 Days
+ * ✅ Healthcheck Endpoint for Render/Docker
  * ==========================================================
  */
 
@@ -21,7 +20,6 @@ const helmet = require("helmet");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const cron = require("node-cron");
-const { execSync } = require("child_process");
 const { initDB } = require("./db");
 
 const app = express();
@@ -32,6 +30,9 @@ const TZ = process.env.TZ || "Asia/Jakarta";
 const DATA_DIR = path.join(__dirname, "data");
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, "backups");
 const DB_FILE = process.env.DB_PATH || path.join(DATA_DIR, "travel.db");
+
+// Retention policy (in days)
+const BACKUP_RETENTION_DAYS = parseInt(process.env.BACKUP_RETENTION_DAYS || "7", 10);
 
 /* =====================================================
    🔒 SECURITY & CORE MIDDLEWARE
@@ -46,6 +47,7 @@ app.use(
           "https://cdn.tailwindcss.com",
           "https://cdn.jsdelivr.net",
           "https://unpkg.com",
+          "https://cdn.jsdelivr.net/npm/chart.js",
         ],
         styleSrc: [
           "'self'",
@@ -70,7 +72,7 @@ app.use(bodyParser.json());
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR);
 
-initDB(); // Ensure DB schema ready
+initDB();
 
 /* =====================================================
    🗂️ ROUTES
@@ -94,7 +96,7 @@ app.get("/api/health", (req, res) => {
       status: "ok",
       database: exists ? "connected" : "missing",
       time: new Date().toLocaleString("id-ID", { timeZone: TZ }),
-      version: "3.0",
+      version: "3.1",
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -102,7 +104,7 @@ app.get("/api/health", (req, res) => {
 });
 
 /* =====================================================
-   🌙 DAILY BACKUP JOB (03:00)
+   🌙 DAILY BACKUP JOB (03:00) + RETENTION
    ===================================================== */
 cron.schedule("0 3 * * *", () => {
   try {
@@ -112,8 +114,24 @@ cron.schedule("0 3 * * *", () => {
       fs.copyFileSync(DB_FILE, backupFile);
       console.log(`🗄️ Backup created: ${backupFile}`);
     }
+
+    // === Retention: Delete backups older than BACKUP_RETENTION_DAYS ===
+    const files = fs.readdirSync(BACKUP_DIR);
+    const now = Date.now();
+
+    files.forEach((file) => {
+      if (file.startsWith("backup-") && file.endsWith(".db")) {
+        const filePath = path.join(BACKUP_DIR, file);
+        const stats = fs.statSync(filePath);
+        const ageDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+        if (ageDays > BACKUP_RETENTION_DAYS) {
+          fs.unlinkSync(filePath);
+          console.log(`🧹 Old backup deleted (${file}), age: ${ageDays.toFixed(1)} days`);
+        }
+      }
+    });
   } catch (err) {
-    console.error("❌ Backup failed:", err.message);
+    console.error("❌ Backup or retention job failed:", err.message);
   }
 }, { timezone: TZ });
 
@@ -125,7 +143,6 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (_, res) =>
   res.sendFile(path.join(__dirname, "public", "login.html"))
 );
-
 app.get("/dashboard.html", (_, res) =>
   res.sendFile(path.join(__dirname, "public", "dashboard.html"))
 );
@@ -143,11 +160,12 @@ app.use((err, req, res, next) => {
    ===================================================== */
 app.listen(PORT, () => {
   console.log("==========================================");
-  console.log("🚀 Travel Dashboard Enterprise v3.0 Ready");
+  console.log("🚀 Travel Dashboard Enterprise v3.1 Ready");
   console.log(`🌍 Environment  : ${process.env.NODE_ENV || "development"}`);
   console.log(`🕓 Timezone     : ${TZ}`);
   console.log(`💾 Database     : ${DB_FILE}`);
   console.log(`📦 Backup Dir   : ${BACKUP_DIR}`);
+  console.log(`🧹 Retention    : ${BACKUP_RETENTION_DAYS} hari`);
   console.log(`📡 Server Port  : ${PORT}`);
   console.log("==========================================");
 });
