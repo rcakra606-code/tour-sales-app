@@ -3,70 +3,178 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Tour | Aplikasi Reporting</title>
+  <title>Report Tour | Travel Dashboard Enterprise v3.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/assets/icon.png" />
 </head>
 <body class="bg-gray-50 min-h-screen">
+
+  <!-- HEADER -->
   <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md py-4">
     <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
-      <h1 class="text-xl font-bold">📊 Report Tour</h1>
-      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">🏠 Kembali ke Dashboard</a>
+      <h1 class="text-xl font-bold">🧳 Report Tour</h1>
+      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">
+        🏠 Kembali ke Dashboard
+      </a>
     </div>
   </header>
 
+  <!-- MAIN SECTION -->
   <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <p id="currentUser" class="text-sm text-gray-500"></p>
-      </div>
-      <button id="logoutBtn" class="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600">Logout</button>
-    </div>
-
-    <!-- Filter + Search -->
+    <!-- FILTERS -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div class="flex items-center gap-3">
-        <label for="filterRegion" class="text-sm font-medium text-gray-600">Filter Region:</label>
-        <select id="filterRegion" class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-          <option value="">Semua Region</option>
-        </select>
+        <label for="regionFilter" class="text-sm font-medium text-gray-600">Filter Region:</label>
+        <input id="regionFilter" type="text" placeholder="Cari region..." class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
       </div>
-      <input id="searchTour" type="text" placeholder="Cari Tour..." class="border rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-indigo-500" />
+      <div class="flex items-center gap-2">
+        <input id="searchTour" type="text" placeholder="Cari tour..." class="border rounded-lg px-3 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-indigo-500" />
+        <button id="addTourBtn" class="hidden bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 transition-all">
+          ➕ Tambah Tour
+        </button>
+      </div>
     </div>
 
-    <!-- Export -->
-    <div class="flex items-center gap-3 mt-2">
+    <!-- EXPORT -->
+    <div class="flex items-center gap-3">
       <button id="exportTourCSV" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">📄 Export CSV</button>
       <button id="exportTourXLSX" class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm">📗 Export Excel</button>
     </div>
 
-    <!-- Table -->
+    <!-- TABLE -->
     <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
       <table class="w-full text-sm">
         <thead class="bg-indigo-500 text-white">
           <tr>
-            <th class="p-3 text-left">Kode</th>
+            <th class="p-3 text-left">Kode Tour</th>
             <th class="p-3 text-left">Lead Passenger</th>
             <th class="p-3 text-left">Region</th>
-            <th class="p-3 text-left">Sales</th>
-            <th class="p-3 text-left">Profit</th>
-            <th class="p-3 text-left">Pax</th>
+            <th class="p-3 text-left">Departure</th>
+            <th class="p-3 text-left">Sales (Rp)</th>
+            <th class="p-3 text-left">Profit (Rp)</th>
+            <th class="p-3 text-left">Status</th>
+            <th class="p-3 text-left">Aksi</th>
           </tr>
         </thead>
-        <tbody id="tourTable" class="divide-y"></tbody>
+        <tbody id="tourTable" class="divide-y divide-gray-200"></tbody>
       </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="flex justify-between items-center mt-4">
-      <button id="prevTour" class="px-3 py-1 border rounded-lg text-sm bg-gray-100 hover:bg-gray-200">⬅️ Prev</button>
-      <span id="pageInfoTour" class="text-sm text-gray-500"></span>
-      <button id="nextTour" class="px-3 py-1 border rounded-lg text-sm bg-gray-100 hover:bg-gray-200">Next ➡️</button>
     </div>
   </main>
 
-  <!-- Loader -->
-  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70] transition-opacity duration-300 opacity-0">
+  <!-- MODAL FORM -->
+  <div id="tourModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl transform scale-95">
+      <div class="border-b px-6 py-4 flex justify-between items-center">
+        <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">Tambah Tour</h3>
+        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+
+      <!-- FORM CONTENT -->
+      <form id="tourForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Tanggal Registrasi</label>
+            <input type="date" name="registrationDate" class="border rounded-lg w-full px-3 py-2">
+          </div>
+          <div>
+            <label class="text-sm">Kode Tour</label>
+            <input type="text" name="tourCode" class="border rounded-lg w-full px-3 py-2">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm">Lead Passenger</label>
+          <input type="text" name="leadPassenger" class="border rounded-lg w-full px-3 py-2">
+        </div>
+
+        <div>
+          <label class="text-sm">Nama Semua Peserta</label>
+          <textarea name="allPassengers" class="border rounded-lg w-full px-3 py-2" rows="2"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Region</label>
+            <input type="text" name="region" class="border rounded-lg w-full px-3 py-2">
+          </div>
+          <div>
+            <label class="text-sm">Tanggal Keberangkatan</label>
+            <input type="date" name="departureDate" class="border rounded-lg w-full px-3 py-2">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm">Kode Booking</label>
+          <input type="text" name="bookingCode" class="border rounded-lg w-full px-3 py-2">
+        </div>
+
+        <div>
+          <label class="text-sm">Harga Tour (Rp)</label>
+          <input type="number" step="0.01" name="tourPrice" class="border rounded-lg w-full px-3 py-2">
+        </div>
+
+        <div>
+          <label class="text-sm">Keterangan Diskon</label>
+          <input type="text" name="discountRemarks" class="border rounded-lg w-full px-3 py-2">
+        </div>
+
+        <div>
+          <label class="text-sm">Bukti Pembayaran (URL/File)</label>
+          <input type="text" name="paymentProof" class="border rounded-lg w-full px-3 py-2">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Dokumen Diterima</label>
+            <input type="date" name="documentReceived" class="border rounded-lg w-full px-3 py-2">
+          </div>
+          <div>
+            <label class="text-sm">Status Keberangkatan</label>
+            <select name="departureStatus" class="border rounded-lg w-full px-3 py-2">
+              <option value="PENDING">PENDING</option>
+              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Mulai Proses Visa</label>
+            <input type="date" name="visaProcessStart" class="border rounded-lg w-full px-3 py-2">
+          </div>
+          <div>
+            <label class="text-sm">Selesai Proses Visa</label>
+            <input type="date" name="visaProcessEnd" class="border rounded-lg w-full px-3 py-2">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm">Catatan Dokumen</label>
+          <textarea name="documentRemarks" class="border rounded-lg w-full px-3 py-2" rows="2"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Sales Amount (Rp)</label>
+            <input type="number" step="0.01" name="salesAmount" class="border rounded-lg w-full px-3 py-2">
+          </div>
+          <div>
+            <label class="text-sm">Profit Amount (Rp)</label>
+            <input type="number" step="0.01" name="profitAmount" class="border rounded-lg w-full px-3 py-2">
+          </div>
+        </div>
+      </form>
+
+      <div class="border-t px-6 py-4 flex justify-end gap-3">
+        <button id="cancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
+        <button id="saveTourBtn" type="submit" form="tourForm" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER -->
+  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
     <div class="flex flex-col items-center space-y-3 text-indigo-600">
       <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -76,23 +184,105 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
 
   <script src="/app.js"></script>
   <script>
-    // Proteksi login
+    const API_BASE = "/api";
+    const token = localStorage.getItem("token");
+    if (!token) location.href = "/login.html";
+
+    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    const tableBody = document.getElementById("tourTable");
+    const addTourBtn = document.getElementById("addTourBtn");
+    const modal = document.getElementById("tourModal");
+    const form = document.getElementById("tourForm");
+    const modalTitle = document.getElementById("modalTitle");
+    let editingId = null;
+    let userRole = "basic";
+
+    async function loadTours() {
+      showLoader(true, "Memuat data tour...");
+      const res = await fetch(`${API_BASE}/tours`, { headers });
+      const tours = await res.json();
+      renderTours(tours);
+      showLoader(false);
+    }
+
+    function renderTours(data) {
+      const search = document.getElementById("searchTour").value.toLowerCase();
+      const region = document.getElementById("regionFilter").value.toLowerCase();
+      const filtered = data.filter(t =>
+        (!search || t.tourCode.toLowerCase().includes(search) || t.leadPassenger.toLowerCase().includes(search)) &&
+        (!region || t.region.toLowerCase().includes(region))
+      );
+      tableBody.innerHTML = filtered.map(t => `
+        <tr class="hover:bg-indigo-50">
+          <td class="p-3 font-semibold">${t.tourCode}</td>
+          <td class="p-3">${t.leadPassenger}</td>
+          <td class="p-3">${t.region}</td>
+          <td class="p-3">${t.departureDate || '-'}</td>
+          <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
+          <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
+          <td class="p-3 font-medium ${t.departureStatus === 'CONFIRMED' ? 'text-green-600' : t.departureStatus === 'CANCELLED' ? 'text-red-600' : 'text-yellow-600'}">${t.departureStatus}</td>
+          <td class="p-3 flex gap-2">
+            ${(userRole !== "basic") ? `<button class="edit-btn text-blue-600 hover:underline" data-id="${t.id}">Edit</button>` : ""}
+            ${(userRole === "super") ? `<button class="delete-btn text-red-600 hover:underline" data-id="${t.id}">Hapus</button>` : ""}
+          </td>
+        </tr>
+      `).join("");
+
+      document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
+      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteTour(btn.dataset.id));
+    }
+
+    async function openEdit(id) {
+      const res = await fetch(`${API_BASE}/tours/${id}`, { headers });
+      const t = await res.json();
+      editingId = id;
+      modalTitle.textContent = "Edit Tour";
+      Object.entries(t).forEach(([key, val]) => {
+        if (form[key]) form[key].value = val || "";
+      });
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      const method = editingId ? "PUT" : "POST";
+      const url = editingId ? `${API_BASE}/tours/${editingId}` : `${API_BASE}/tours`;
+      await fetch(url, { method, headers, body: JSON.stringify(data) });
+      showToast("✅ Data tour berhasil disimpan", "success");
+      modal.classList.add("hidden");
+      loadTours();
+      editingId = null;
+    };
+
+    async function deleteTour(id) {
+      if (!confirm("Yakin ingin menghapus data ini?")) return;
+      await fetch(`${API_BASE}/tours/${id}`, { method: "DELETE", headers });
+      showToast("🗑️ Tour dihapus", "success");
+      loadTours();
+    }
+
+    document.getElementById("closeModalBtn").onclick = () => modal.classList.add("hidden");
+    document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
+    addTourBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Tour"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
+
+    // Role check
     (async () => {
-      const res = await fetch('/api/auth/verify', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      const res = await fetch(`${API_BASE}/auth/verify`, { headers });
       const data = await res.json();
-      if (!data.ok) {
-        localStorage.clear();
-        location.href = '/login.html';
-      } else {
-        document.getElementById('currentUser').textContent = `${data.user.name || data.user.username} (${data.user.type})`;
-      }
+      if (!data.ok) location.href = "/login.html";
+      userRole = data.user.type;
+      if (["super", "semi"].includes(userRole)) addTourBtn.classList.remove("hidden");
+      loadTours();
     })();
-    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.href = '/login.html'; };
+
+    document.getElementById("searchTour").oninput = loadTours;
+    document.getElementById("regionFilter").oninput = loadTours;
   </script>
 </body>
 </html>
