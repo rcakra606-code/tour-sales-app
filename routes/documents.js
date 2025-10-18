@@ -1,145 +1,152 @@
 /**
  * ==========================================================
- * routes/documents.js — Travel Dashboard Enterprise v3.3 Final
+ * routes/documents.js — Travel Dashboard Enterprise v3.4.1
  * ==========================================================
- * ✅ CRUD Document Management
- * ✅ Role-based Access (super / semi / basic)
- * ✅ Logging Otomatis
- * ✅ Sesuai dengan tabel 'documents' terbaru:
- *    - receive_date
- *    - guest_name
- *    - booking_code
- *    - tour_code
- *    - document_remarks
+ * ✅ PostgreSQL (Neon) Ready
+ * ✅ CRUD Documents (dokumen tamu)
+ * ✅ Role-based Access Control
+ * ✅ Audit Logging Integration
  * ==========================================================
  */
 
 const express = require("express");
-const router = express.Router();
-const { getDB } = require("../db");
+const db = require("../config/database");
 const auth = require("../middleware/auth");
 const { logAction } = require("../middleware/log");
+const { requireRole } = require("../middleware/roleCheck");
 
+const router = express.Router();
+
+// Middleware Auth untuk semua route
 router.use(auth);
 
-// Middleware role check
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.type))
-      return res.status(403).json({ error: "Akses ditolak" });
-    next();
-  };
-}
-
-/* ==========================================================
-   GET: Semua dokumen
-   ========================================================== */
-router.get("/", (req, res) => {
+/**
+ * ==========================================================
+ * GET /api/documents
+ * Ambil semua data dokumen
+ * ==========================================================
+ */
+router.get("/", async (req, res) => {
   try {
-    const db = getDB();
-    const docs = db.prepare("SELECT * FROM documents ORDER BY id DESC").all();
-    res.json(docs);
+    const result = await db.query(`
+      SELECT id, receive_date, guest_name, booking_code, tour_code, document_remarks, staff
+      FROM documents
+      ORDER BY id DESC
+    `);
+    res.json(result.rows);
   } catch (err) {
-    console.error("Error loading documents:", err);
+    console.error("❌ Error GET /documents:", err.message);
     res.status(500).json({ error: "Gagal memuat data dokumen" });
   }
 });
 
-/* ==========================================================
-   GET: Dokumen berdasarkan ID
-   ========================================================== */
-router.get("/:id", (req, res) => {
+/**
+ * ==========================================================
+ * GET /api/documents/:id
+ * Ambil satu dokumen berdasarkan ID
+ * ==========================================================
+ */
+router.get("/:id", async (req, res) => {
   try {
-    const db = getDB();
-    const doc = db.prepare("SELECT * FROM documents WHERE id=?").get(req.params.id);
-    if (!doc) return res.status(404).json({ error: "Dokumen tidak ditemukan" });
-    res.json(doc);
+    const result = await db.query("SELECT * FROM documents WHERE id = $1", [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: "Dokumen tidak ditemukan" });
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error("Error get document:", err);
-    res.status(500).json({ error: "Gagal memuat dokumen" });
+    console.error("❌ Error GET /documents/:id:", err.message);
+    res.status(500).json({ error: "Gagal mengambil detail dokumen" });
   }
 });
 
-/* ==========================================================
-   POST: Tambah Dokumen Baru
-   ========================================================== */
-router.post("/", requireRole("super", "semi"), (req, res) => {
+/**
+ * ==========================================================
+ * POST /api/documents
+ * Tambah dokumen baru (super/semi)
+ * ==========================================================
+ */
+router.post("/", requireRole("super", "semi"), async (req, res) => {
   try {
-    const db = getDB();
-    const u = req.user;
-    const d = req.body;
+    const data = req.body;
+    const sql = `
+      INSERT INTO documents (
+        receive_date, guest_name, booking_code, tour_code, document_remarks, staff
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
+    `;
+    const params = [
+      data.receive_date || null,
+      data.guest_name || null,
+      data.booking_code || null,
+      data.tour_code || null,
+      data.document_remarks || null,
+      req.user.username
+    ];
 
-    db.prepare(`
-      INSERT INTO documents (receive_date, guest_name, booking_code, tour_code, document_remarks, staff)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      d.receive_date || "",
-      d.guest_name || "",
-      d.booking_code || "",
-      d.tour_code || "",
-      d.document_remarks || "",
-      u.username || ""
-    );
-
-    logAction(u, "Menambahkan Dokumen", d.booking_code || d.guest_name);
-    res.json({ message: "Dokumen berhasil ditambahkan" });
+    const result = await db.query(sql, params);
+    await logAction(req.user, "Menambahkan Dokumen", `Document ID: ${result.rows[0].id}`);
+    res.json({ message: "✅ Data dokumen berhasil ditambahkan" });
   } catch (err) {
-    console.error("Error adding document:", err);
+    console.error("❌ Error POST /documents:", err.message);
     res.status(500).json({ error: "Gagal menambahkan dokumen" });
   }
 });
 
-/* ==========================================================
-   PUT: Ubah Dokumen Berdasarkan ID
-   ========================================================== */
-router.put("/:id", requireRole("super", "semi"), (req, res) => {
+/**
+ * ==========================================================
+ * PUT /api/documents/:id
+ * Ubah dokumen (super/semi)
+ * ==========================================================
+ */
+router.put("/:id", requireRole("super", "semi"), async (req, res) => {
   try {
-    const db = getDB();
-    const u = req.user;
-    const d = req.body;
+    const id = req.params.id;
+    const data = req.body;
+    const sql = `
+      UPDATE documents SET
+        receive_date=$1,
+        guest_name=$2,
+        booking_code=$3,
+        tour_code=$4,
+        document_remarks=$5
+      WHERE id=$6
+    `;
+    const params = [
+      data.receive_date || null,
+      data.guest_name || null,
+      data.booking_code || null,
+      data.tour_code || null,
+      data.document_remarks || null,
+      id
+    ];
 
-    const doc = db.prepare("SELECT id FROM documents WHERE id=?").get(req.params.id);
-    if (!doc) return res.status(404).json({ error: "Dokumen tidak ditemukan" });
-
-    db.prepare(`
-      UPDATE documents
-      SET receive_date=?, guest_name=?, booking_code=?, tour_code=?, document_remarks=?, staff=?
-      WHERE id=?
-    `).run(
-      d.receive_date || "",
-      d.guest_name || "",
-      d.booking_code || "",
-      d.tour_code || "",
-      d.document_remarks || "",
-      u.username || "",
-      req.params.id
-    );
-
-    logAction(u, "Mengubah Dokumen", d.booking_code || d.guest_name);
-    res.json({ message: "Dokumen berhasil diperbarui" });
+    await db.query(sql, params);
+    await logAction(req.user, "Mengubah Dokumen", `Document ID: ${id}`);
+    res.json({ message: "✅ Data dokumen berhasil diperbarui" });
   } catch (err) {
-    console.error("Error updating document:", err);
+    console.error("❌ Error PUT /documents/:id:", err.message);
     res.status(500).json({ error: "Gagal memperbarui dokumen" });
   }
 });
 
-/* ==========================================================
-   DELETE: Hapus Dokumen
-   ========================================================== */
-router.delete("/:id", requireRole("super"), (req, res) => {
+/**
+ * ==========================================================
+ * DELETE /api/documents/:id
+ * Hapus dokumen (super only)
+ * ==========================================================
+ */
+router.delete("/:id", requireRole("super"), async (req, res) => {
   try {
-    const db = getDB();
-    const u = req.user;
-    const d = db.prepare("SELECT booking_code, guest_name FROM documents WHERE id=?").get(req.params.id);
+    const id = req.params.id;
+    const result = await db.query("SELECT guest_name FROM documents WHERE id=$1", [id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: "Dokumen tidak ditemukan" });
 
-    if (!d) return res.status(404).json({ error: "Dokumen tidak ditemukan" });
+    const guest = result.rows[0].guest_name || `ID:${id}`;
+    await db.query("DELETE FROM documents WHERE id=$1", [id]);
+    await logAction(req.user, "Menghapus Dokumen", guest);
 
-    db.prepare("DELETE FROM documents WHERE id=?").run(req.params.id);
-    logAction(u, "Menghapus Dokumen", d.booking_code || d.guest_name);
-
-    res.json({ message: "Dokumen berhasil dihapus" });
+    res.json({ message: "🗑️ Dokumen berhasil dihapus" });
   } catch (err) {
-    console.error("Error deleting document:", err);
+    console.error("❌ Error DELETE /documents/:id:", err.message);
     res.status(500).json({ error: "Gagal menghapus dokumen" });
   }
 });
