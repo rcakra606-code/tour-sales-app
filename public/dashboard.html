@@ -1,30 +1,47 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="transition-colors duration-500">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Travel Dashboard</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Sidebar collapse transition */
+    #sidebar {
+      transition: width 0.3s ease-in-out;
+    }
+
+    /* Smooth fade for dark mode */
+    .fade-transition {
+      transition: background-color 0.5s, color 0.5s;
+    }
+
+    /* Active menu style */
+    .menu-active {
+      background-color: rgba(255, 255, 255, 0.15);
+      font-weight: 600;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 text-gray-800 transition-all duration-300" id="appBody">
+<body class="bg-gray-100 text-gray-800 fade-transition" id="appBody">
 
   <!-- Layout Container -->
-  <div class="flex min-h-screen">
-    
+  <div class="flex min-h-screen transition-all duration-500">
+
     <!-- Sidebar -->
-    <aside id="sidebar" class="bg-indigo-700 text-white w-64 flex-shrink-0 flex flex-col transition-all duration-300">
+    <aside id="sidebar" class="bg-indigo-700 text-white w-64 flex-shrink-0 flex flex-col shadow-lg">
       <div class="px-6 py-4 flex justify-between items-center border-b border-indigo-500">
         <h2 class="text-xl font-bold">🌍 Travel Dashboard</h2>
-        <button id="toggleSidebar" class="text-indigo-200 hover:text-white focus:outline-none">⏩</button>
+        <button id="toggleSidebar" class="text-indigo-200 hover:text-white focus:outline-none text-lg">⏩</button>
       </div>
 
       <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="/dashboard" class="block py-2 px-3 rounded bg-indigo-900 font-semibold">🏠 Dashboard</a>
-        <a href="/users" class="block py-2 px-3 rounded hover:bg-indigo-600">👥 User Management</a>
-        <a href="/profile" class="block py-2 px-3 rounded hover:bg-indigo-600">👤 Profile</a>
-        <a href="/tours.html" class="block py-2 px-3 rounded hover:bg-indigo-600">🧳 Tours</a>
-        <a href="/executive-dashboard" class="block py-2 px-3 rounded hover:bg-indigo-600">📈 Executive Report</a>
+        <a href="/dashboard" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="dashboard">🏠 Dashboard</a>
+        <a href="/users" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="users">👥 User Management</a>
+        <a href="/profile" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="profile">👤 Profile</a>
+        <a href="/tours.html" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="tours">🧳 Tours</a>
+        <a href="/executive-dashboard" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="executive-dashboard">📈 Executive Report</a>
       </nav>
 
       <div class="p-4 border-t border-indigo-500 flex justify-between items-center">
@@ -34,7 +51,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-6 overflow-y-auto">
+    <main class="flex-1 p-6 overflow-y-auto fade-transition">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-semibold">📊 Dashboard Overview</h1>
         <span id="userInfo" class="text-gray-600 text-sm"></span>
@@ -42,15 +59,15 @@
 
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-xl transition-all fade-transition">
           <h3 class="font-semibold text-gray-600 dark:text-gray-300">Total Tours</h3>
           <p id="totalTours" class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">0</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-xl transition-all fade-transition">
           <h3 class="font-semibold text-gray-600 dark:text-gray-300">Total Sales (IDR)</h3>
           <p id="totalSales" class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">0</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow transition-colors">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-xl transition-all fade-transition">
           <h3 class="font-semibold text-gray-600 dark:text-gray-300">Total Profit (IDR)</h3>
           <p id="totalProfit" class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">0</p>
         </div>
@@ -58,12 +75,12 @@
 
       <!-- Charts Section -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow transition-colors">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow fade-transition">
           <h3 class="font-semibold text-gray-600 dark:text-gray-300 mb-2">Status Keberangkatan Tour</h3>
           <canvas id="tourStatusChart"></canvas>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow transition-colors">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow fade-transition">
           <h3 class="font-semibold text-gray-600 dark:text-gray-300 mb-2">Sales vs Profit</h3>
           <canvas id="salesChart"></canvas>
         </div>
@@ -72,13 +89,10 @@
   </div>
 
   <script>
-    // === AUTH VALIDATION ===
+    // === AUTH CHECK ===
     const token = localStorage.getItem("travel_token");
     const user = JSON.parse(localStorage.getItem("travel_user") || "{}");
-
-    if (!token || !user.username) {
-      window.location.href = "/login";
-    }
+    if (!token || !user.username) window.location.href = "/login";
 
     document.getElementById("userInfo").textContent = `${user.name || user.username} (${user.type})`;
 
@@ -98,16 +112,36 @@
     // === DARK MODE ===
     const appBody = document.getElementById("appBody");
     const themeToggle = document.getElementById("themeToggle");
-    const currentTheme = localStorage.getItem("theme");
-    if (currentTheme === "dark") appBody.classList.add("dark", "bg-gray-900", "text-gray-100");
+    const userPrefDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const savedTheme = localStorage.getItem("theme");
+
+    if (savedTheme === "dark" || (!savedTheme && userPrefDark)) {
+      enableDarkMode();
+    }
 
     themeToggle.addEventListener("click", () => {
       if (appBody.classList.contains("dark")) {
-        appBody.classList.remove("dark", "bg-gray-900", "text-gray-100");
-        localStorage.setItem("theme", "light");
+        disableDarkMode();
       } else {
-        appBody.classList.add("dark", "bg-gray-900", "text-gray-100");
-        localStorage.setItem("theme", "dark");
+        enableDarkMode();
+      }
+    });
+
+    function enableDarkMode() {
+      appBody.classList.add("dark", "bg-gray-900", "text-gray-100");
+      localStorage.setItem("theme", "dark");
+    }
+
+    function disableDarkMode() {
+      appBody.classList.remove("dark", "bg-gray-900", "text-gray-100");
+      localStorage.setItem("theme", "light");
+    }
+
+    // === ACTIVE MENU HIGHLIGHT ===
+    const currentPath = window.location.pathname.split("/").pop().replace(".html", "") || "dashboard";
+    document.querySelectorAll(".menu-link").forEach(link => {
+      if (link.dataset.page === currentPath) {
+        link.classList.add("menu-active");
       }
     });
 
@@ -121,7 +155,7 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Gagal memuat data dashboard");
 
-        // Update Summary
+        // Update Summary Cards
         document.getElementById("totalTours").textContent = data.totalTours || 0;
         document.getElementById("totalSales").textContent = new Intl.NumberFormat("id-ID").format(data.totalSales || 0);
         document.getElementById("totalProfit").textContent = new Intl.NumberFormat("id-ID").format(data.totalProfit || 0);
