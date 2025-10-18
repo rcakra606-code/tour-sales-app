@@ -8,17 +8,21 @@
   <link rel="icon" href="/assets/icon.png" />
 </head>
 <body class="bg-gray-50 min-h-screen">
-
   <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md py-4">
     <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
       <h1 class="text-xl font-bold">📊 Report Tour</h1>
-      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">
-        🏠 Kembali ke Dashboard
-      </a>
+      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">🏠 Kembali ke Dashboard</a>
     </div>
   </header>
 
   <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <p id="currentUser" class="text-sm text-gray-500"></p>
+      </div>
+      <button id="logoutBtn" class="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600">Logout</button>
+    </div>
+
     <!-- Filter + Search -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div class="flex items-center gap-3">
@@ -61,6 +65,7 @@
     </div>
   </main>
 
+  <!-- Loader -->
   <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70] transition-opacity duration-300 opacity-0">
     <div class="flex flex-col items-center space-y-3 text-indigo-600">
       <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -71,8 +76,23 @@
     </div>
   </div>
 
+  <!-- Toast -->
   <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
 
   <script src="/app.js"></script>
+  <script>
+    // Proteksi login
+    (async () => {
+      const res = await fetch('/api/auth/verify', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      const data = await res.json();
+      if (!data.ok) {
+        localStorage.clear();
+        location.href = '/login.html';
+      } else {
+        document.getElementById('currentUser').textContent = `${data.user.name || data.user.username} (${data.user.type})`;
+      }
+    })();
+    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.href = '/login.html'; };
+  </script>
 </body>
 </html>
