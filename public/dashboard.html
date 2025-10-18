@@ -1,213 +1,178 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dashboard | Travel Dashboard Enterprise v3.4</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="icon" href="/assets/icon.png" />
-</head>
-<body class="h-full bg-gray-50">
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Travel Dashboard Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="color-scheme" content="light dark" />
+  </head>
 
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md">
-    <div class="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="bg-white bg-opacity-20 w-10 h-10 rounded-xl flex items-center justify-center text-2xl">🌍</div>
-        <div>
-          <h1 class="text-2xl font-bold">Travel Dashboard Enterprise</h1>
-          <p class="text-xs text-indigo-200">v3.4 — Integrated Reporting System</p>
-        </div>
-      </div>
-      <div class="flex items-center space-x-4">
-        <div class="flex items-center space-x-3 bg-white bg-opacity-20 rounded-full px-4 py-2">
-          <div class="w-8 h-8 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-sm">👤</div>
-          <div class="hidden sm:block">
-            <p class="text-xs opacity-80">Login sebagai</p>
-            <p id="currentUser" class="text-sm font-semibold"></p>
-          </div>
-        </div>
-        <button id="logoutBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300">
-          🚪 Logout
+  <body class="min-h-screen bg-gray-50 flex flex-col">
+    <!-- Navbar -->
+    <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center">
+      <h1 class="text-lg font-bold text-indigo-700">Travel Dashboard Enterprise</h1>
+      <div class="flex items-center gap-4">
+        <span id="userNameDisplay" class="text-sm text-gray-600 font-medium">Loading...</span>
+        <button
+          data-logout
+          class="text-sm text-red-600 hover:text-red-700 font-semibold transition"
+        >
+          Logout
         </button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- MAIN LAYOUT -->
-  <div class="flex h-[calc(100vh-80px)]">
-    <!-- SIDEBAR -->
-    <aside class="w-72 bg-white shadow-md border-r overflow-y-auto hidden md:block">
-      <div class="p-4">
-        <h2 class="text-lg font-bold text-gray-700 mb-3">Menu Navigasi</h2>
-        <ul class="text-sm font-medium text-gray-700 space-y-1">
-          <li><button data-page="dashboard" class="sidebar-item block w-full text-left">📊 Dashboard Overview</button></li>
-          <li><a href="/report_tour.html" class="sidebar-item block w-full">🧳 Report Tour</a></li>
-          <li><a href="/report_sales.html" class="sidebar-item block w-full">💰 Report Sales</a></li>
-          <li><a href="/report_document.html" class="sidebar-item block w-full">📄 Report Document</a></li>
-          <li><a href="/region_management.html" class="sidebar-item block w-full">🌍 Kelola Region</a></li>
-          <li><a href="/audit_log.html" class="sidebar-item block w-full">🧾 Audit Log</a></li>
-          <li><a href="/user-management.html" class="sidebar-item block w-full">👥 User Management</a></li>
-        </ul>
+    <!-- Main Content -->
+    <main class="flex-1 p-6">
+      <!-- Health / Backend Banner -->
+      <div
+        id="backendStatusBanner"
+        class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"
+      ></div>
+
+      <!-- Summary Cards -->
+      <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
+          <p id="totalSales" class="text-2xl font-bold text-indigo-600">0</p>
+        </div>
+        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Profit</h3>
+          <p id="totalProfit" class="text-2xl font-bold text-green-600">0</p>
+        </div>
+        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Pax</h3>
+          <p id="totalPax" class="text-2xl font-bold text-sky-600">0</p>
+        </div>
+        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
+          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Registrants</h3>
+          <p id="totalRegistrants" class="text-2xl font-bold text-amber-600">0</p>
+        </div>
       </div>
-    </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 overflow-y-auto p-6 space-y-10">
-      <section id="dashboardSection">
-        <h2 class="text-xl font-bold text-gray-800 mb-6">📊 Dashboard Overview</h2>
+      <!-- Charts Section -->
+      <section class="bg-white rounded-xl shadow p-6 border border-gray-100 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">Grafik Sales & Profit</h2>
+        <canvas id="salesChart" height="120"></canvas>
+      </section>
 
-        <!-- SUMMARY CARDS -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-5 rounded-xl shadow">
-            <p class="text-sm opacity-80">Total Sales (Tour)</p>
-            <h3 id="totalSales" class="text-2xl font-bold mt-1">0</h3>
-          </div>
-          <div class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-5 rounded-xl shadow">
-            <p class="text-sm opacity-80">Total Profit (Tour)</p>
-            <h3 id="totalProfit" class="text-2xl font-bold mt-1">0</h3>
-          </div>
-          <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-5 rounded-xl shadow">
-            <p class="text-sm opacity-80">Total Pax</p>
-            <h3 id="totalPax" class="text-2xl font-bold mt-1">0</h3>
-          </div>
-          <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-5 rounded-xl shadow">
-            <p class="text-sm opacity-80">Registrants</p>
-            <h3 id="totalRegistrants" class="text-2xl font-bold mt-1">0</h3>
-          </div>
+      <!-- Recent Activity -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white shadow rounded-xl p-6 border border-gray-100">
+          <h3 class="text-lg font-semibold text-gray-700 mb-3">Tour Terbaru</h3>
+          <table class="w-full text-sm text-left">
+            <thead>
+              <tr class="border-b text-gray-600">
+                <th class="py-2">Tour Code</th>
+                <th>Lead Passenger</th>
+                <th>Region</th>
+                <th>Sales</th>
+              </tr>
+            </thead>
+            <tbody id="recentTours" class="text-gray-700"></tbody>
+          </table>
         </div>
 
-        <!-- CHARTS -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          <div class="bg-white shadow rounded-xl p-6">
-            <h3 class="text-lg font-bold mb-3">📈 Sales & Profit Chart (Tour)</h3>
-            <canvas id="salesChart" height="100"></canvas>
-          </div>
-          <div class="bg-white shadow rounded-xl p-6">
-            <h3 class="text-lg font-bold mb-3">🌍 Region Distribution (Tour)</h3>
-            <canvas id="regionChart" height="100"></canvas>
-          </div>
-        </div>
-
-        <!-- RECENT TOURS -->
-        <div class="mt-8 bg-white shadow rounded-xl p-6">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-bold">🧳 Recent Tours</h3>
-            <a href="/report_tour.html" class="text-indigo-600 text-sm font-medium hover:underline">Lihat Semua →</a>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm text-gray-700">
-              <thead class="bg-indigo-500 text-white">
-                <tr>
-                  <th class="p-3 text-left">Kode Tour</th>
-                  <th class="p-3 text-left">Lead Passenger</th>
-                  <th class="p-3 text-left">Region</th>
-                  <th class="p-3 text-left">Sales</th>
-                  <th class="p-3 text-left">Profit</th>
-                  <th class="p-3 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody id="recentTourTable" class="divide-y divide-gray-200"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- RECENT SALES -->
-        <div class="mt-8 bg-white shadow rounded-xl p-6">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-bold">💰 Recent Sales Transactions</h3>
-            <a href="/report_sales.html" class="text-indigo-600 text-sm font-medium hover:underline">Lihat Semua →</a>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm text-gray-700">
-              <thead class="bg-green-600 text-white">
-                <tr>
-                  <th class="p-3 text-left">Tanggal</th>
-                  <th class="p-3 text-left">Invoice</th>
-                  <th class="p-3 text-left">Sales (Rp)</th>
-                  <th class="p-3 text-left">Profit (Rp)</th>
-                  <th class="p-3 text-left">Diskon (Rp)</th>
-                  <th class="p-3 text-left">Staff</th>
-                </tr>
-              </thead>
-              <tbody id="recentSalesTable" class="divide-y divide-gray-200"></tbody>
-            </table>
-          </div>
+        <div class="bg-white shadow rounded-xl p-6 border border-gray-100">
+          <h3 class="text-lg font-semibold text-gray-700 mb-3">Sales Terbaru</h3>
+          <table class="w-full text-sm text-left">
+            <thead>
+              <tr class="border-b text-gray-600">
+                <th class="py-2">Invoice</th>
+                <th>Tanggal</th>
+                <th>Sales</th>
+                <th>Profit</th>
+              </tr>
+            </thead>
+            <tbody id="recentSales" class="text-gray-700"></tbody>
+          </table>
         </div>
       </section>
     </main>
-  </div>
 
-  <script src="/app.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return location.href = "/login.html";
-      const headers = { "Authorization": `Bearer ${token}` };
+    <footer class="text-center py-3 text-xs text-gray-400 border-t">
+      © 2025 Travel Dashboard Enterprise v3.4.1
+    </footer>
 
-      // Fetch summary
-      const resSummary = await fetch("/api/dashboard/summary", { headers });
-      const summary = await resSummary.json();
-      document.getElementById("totalSales").textContent = summary.totals.totalSalesTours.toLocaleString("id-ID");
-      document.getElementById("totalProfit").textContent = summary.totals.totalProfitTours.toLocaleString("id-ID");
-      document.getElementById("totalPax").textContent = summary.totals.totalPax.toLocaleString("id-ID");
-      document.getElementById("totalRegistrants").textContent = summary.totals.totalRegistrants.toLocaleString("id-ID");
+    <!-- External JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Load summary data
+        try {
+          const data = await apiFetch("/api/dashboard/summary");
+          if (data && data.totals) {
+            document.getElementById("totalSales").textContent = formatNumber(data.totals.totalSalesTours);
+            document.getElementById("totalProfit").textContent = formatNumber(data.totals.totalProfitTours);
+            document.getElementById("totalPax").textContent = formatNumber(data.totals.totalPax);
+            document.getElementById("totalRegistrants").textContent = formatNumber(data.totals.totalRegistrants);
+          }
+        } catch (err) {
+          showToast("Gagal memuat ringkasan dashboard", { type: "error" });
+        }
 
-      // Charts
-      const ctx1 = document.getElementById("salesChart").getContext("2d");
-      new Chart(ctx1, {
-        type: "bar",
-        data: {
-          labels: ["Sales", "Profit"],
-          datasets: [{
-            label: "Tour Summary (Rp)",
-            data: [summary.totals.totalSalesTours, summary.totals.totalProfitTours]
-          }]
+        // Load chart data
+        try {
+          const chartRes = await apiFetch("/api/dashboard/chart-data");
+          const ctx = document.getElementById("salesChart");
+          const months = chartRes.chart.map((r) => r.month);
+          const sales = chartRes.chart.map((r) => r.total_sales);
+          const profit = chartRes.chart.map((r) => r.total_profit);
+
+          new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: months,
+              datasets: [
+                { label: "Sales", data: sales, borderWidth: 2, borderColor: "#4F46E5", tension: 0.2 },
+                { label: "Profit", data: profit, borderWidth: 2, borderColor: "#16A34A", tension: 0.2 },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: true, position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
+          });
+        } catch (err) {
+          console.error("Chart load error:", err);
+        }
+
+        // Load recent data
+        try {
+          const recent = await apiFetch("/api/dashboard/recent");
+          const toursBody = document.getElementById("recentTours");
+          const salesBody = document.getElementById("recentSales");
+
+          toursBody.innerHTML = recent.recentTours
+            .map(
+              (t) => `
+              <tr class="border-b hover:bg-gray-50">
+                <td class="py-1">${t.tourcode || "-"}</td>
+                <td>${t.leadpassenger || "-"}</td>
+                <td>${t.region || "-"}</td>
+                <td>${formatNumber(t.salesamount)}</td>
+              </tr>`
+            )
+            .join("");
+
+          salesBody.innerHTML = recent.recentSales
+            .map(
+              (s) => `
+              <tr class="border-b hover:bg-gray-50">
+                <td class="py-1">${s.invoice_number || "-"}</td>
+                <td>${s.transaction_date || "-"}</td>
+                <td>${formatNumber(s.sales_amount)}</td>
+                <td>${formatNumber(s.profit_amount)}</td>
+              </tr>`
+            )
+            .join("");
+        } catch (err) {
+          showToast("Gagal memuat data terbaru", { type: "error" });
         }
       });
-
-      const ctx2 = document.getElementById("regionChart").getContext("2d");
-      const resTours = await fetch("/api/tours", { headers });
-      const tours = await resTours.json();
-      const regionCount = {};
-      tours.forEach(t => { if (t.region) regionCount[t.region] = (regionCount[t.region] || 0) + 1; });
-      new Chart(ctx2, {
-        type: "pie",
-        data: {
-          labels: Object.keys(regionCount),
-          datasets: [{ data: Object.values(regionCount) }]
-        }
-      });
-
-      // Recent Tours
-      const recentTourBody = document.getElementById("recentTourTable");
-      recentTourBody.innerHTML = tours.slice(0, 5).map(t => `
-        <tr>
-          <td class="p-3 font-semibold">${t.tourCode || '-'}</td>
-          <td class="p-3">${t.leadPassenger || '-'}</td>
-          <td class="p-3">${t.region || '-'}</td>
-          <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 font-medium ${t.departureStatus === 'CONFIRMED' ? 'text-green-600' : t.departureStatus === 'CANCELLED' ? 'text-red-600' : 'text-yellow-600'}">${t.departureStatus}</td>
-        </tr>
-      `).join("");
-
-      // Recent Sales
-      const resSales = await fetch("/api/sales", { headers });
-      const sales = await resSales.json();
-      const recentSalesBody = document.getElementById("recentSalesTable");
-      recentSalesBody.innerHTML = sales.slice(0, 5).map(s => `
-        <tr>
-          <td class="p-3">${s.transaction_date || '-'}</td>
-          <td class="p-3 font-semibold">${s.invoice_number || '-'}</td>
-          <td class="p-3 text-right">${s.sales_amount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 text-right">${s.profit_amount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 text-right">${s.discount_amount?.toLocaleString('id-ID')}</td>
-          <td class="p-3">${s.staff_username || '-'}</td>
-        </tr>
-      `).join("");
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>
