@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Sales | Travel Dashboard Enterprise v3.3</title>
+  <title>Report Sales | Travel Dashboard Enterprise v3.4</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/assets/icon.png" />
 </head>
@@ -21,6 +21,7 @@
 
   <!-- MAIN SECTION -->
   <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
+    <!-- FILTERS -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div class="flex items-center gap-3">
         <label for="filterMonth" class="text-sm font-medium text-gray-600">Filter Bulan:</label>
@@ -42,7 +43,7 @@
 
     <!-- TABLE -->
     <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm" id="salesTable">
         <thead class="bg-green-600 text-white">
           <tr>
             <th class="p-3 text-left">Tanggal</th>
@@ -54,7 +55,7 @@
             <th class="p-3 text-left">Aksi</th>
           </tr>
         </thead>
-        <tbody id="salesTable" class="divide-y divide-gray-200"></tbody>
+        <tbody id="salesTableBody" class="divide-y divide-gray-200"></tbody>
       </table>
     </div>
   </main>
@@ -119,7 +120,7 @@
     if (!token) location.href = "/login.html";
     const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
-    const salesTable = document.getElementById("salesTable");
+    const tableBody = document.getElementById("salesTableBody");
     const addSalesBtn = document.getElementById("addSalesBtn");
     const modal = document.getElementById("salesModal");
     const form = document.getElementById("salesForm");
@@ -142,7 +143,7 @@
         (!search || (s.invoice_number || "").toLowerCase().includes(search)) &&
         (!month || (s.transaction_date || "").startsWith(month))
       );
-      salesTable.innerHTML = filtered.map(s => `
+      tableBody.innerHTML = filtered.map(s => `
         <tr class="hover:bg-green-50">
           <td class="p-3">${s.transaction_date || '-'}</td>
           <td class="p-3 font-semibold">${s.invoice_number || '-'}</td>
@@ -156,6 +157,7 @@
           </td>
         </tr>
       `).join("");
+
       document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
       document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteSales(btn.dataset.id));
     }
@@ -165,14 +167,11 @@
       const s = await res.json();
       editingId = id;
       modalTitle.textContent = "Edit Sales";
-      Object.entries(s).forEach(([key, val]) => {
-        if (form[key]) form[key].value = val || "";
-      });
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
+      Object.entries(s).forEach(([key, val]) => { if (form[key]) form[key].value = val || ""; });
+      modal.classList.remove("hidden"); modal.classList.add("flex");
     }
 
-    form.onsubmit = async e => {
+    form.addEventListener("submit", async e => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
       const method = editingId ? "PUT" : "POST";
@@ -182,7 +181,7 @@
       modal.classList.add("hidden");
       loadSales();
       editingId = null;
-    };
+    });
 
     async function deleteSales(id) {
       if (!confirm("Yakin ingin menghapus data ini?")) return;
@@ -195,7 +194,6 @@
     document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
     addSalesBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Sales"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
 
-    // Role check
     (async () => {
       const res = await fetch(`${API_BASE}/auth/verify`, { headers });
       const data = await res.json();
