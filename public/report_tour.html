@@ -1,303 +1,261 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Tour | Travel Dashboard Enterprise v3.4</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="icon" href="/assets/icon.png" />
-</head>
-<body class="bg-gray-50 min-h-screen">
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report Tour - Travel Dashboard Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="color-scheme" content="light dark" />
+  </head>
 
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md py-4">
-    <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
-      <h1 class="text-xl font-bold">🧳 Report Tour</h1>
-      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">
-        🏠 Kembali ke Dashboard
-      </a>
-    </div>
-  </header>
-
-  <!-- MAIN SECTION -->
-  <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
-    <!-- FILTERS -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <label for="regionFilter" class="text-sm font-medium text-gray-600">Filter Region:</label>
-        <input id="regionFilter" type="text" placeholder="Cari region..." class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
-      </div>
-      <div class="flex items-center gap-2">
-        <input id="searchTour" type="text" placeholder="Cari tour..." class="border rounded-lg px-3 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-indigo-500" />
-        <button id="addTourBtn" class="hidden bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700 transition-all">
-          ➕ Tambah Tour
+  <body class="min-h-screen bg-gray-50 flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow px-6 py-3 flex justify-between items-center">
+      <h1 class="font-bold text-lg text-indigo-700">Report Tour</h1>
+      <div class="flex items-center gap-4">
+        <span id="userNameDisplay" class="text-sm text-gray-600">Loading...</span>
+        <button data-logout class="text-sm text-red-600 font-semibold hover:underline">
+          Logout
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- EXPORT -->
-    <div class="flex items-center gap-3">
-      <button id="exportTourCSV" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">📄 Export CSV</button>
-      <button id="exportTourXLSX" class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm">📗 Export Excel</button>
-    </div>
+    <main class="flex-1 p-6">
+      <div id="backendStatusBanner"
+           class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"></div>
 
-    <!-- TABLE -->
-    <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
-      <table class="w-full text-sm" id="tourTable">
-        <thead class="bg-indigo-500 text-white">
-          <tr>
-            <th class="p-3 text-left">Kode Tour</th>
-            <th class="p-3 text-left">Lead Passenger</th>
-            <th class="p-3 text-left">Region</th>
-            <th class="p-3 text-left">Departure</th>
-            <th class="p-3 text-left">Sales (Rp)</th>
-            <th class="p-3 text-left">Profit (Rp)</th>
-            <th class="p-3 text-left">Status</th>
-            <th class="p-3 text-left">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="tourTableBody" class="divide-y divide-gray-200"></tbody>
-      </table>
-    </div>
-  </main>
-
-  <!-- MODAL FORM -->
-  <div id="tourModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl transform scale-95">
-      <div class="border-b px-6 py-4 flex justify-between items-center">
-        <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">Tambah Tour</h3>
-        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-      </div>
-
-      <!-- FORM -->
-      <form id="tourForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
-        <div class="grid grid-cols-2 gap-3">
+      <!-- Form Tambah / Edit -->
+      <section class="bg-white rounded-xl shadow p-6 border border-gray-100 mb-8">
+        <h2 class="text-lg font-semibold mb-4 text-gray-700">Tambah / Edit Data Tour</h2>
+        <form id="tourForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="text-sm">Tanggal Registrasi</label>
-            <input type="date" name="registrationDate" class="border rounded-lg w-full px-3 py-2">
+            <label class="text-sm font-medium">Tanggal Registrasi</label>
+            <input type="date" id="registrationDate"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
           </div>
           <div>
-            <label class="text-sm">Kode Tour</label>
-            <input type="text" name="tourCode" class="border rounded-lg w-full px-3 py-2">
-          </div>
-        </div>
-
-        <div>
-          <label class="text-sm">Lead Passenger</label>
-          <input type="text" name="leadPassenger" class="border rounded-lg w-full px-3 py-2">
-        </div>
-
-        <div>
-          <label class="text-sm">Nama Semua Peserta</label>
-          <textarea name="allPassengers" class="border rounded-lg w-full px-3 py-2" rows="2"></textarea>
-        </div>
-
-        <!-- Region Searchable Dropdown -->
-        <div>
-          <label class="text-sm font-medium">Region</label>
-          <div class="relative">
-            <input type="text" id="regionSearch" placeholder="Ketik untuk mencari region..." class="border rounded-lg w-full px-3 py-2 focus:ring-2 focus:ring-indigo-500" autocomplete="off" />
-            <ul id="regionDropdown" class="absolute left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 hidden max-h-48 overflow-y-auto z-10"></ul>
-          </div>
-          <input type="hidden" name="region" id="regionValue" />
-          <p id="regionError" class="text-red-600 text-xs mt-1 hidden">⚠️ Harap pilih region yang valid</p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Tanggal Keberangkatan</label>
-            <input type="date" name="departureDate" class="border rounded-lg w-full px-3 py-2">
+            <label class="text-sm font-medium">Lead Passenger</label>
+            <input type="text" id="leadPassenger"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
           </div>
           <div>
-            <label class="text-sm">Kode Booking</label>
-            <input type="text" name="bookingCode" class="border rounded-lg w-full px-3 py-2">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Harga Tour (Rp)</label>
-            <input type="number" step="0.01" name="tourPrice" class="border rounded-lg w-full px-3 py-2">
+            <label class="text-sm font-medium">All Passengers (pisahkan dengan koma)</label>
+            <input type="text" id="allPassengers"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
           </div>
           <div>
-            <label class="text-sm">Sales Amount (Rp)</label>
-            <input type="number" step="0.01" name="salesAmount" class="border rounded-lg w-full px-3 py-2">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Profit Amount (Rp)</label>
-            <input type="number" step="0.01" name="profitAmount" class="border rounded-lg w-full px-3 py-2">
+            <label class="text-sm font-medium">Tour Code</label>
+            <input type="text" id="tourCode"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
           </div>
           <div>
-            <label class="text-sm">Status Keberangkatan</label>
-            <select name="departureStatus" class="border rounded-lg w-full px-3 py-2">
+            <label class="text-sm font-medium">Region</label>
+            <input type="text" id="region"
+                   placeholder="Cari region..."
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Tanggal Keberangkatan</label>
+            <input type="date" id="departureDate"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Booking Code</label>
+            <input type="text" id="bookingCode"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Harga Tour</label>
+            <input type="number" id="tourPrice"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Sales Amount</label>
+            <input type="number" id="salesAmount"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Profit Amount</label>
+            <input type="number" id="profitAmount"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Departure Status</label>
+            <select id="departureStatus"
+                    class="w-full border rounded-lg px-3 py-2 mt-1">
               <option value="PENDING">PENDING</option>
               <option value="CONFIRMED">CONFIRMED</option>
               <option value="CANCELLED">CANCELLED</option>
             </select>
           </div>
+
+          <div class="col-span-1 md:col-span-2 flex gap-3 mt-4">
+            <button type="submit"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+              Simpan
+            </button>
+            <button type="button" id="resetBtn"
+                    class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
+              Reset
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Data Table -->
+      <section class="bg-white rounded-xl shadow p-6 border border-gray-100">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-700">Daftar Tour</h2>
+          <button id="refreshBtn"
+                  class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">
+            Refresh
+          </button>
         </div>
-      </form>
 
-      <div class="border-t px-6 py-4 flex justify-end gap-3">
-        <button id="cancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
-        <button id="saveTourBtn" type="submit" form="tourForm" class="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Simpan</button>
-      </div>
-    </div>
-  </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left border">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr>
+                <th class="py-2 px-2">#</th>
+                <th>Tour Code</th>
+                <th>Lead Passenger</th>
+                <th>Region</th>
+                <th>Departure</th>
+                <th>Sales</th>
+                <th>Profit</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="tourTable" class="text-gray-700"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
 
-  <!-- LOADER -->
-  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
-    <div class="flex flex-col items-center space-y-3 text-indigo-600">
-      <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-      </svg>
-      <span id="loaderMessage" class="text-sm font-medium">Memuat data...</span>
-    </div>
-  </div>
+    <footer class="text-center text-xs text-gray-400 py-3 border-t">
+      © 2025 Travel Dashboard Enterprise v3.4.1
+    </footer>
 
-  <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
+    <script src="/js/app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("tourForm");
+        const resetBtn = document.getElementById("resetBtn");
+        const tableBody = document.getElementById("tourTable");
+        const refreshBtn = document.getElementById("refreshBtn");
+        let editId = null;
 
-  <script src="/app.js"></script>
-  <script>
-    const API_BASE = "/api";
-    const token = localStorage.getItem("token");
-    if (!token) location.href = "/login.html";
-    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+        async function loadTours() {
+          try {
+            const data = await apiFetch("/api/tours");
+            tableBody.innerHTML = data
+              .map(
+                (t, i) => `
+                <tr class="border-b hover:bg-gray-50">
+                  <td class="py-1 px-2">${i + 1}</td>
+                  <td>${t.tourcode || "-"}</td>
+                  <td>${t.leadpassenger || "-"}</td>
+                  <td>${t.region || "-"}</td>
+                  <td>${t.departuredate || "-"}</td>
+                  <td>${formatNumber(t.salesamount)}</td>
+                  <td>${formatNumber(t.profitamount)}</td>
+                  <td>${t.departurestatus || "-"}</td>
+                  <td class="flex gap-2">
+                    <button class="text-blue-600 hover:underline" data-edit="${t.id}">Edit</button>
+                    <button class="text-red-600 hover:underline" data-delete="${t.id}">Hapus</button>
+                  </td>
+                </tr>`
+              )
+              .join("");
+          } catch (err) {
+            console.error(err);
+            showToast("Gagal memuat data tour", { type: "error" });
+          }
+        }
 
-    const tableBody = document.getElementById("tourTableBody");
-    const addTourBtn = document.getElementById("addTourBtn");
-    const modal = document.getElementById("tourModal");
-    const form = document.getElementById("tourForm");
-    const modalTitle = document.getElementById("modalTitle");
-    let editingId = null;
-    let userRole = "basic";
-    let regionList = [];
+        // load all tours initially
+        loadTours();
 
-    async function loadRegions() {
-      try {
-        const res = await fetch(`${API_BASE}/regions`, { headers });
-        regionList = await res.json();
-      } catch {
-        regionList = [];
-      }
-    }
+        // handle form submit
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const payload = {
+            registrationDate: form.registrationDate.value,
+            leadPassenger: form.leadPassenger.value,
+            allPassengers: form.allPassengers.value,
+            tourCode: form.tourCode.value,
+            region: form.region.value,
+            departureDate: form.departureDate.value,
+            bookingCode: form.bookingCode.value,
+            tourPrice: form.tourPrice.value,
+            salesAmount: form.salesAmount.value,
+            profitAmount: form.profitAmount.value,
+            departureStatus: form.departureStatus.value,
+          };
 
-    async function loadTours() {
-      showLoader(true, "Memuat data tour...");
-      const res = await fetch(`${API_BASE}/tours`, { headers });
-      const tours = await res.json();
-      renderTours(tours);
-      showLoader(false);
-    }
+          try {
+            if (editId) {
+              await apiFetch(`/api/tours/${editId}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+              });
+              showToast("✅ Data tour diperbarui", { type: "success" });
+            } else {
+              await apiFetch("/api/tours", {
+                method: "POST",
+                body: JSON.stringify(payload),
+              });
+              showToast("✅ Data tour ditambahkan", { type: "success" });
+            }
+            editId = null;
+            form.reset();
+            loadTours();
+          } catch (err) {
+            console.error(err);
+            showToast("❌ Gagal menyimpan data", { type: "error" });
+          }
+        });
 
-    function renderTours(data) {
-      const search = document.getElementById("searchTour").value.toLowerCase();
-      const region = document.getElementById("regionFilter").value.toLowerCase();
-      const filtered = data.filter(t =>
-        (!search || (t.tourCode || "").toLowerCase().includes(search) || (t.leadPassenger || "").toLowerCase().includes(search)) &&
-        (!region || (t.region || "").toLowerCase().includes(region))
-      );
-      tableBody.innerHTML = filtered.map(t => `
-        <tr class="hover:bg-indigo-50">
-          <td class="p-3 font-semibold">${t.tourCode || '-'}</td>
-          <td class="p-3">${t.leadPassenger || '-'}</td>
-          <td class="p-3">${t.region || '-'}</td>
-          <td class="p-3">${t.departureDate || '-'}</td>
-          <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 font-medium ${t.departureStatus === 'CONFIRMED' ? 'text-green-600' : t.departureStatus === 'CANCELLED' ? 'text-red-600' : 'text-yellow-600'}">${t.departureStatus}</td>
-          <td class="p-3 flex gap-2">
-            ${(userRole !== "basic") ? `<button class="edit-btn text-blue-600 hover:underline" data-id="${t.id}">Edit</button>` : ""}
-            ${(userRole === "super") ? `<button class="delete-btn text-red-600 hover:underline" data-id="${t.id}">Hapus</button>` : ""}
-          </td>
-        </tr>
-      `).join("");
-      document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
-      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteTour(btn.dataset.id));
-    }
+        // reset form
+        resetBtn.addEventListener("click", () => {
+          form.reset();
+          editId = null;
+        });
 
-    async function openEdit(id) {
-      const res = await fetch(`${API_BASE}/tours/${id}`, { headers });
-      const t = await res.json();
-      editingId = id;
-      modalTitle.textContent = "Edit Tour";
-      Object.entries(t).forEach(([key, val]) => { if (form[key]) form[key].value = val || ""; });
-      modal.classList.remove("hidden"); modal.classList.add("flex");
-    }
+        // refresh data
+        refreshBtn.addEventListener("click", loadTours);
 
-    // REGION AUTOCOMPLETE
-    const regionSearch = document.getElementById("regionSearch");
-    const regionDropdown = document.getElementById("regionDropdown");
-    const regionValue = document.getElementById("regionValue");
-    const regionError = document.getElementById("regionError");
+        // handle edit/delete
+        tableBody.addEventListener("click", async (e) => {
+          const id = e.target.dataset.edit || e.target.dataset.delete;
+          if (!id) return;
 
-    regionSearch.addEventListener("input", () => {
-      const query = regionSearch.value.toLowerCase();
-      const filtered = regionList.filter(r => r.name.toLowerCase().includes(query));
-      regionDropdown.innerHTML = filtered.length
-        ? filtered.map(r => `<li class='px-3 py-2 hover:bg-indigo-100 cursor-pointer'>${r.name}</li>`).join("")
-        : `<li class='px-3 py-2 text-gray-400 text-sm'>Tidak ada hasil</li>`;
-      regionDropdown.classList.remove("hidden");
-    });
+          if (e.target.dataset.edit) {
+            try {
+              const tour = await apiFetch(`/api/tours/${id}`);
+              Object.keys(tour).forEach((key) => {
+                if (form[key]) form[key].value = tour[key];
+              });
+              editId = id;
+              showToast("✏️ Mode edit aktif", { type: "info" });
+            } catch (err) {
+              showToast("Gagal memuat data untuk edit", { type: "error" });
+            }
+          }
 
-    regionDropdown.addEventListener("click", e => {
-      if (e.target.tagName === "LI") {
-        regionSearch.value = e.target.textContent;
-        regionValue.value = e.target.textContent;
-        regionDropdown.classList.add("hidden");
-        regionError.classList.add("hidden");
-      }
-    });
-
-    document.addEventListener("click", e => {
-      if (!regionDropdown.contains(e.target) && e.target !== regionSearch) regionDropdown.classList.add("hidden");
-    });
-
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      const region = regionValue.value.trim();
-      if (!region) {
-        regionError.classList.remove("hidden");
-        showToast("❌ Harap pilih region sebelum menyimpan", "error");
-        return false;
-      }
-      const data = Object.fromEntries(new FormData(form).entries());
-      const method = editingId ? "PUT" : "POST";
-      const url = editingId ? `${API_BASE}/tours/${editingId}` : `${API_BASE}/tours`;
-      await fetch(url, { method, headers, body: JSON.stringify(data) });
-      showToast("✅ Data tour berhasil disimpan", "success");
-      modal.classList.add("hidden");
-      loadTours();
-      editingId = null;
-    });
-
-    async function deleteTour(id) {
-      if (!confirm("Yakin ingin menghapus data ini?")) return;
-      await fetch(`${API_BASE}/tours/${id}`, { method: "DELETE", headers });
-      showToast("🗑️ Tour dihapus", "success");
-      loadTours();
-    }
-
-    document.getElementById("closeModalBtn").onclick = () => modal.classList.add("hidden");
-    document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
-    addTourBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Tour"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
-
-    (async () => {
-      const res = await fetch(`${API_BASE}/auth/verify`, { headers });
-      const data = await res.json();
-      if (!data.ok) location.href = "/login.html";
-      userRole = data.user.type;
-      if (["super", "semi"].includes(userRole)) addTourBtn.classList.remove("hidden");
-      await loadRegions();
-      await loadTours();
-    })();
-
-    document.getElementById("searchTour").oninput = loadTours;
-    document.getElementById("regionFilter").oninput = loadTours;
-  </script>
-</body>
+          if (e.target.dataset.delete) {
+            if (!confirm("Yakin ingin menghapus data ini?")) return;
+            try {
+              await apiFetch(`/api/tours/${id}`, { method: "DELETE" });
+              showToast("🗑️ Data tour dihapus", { type: "success" });
+              loadTours();
+            } catch (err) {
+              showToast("Gagal menghapus data", { type: "error" });
+            }
+          }
+        });
+      });
+    </script>
+  </body>
 </html>
