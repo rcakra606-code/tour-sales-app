@@ -1,171 +1,122 @@
 /**
  * ==========================================================
- * 🌐 server.js — Travel Dashboard Enterprise v3.1 (Final)
+ * server.js — Travel Dashboard Enterprise v3.3 FINAL
  * ==========================================================
- * Express + SQLite + JWT + Helmet + Backup + Healthcheck
- * ----------------------------------------------------------
- * ✅ JWT Auth + RBAC
- * ✅ Helmet + CSP Secure
- * ✅ SQLite Auto Init
- * ✅ Daily Auto Backup @ 03:00 (Asia/Jakarta)
- * ✅ Auto Delete Backups Older Than 7 Days
- * ✅ Healthcheck Endpoint for Render/Docker
+ * ✅ Express Server with Helmet & CSP
+ * ✅ Role-Based Auth (JWT)
+ * ✅ Auto DB Initialization
+ * ✅ API Modular Routes (Tours, Sales, Documents, etc)
+ * ✅ Automatic Backup Retention (7 days)
  * ==========================================================
  */
 
 const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const helmet = require("helmet");
 const cors = require("cors");
+const helmet = require("helmet");
+const fs = require("fs");
+const path = require("path");
 const bodyParser = require("body-parser");
 const cron = require("node-cron");
-const { initDB } = require("./db");
 
+const { initDB } = require("./db");
+const { logAction } = require("./middleware/log");
+
+// Inisialisasi app
 const app = express();
 const PORT = process.env.PORT || 3000;
-const TZ = process.env.TZ || "Asia/Jakarta";
+const BACKUP_DIR = path.join(__dirname, "backups");
+const DB_PATH = path.join(__dirname, "data", "travel.db");
 
-// Paths
-const DATA_DIR = path.join(__dirname, "data");
-const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, "backups");
-const DB_FILE = process.env.DB_PATH || path.join(DATA_DIR, "travel.db");
-
-// Retention policy (in days)
-const BACKUP_RETENTION_DAYS = parseInt(process.env.BACKUP_RETENTION_DAYS || "7", 10);
-
-/* =====================================================
-   🔒 SECURITY & CORE MIDDLEWARE
-   ===================================================== */
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-          "https://unpkg.com",
-          "https://cdn.jsdelivr.net/npm/chart.js",
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://fonts.googleapis.com",
-        ],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-  })
-);
-app.use(cors());
-app.use(bodyParser.json());
-
-/* =====================================================
-   📁 INIT DATABASE & DIRECTORIES
-   ===================================================== */
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+// Pastikan direktori backup tersedia
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR);
 
-initDB();
-
-/* =====================================================
-   🗂️ ROUTES
-   ===================================================== */
-app.use("/api/auth", require("./routes/auth"));
-app.use("/api/dashboard", require("./routes/dashboard"));
-app.use("/api/tours", require("./routes/tours"));
-app.use("/api/sales", require("./routes/sales"));
-app.use("/api/documents", require("./routes/documents"));
-app.use("/api/users", require("./routes/users"));
-app.use("/api/regions", require("./routes/regions"));
-app.use("/api/logs", require("./routes/logs"));
-
-/* =====================================================
-   🧠 HEALTHCHECK ENDPOINT
-   ===================================================== */
-app.get("/api/health", (req, res) => {
-  try {
-    const exists = fs.existsSync(DB_FILE);
-    res.json({
-      status: "ok",
-      database: exists ? "connected" : "missing",
-      time: new Date().toLocaleString("id-ID", { timeZone: TZ }),
-      version: "3.1",
-    });
-  } catch (err) {
-    res.status(500).json({ status: "error", message: err.message });
-  }
-});
-
-/* =====================================================
-   🌙 DAILY BACKUP JOB (03:00) + RETENTION
-   ===================================================== */
-cron.schedule("0 3 * * *", () => {
-  try {
-    const date = new Date().toISOString().split("T")[0];
-    const backupFile = path.join(BACKUP_DIR, `backup-${date}.db`);
-    if (fs.existsSync(DB_FILE)) {
-      fs.copyFileSync(DB_FILE, backupFile);
-      console.log(`🗄️ Backup created: ${backupFile}`);
-    }
-
-    // === Retention: Delete backups older than BACKUP_RETENTION_DAYS ===
-    const files = fs.readdirSync(BACKUP_DIR);
-    const now = Date.now();
-
-    files.forEach((file) => {
-      if (file.startsWith("backup-") && file.endsWith(".db")) {
-        const filePath = path.join(BACKUP_DIR, file);
-        const stats = fs.statSync(filePath);
-        const ageDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
-        if (ageDays > BACKUP_RETENTION_DAYS) {
-          fs.unlinkSync(filePath);
-          console.log(`🧹 Old backup deleted (${file}), age: ${ageDays.toFixed(1)} days`);
-        }
-      }
-    });
-  } catch (err) {
-    console.error("❌ Backup or retention job failed:", err.message);
-  }
-}, { timezone: TZ });
-
-/* =====================================================
-   📦 STATIC FRONTEND
-   ===================================================== */
+// Security Middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+    },
+  },
+}));
+app.use(cors());
+app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (_, res) =>
-  res.sendFile(path.join(__dirname, "public", "login.html"))
-);
-app.get("/dashboard.html", (_, res) =>
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"))
-);
+// Inisialisasi Database
+initDB();
 
-/* =====================================================
-   ⚠️ ERROR HANDLER
-   ===================================================== */
-app.use((err, req, res, next) => {
-  console.error("❌ Uncaught Error:", err);
-  res.status(500).json({ error: "Terjadi kesalahan internal server" });
+// ROUTES IMPORT
+const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const toursRoutes = require("./routes/tours");
+const salesRoutes = require("./routes/sales");
+const documentsRoutes = require("./routes/documents");
+const usersRoutes = require("./routes/users");
+const logsRoutes = require("./routes/logs");
+const regionsRoutes = require("./routes/regions");
+
+// REGISTER ROUTES
+app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/tours", toursRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/documents", documentsRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/logs", logsRoutes);
+app.use("/api/regions", regionsRoutes);
+
+// HEALTH CHECK (untuk Render & Docker)
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date() });
 });
 
-/* =====================================================
-   🚀 START SERVER
-   ===================================================== */
+// AUTO BACKUP DATABASE (Setiap hari jam 03:00)
+cron.schedule("0 3 * * *", () => {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const backupFile = path.join(BACKUP_DIR, `backup-${timestamp}.db`);
+    fs.copyFileSync(DB_PATH, backupFile);
+    console.log(`💾 Backup DB sukses: ${backupFile}`);
+    logAction({ username: "system", type: "system" }, "Backup DB Otomatis", backupFile);
+    cleanupOldBackups();
+  } catch (err) {
+    console.error("❌ Gagal backup database:", err);
+  }
+});
+
+// Hapus backup yang lebih dari 7 hari
+function cleanupOldBackups() {
+  const files = fs.readdirSync(BACKUP_DIR);
+  const now = Date.now();
+  files.forEach(file => {
+    const filePath = path.join(BACKUP_DIR, file);
+    const stats = fs.statSync(filePath);
+    const age = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+    if (age > 7) {
+      fs.unlinkSync(filePath);
+      console.log(`🧹 Menghapus backup lama: ${file}`);
+    }
+  });
+}
+
+// DEFAULT ROUTE
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+});
+
+// ERROR HANDLER
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
+
+// START SERVER
 app.listen(PORT, () => {
-  console.log("==========================================");
-  console.log("🚀 Travel Dashboard Enterprise v3.1 Ready");
-  console.log(`🌍 Environment  : ${process.env.NODE_ENV || "development"}`);
-  console.log(`🕓 Timezone     : ${TZ}`);
-  console.log(`💾 Database     : ${DB_FILE}`);
-  console.log(`📦 Backup Dir   : ${BACKUP_DIR}`);
-  console.log(`🧹 Retention    : ${BACKUP_RETENTION_DAYS} hari`);
-  console.log(`📡 Server Port  : ${PORT}`);
-  console.log("==========================================");
+  console.log(`🚀 Server berjalan di port ${PORT}`);
+  console.log("🧩 Travel Dashboard Enterprise v3.3 siap digunakan");
 });
