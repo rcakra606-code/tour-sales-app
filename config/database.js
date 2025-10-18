@@ -10,7 +10,7 @@ const CONNECTION_STRING = process.env.DATABASE_URL || process.env.DATABASE_URI |
 if (!CONNECTION_STRING) {
   console.error("❌ FATAL: environment variable DATABASE_URL (or DATABASE_URI/PG_URI) is not set.");
   console.error("Please set DATABASE_URL to Neon connection string, e.g.:");
-  console.error("postgresql://USERNAME:PASSWORD@host:5432/dbname?sslmode=require");
+  console.error("postgresql://neondb_owner:npg_YM8HVPWg5fnJ@ep-young-moon-a1lbsq3i-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require");
   // do not exit synchronously if you want process to continue; but safe to exit to avoid random errors
   // process.exit(1);
 }
