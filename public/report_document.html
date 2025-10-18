@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Document | Travel Dashboard Enterprise v3.3</title>
+  <title>Report Document | Travel Dashboard Enterprise v3.4</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/assets/icon.png" />
 </head>
@@ -21,6 +21,7 @@
 
   <!-- MAIN SECTION -->
   <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
+    <!-- FILTERS -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div class="flex items-center gap-3">
         <label for="searchDoc" class="text-sm font-medium text-gray-600">Cari Dokumen:</label>
@@ -39,7 +40,7 @@
 
     <!-- TABLE -->
     <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm" id="documentTable">
         <thead class="bg-purple-600 text-white">
           <tr>
             <th class="p-3 text-left">Tanggal Terima</th>
@@ -51,7 +52,7 @@
             <th class="p-3 text-left">Aksi</th>
           </tr>
         </thead>
-        <tbody id="documentTable" class="divide-y divide-gray-200"></tbody>
+        <tbody id="documentBody" class="divide-y divide-gray-200"></tbody>
       </table>
     </div>
   </main>
@@ -112,34 +113,37 @@
     const API_BASE = "/api";
     const token = localStorage.getItem("token");
     if (!token) location.href = "/login.html";
-
     const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-    const tableBody = document.getElementById("documentTable");
-    const addBtn = document.getElementById("addDocBtn");
+
+    const tableBody = document.getElementById("documentBody");
+    const addDocBtn = document.getElementById("addDocBtn");
     const modal = document.getElementById("documentModal");
     const form = document.getElementById("documentForm");
     const modalTitle = document.getElementById("modalTitle");
     let editingId = null;
     let userRole = "basic";
 
-    async function loadDocs() {
+    async function loadDocuments() {
       showLoader(true, "Memuat data dokumen...");
       const res = await fetch(`${API_BASE}/documents`, { headers });
       const docs = await res.json();
-      renderDocs(docs);
+      renderDocuments(docs);
       showLoader(false);
     }
 
-    function renderDocs(data) {
+    function renderDocuments(data) {
       const search = document.getElementById("searchDoc").value.toLowerCase();
       const filtered = data.filter(d =>
-        (!search || d.guest_name.toLowerCase().includes(search) || (d.booking_code || "").toLowerCase().includes(search))
+        (!search ||
+          (d.guest_name || "").toLowerCase().includes(search) ||
+          (d.booking_code || "").toLowerCase().includes(search) ||
+          (d.tour_code || "").toLowerCase().includes(search))
       );
       tableBody.innerHTML = filtered.map(d => `
         <tr class="hover:bg-purple-50">
           <td class="p-3">${d.receive_date || '-'}</td>
-          <td class="p-3">${d.guest_name || '-'}</td>
-          <td class="p-3 font-semibold">${d.booking_code || '-'}</td>
+          <td class="p-3 font-semibold">${d.guest_name || '-'}</td>
+          <td class="p-3">${d.booking_code || '-'}</td>
           <td class="p-3">${d.tour_code || '-'}</td>
           <td class="p-3">${d.document_remarks || '-'}</td>
           <td class="p-3">${d.staff || '-'}</td>
@@ -149,9 +153,8 @@
           </td>
         </tr>
       `).join("");
-
       document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
-      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteDoc(btn.dataset.id));
+      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteDocument(btn.dataset.id));
     }
 
     async function openEdit(id) {
@@ -159,14 +162,11 @@
       const d = await res.json();
       editingId = id;
       modalTitle.textContent = "Edit Dokumen";
-      Object.entries(d).forEach(([key, val]) => {
-        if (form[key]) form[key].value = val || "";
-      });
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
+      Object.entries(d).forEach(([key, val]) => { if (form[key]) form[key].value = val || ""; });
+      modal.classList.remove("hidden"); modal.classList.add("flex");
     }
 
-    form.onsubmit = async e => {
+    form.addEventListener("submit", async e => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
       const method = editingId ? "PUT" : "POST";
@@ -174,31 +174,31 @@
       await fetch(url, { method, headers, body: JSON.stringify(data) });
       showToast("✅ Data dokumen berhasil disimpan", "success");
       modal.classList.add("hidden");
-      loadDocs();
+      loadDocuments();
       editingId = null;
-    };
+    });
 
-    async function deleteDoc(id) {
+    async function deleteDocument(id) {
       if (!confirm("Yakin ingin menghapus data ini?")) return;
       await fetch(`${API_BASE}/documents/${id}`, { method: "DELETE", headers });
       showToast("🗑️ Dokumen dihapus", "success");
-      loadDocs();
+      loadDocuments();
     }
 
     document.getElementById("closeModalBtn").onclick = () => modal.classList.add("hidden");
     document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
-    addBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Dokumen"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
+    addDocBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Dokumen"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
 
     (async () => {
       const res = await fetch(`${API_BASE}/auth/verify`, { headers });
       const data = await res.json();
       if (!data.ok) location.href = "/login.html";
       userRole = data.user.type;
-      if (["super", "semi"].includes(userRole)) addBtn.classList.remove("hidden");
-      loadDocs();
+      if (["super", "semi"].includes(userRole)) addDocBtn.classList.remove("hidden");
+      loadDocuments();
     })();
 
-    document.getElementById("searchDoc").oninput = loadDocs;
+    document.getElementById("searchDoc").oninput = loadDocuments;
   </script>
 </body>
 </html>
