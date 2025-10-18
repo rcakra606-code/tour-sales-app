@@ -3,51 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dashboard | Travel Dashboard Enterprise v3.3</title>
+  <title>Dashboard | Travel Dashboard Enterprise v3.4</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="icon" href="/assets/icon.png" />
-  <style>
-    body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto; }
-    .sidebar-item {
-      transition: all .25s ease;
-      border-radius: 8px;
-      margin: 4px 8px;
-      display: block;
-      padding: 10px;
-    }
-    .sidebar-item:hover {
-      transform: translateX(4px);
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .sidebar-item.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
-    }
-  </style>
 </head>
 <body class="h-full bg-gray-50">
 
   <!-- HEADER -->
-  <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md">
+  <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md">
     <div class="max-w-7xl mx-auto px-4 py-5 flex justify-between items-center">
       <div class="flex items-center gap-3">
         <div class="bg-white bg-opacity-20 w-10 h-10 rounded-xl flex items-center justify-center text-2xl">🌍</div>
         <div>
           <h1 class="text-2xl font-bold">Travel Dashboard Enterprise</h1>
-          <p class="text-xs text-indigo-200">v3.3 — Integrated System (Tour + Sales)</p>
+          <p class="text-xs text-indigo-200">v3.4 — Integrated Reporting System</p>
         </div>
       </div>
-
       <div class="flex items-center space-x-4">
-        <div id="notifBell" class="relative cursor-pointer bg-white bg-opacity-20 p-2 rounded-full hover:bg-opacity-30 transition-all">
-          🔔
-          <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full hidden">0</span>
-          <span id="notifBadgeLogs" class="absolute -top-1 -right-5 bg-orange-500 text-white text-xs px-1 rounded-full hidden">0</span>
-        </div>
-
         <div class="flex items-center space-x-3 bg-white bg-opacity-20 rounded-full px-4 py-2">
           <div class="w-8 h-8 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-sm">👤</div>
           <div class="hidden sm:block">
@@ -55,7 +28,6 @@
             <p id="currentUser" class="text-sm font-semibold"></p>
           </div>
         </div>
-
         <button id="logoutBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300">
           🚪 Logout
         </button>
@@ -65,20 +37,18 @@
 
   <!-- MAIN LAYOUT -->
   <div class="flex h-[calc(100vh-80px)]">
-    
     <!-- SIDEBAR -->
     <aside class="w-72 bg-white shadow-md border-r overflow-y-auto hidden md:block">
       <div class="p-4">
         <h2 class="text-lg font-bold text-gray-700 mb-3">Menu Navigasi</h2>
         <ul class="text-sm font-medium text-gray-700 space-y-1">
-          <li><button data-page="dashboard" class="sidebar-item w-full text-left">📊 Dashboard Overview</button></li>
+          <li><button data-page="dashboard" class="sidebar-item block w-full text-left">📊 Dashboard Overview</button></li>
           <li><a href="/report_tour.html" class="sidebar-item block w-full">🧳 Report Tour</a></li>
           <li><a href="/report_sales.html" class="sidebar-item block w-full">💰 Report Sales</a></li>
           <li><a href="/report_document.html" class="sidebar-item block w-full">📄 Report Document</a></li>
+          <li><a href="/region_management.html" class="sidebar-item block w-full">🌍 Kelola Region</a></li>
           <li><a href="/audit_log.html" class="sidebar-item block w-full">🧾 Audit Log</a></li>
-          <li><button data-page="manageUsers" class="sidebar-item w-full text-left">👥 Kelola User</button></li>
-          <li><button data-page="manageRegions" class="sidebar-item w-full text-left">🌍 Kelola Region</button></li>
-          <li><button data-page="executive" class="sidebar-item w-full text-left">🏢 Executive Summary</button></li>
+          <li><a href="/user-management.html" class="sidebar-item block w-full">👥 User Management</a></li>
         </ul>
       </div>
     </aside>
@@ -108,16 +78,16 @@
           </div>
         </div>
 
-        <!-- CHART SECTION -->
-        <div class="mt-8 bg-white shadow rounded-xl p-6">
-          <h3 class="text-lg font-bold mb-3">📈 Sales & Profit Chart (Tour)</h3>
-          <canvas id="salesChart" height="100"></canvas>
-        </div>
-
-        <!-- REGION DISTRIBUTION -->
-        <div class="mt-8 bg-white shadow rounded-xl p-6">
-          <h3 class="text-lg font-bold mb-3">🌍 Region Distribution (Tour)</h3>
-          <canvas id="regionChart" height="100"></canvas>
+        <!-- CHARTS -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          <div class="bg-white shadow rounded-xl p-6">
+            <h3 class="text-lg font-bold mb-3">📈 Sales & Profit Chart (Tour)</h3>
+            <canvas id="salesChart" height="100"></canvas>
+          </div>
+          <div class="bg-white shadow rounded-xl p-6">
+            <h3 class="text-lg font-bold mb-3">🌍 Region Distribution (Tour)</h3>
+            <canvas id="regionChart" height="100"></canvas>
+          </div>
         </div>
 
         <!-- RECENT TOURS -->
@@ -169,19 +139,6 @@
     </main>
   </div>
 
-  <!-- LOADER -->
-  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
-    <div class="flex flex-col items-center space-y-3 text-indigo-600">
-      <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-      </svg>
-      <span id="loaderMessage" class="text-sm font-medium">Memuat data...</span>
-    </div>
-  </div>
-
-  <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
-
   <script src="/app.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
@@ -189,41 +146,67 @@
       if (!token) return location.href = "/login.html";
       const headers = { "Authorization": `Bearer ${token}` };
 
-      try {
-        // RECENT TOURS
-        const resTour = await fetch("/api/tours", { headers });
-        const tours = await resTour.json();
-        const recentTours = tours.slice(0, 5);
-        const tourBody = document.getElementById("recentTourTable");
-        tourBody.innerHTML = recentTours.map(t => `
-          <tr>
-            <td class="p-3 font-semibold">${t.tourCode || '-'}</td>
-            <td class="p-3">${t.leadPassenger || '-'}</td>
-            <td class="p-3">${t.region || '-'}</td>
-            <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
-            <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
-            <td class="p-3 font-medium ${t.departureStatus === 'CONFIRMED' ? 'text-green-600' : t.departureStatus === 'CANCELLED' ? 'text-red-600' : 'text-yellow-600'}">${t.departureStatus}</td>
-          </tr>
-        `).join("");
+      // Fetch summary
+      const resSummary = await fetch("/api/dashboard/summary", { headers });
+      const summary = await resSummary.json();
+      document.getElementById("totalSales").textContent = summary.totals.totalSalesTours.toLocaleString("id-ID");
+      document.getElementById("totalProfit").textContent = summary.totals.totalProfitTours.toLocaleString("id-ID");
+      document.getElementById("totalPax").textContent = summary.totals.totalPax.toLocaleString("id-ID");
+      document.getElementById("totalRegistrants").textContent = summary.totals.totalRegistrants.toLocaleString("id-ID");
 
-        // RECENT SALES
-        const resSales = await fetch("/api/sales", { headers });
-        const sales = await resSales.json();
-        const recentSales = sales.slice(0, 5);
-        const salesBody = document.getElementById("recentSalesTable");
-        salesBody.innerHTML = recentSales.map(s => `
-          <tr>
-            <td class="p-3">${s.transaction_date || '-'}</td>
-            <td class="p-3 font-semibold">${s.invoice_number || '-'}</td>
-            <td class="p-3 text-right">${s.sales_amount?.toLocaleString('id-ID')}</td>
-            <td class="p-3 text-right">${s.profit_amount?.toLocaleString('id-ID')}</td>
-            <td class="p-3 text-right">${s.discount_amount?.toLocaleString('id-ID')}</td>
-            <td class="p-3">${s.staff_username || '-'}</td>
-          </tr>
-        `).join("");
-      } catch (err) {
-        console.error("Error loading dashboard:", err);
-      }
+      // Charts
+      const ctx1 = document.getElementById("salesChart").getContext("2d");
+      new Chart(ctx1, {
+        type: "bar",
+        data: {
+          labels: ["Sales", "Profit"],
+          datasets: [{
+            label: "Tour Summary (Rp)",
+            data: [summary.totals.totalSalesTours, summary.totals.totalProfitTours]
+          }]
+        }
+      });
+
+      const ctx2 = document.getElementById("regionChart").getContext("2d");
+      const resTours = await fetch("/api/tours", { headers });
+      const tours = await resTours.json();
+      const regionCount = {};
+      tours.forEach(t => { if (t.region) regionCount[t.region] = (regionCount[t.region] || 0) + 1; });
+      new Chart(ctx2, {
+        type: "pie",
+        data: {
+          labels: Object.keys(regionCount),
+          datasets: [{ data: Object.values(regionCount) }]
+        }
+      });
+
+      // Recent Tours
+      const recentTourBody = document.getElementById("recentTourTable");
+      recentTourBody.innerHTML = tours.slice(0, 5).map(t => `
+        <tr>
+          <td class="p-3 font-semibold">${t.tourCode || '-'}</td>
+          <td class="p-3">${t.leadPassenger || '-'}</td>
+          <td class="p-3">${t.region || '-'}</td>
+          <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
+          <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
+          <td class="p-3 font-medium ${t.departureStatus === 'CONFIRMED' ? 'text-green-600' : t.departureStatus === 'CANCELLED' ? 'text-red-600' : 'text-yellow-600'}">${t.departureStatus}</td>
+        </tr>
+      `).join("");
+
+      // Recent Sales
+      const resSales = await fetch("/api/sales", { headers });
+      const sales = await resSales.json();
+      const recentSalesBody = document.getElementById("recentSalesTable");
+      recentSalesBody.innerHTML = sales.slice(0, 5).map(s => `
+        <tr>
+          <td class="p-3">${s.transaction_date || '-'}</td>
+          <td class="p-3 font-semibold">${s.invoice_number || '-'}</td>
+          <td class="p-3 text-right">${s.sales_amount?.toLocaleString('id-ID')}</td>
+          <td class="p-3 text-right">${s.profit_amount?.toLocaleString('id-ID')}</td>
+          <td class="p-3 text-right">${s.discount_amount?.toLocaleString('id-ID')}</td>
+          <td class="p-3">${s.staff_username || '-'}</td>
+        </tr>
+      `).join("");
     });
   </script>
 </body>
