@@ -58,7 +58,6 @@
     </div>
   </main>
 
-  <!-- Loader -->
   <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70] transition-opacity duration-300 opacity-0">
     <div class="flex flex-col items-center space-y-3 text-indigo-600">
       <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -69,7 +68,6 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
 
   <script src="/app.js"></script>
@@ -88,16 +86,9 @@
       showLoader(true, "Mengambil data log...");
       try {
         const res = await fetch(`${API_BASE}/logs`, { headers: authHeaders() });
-        if (!res.ok) {
-          if (res.status === 403) {
-            alert("Akses ditolak. Hanya admin/semi yang dapat melihat halaman ini.");
-            location.href = "/dashboard.html";
-            return;
-          }
-          throw new Error(await res.text());
-        }
+        if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        logs = data.logs;
+        logs = data.logs || [];
         renderLogTable();
       } catch (err) {
         showToast("Gagal memuat log: " + err.message, "error");
@@ -128,21 +119,19 @@
     function renderLogTable() {
       const filtered = filterLogs();
       const { rows, totalPages } = paginate(filtered, currentPage, perPage);
-      const table = document.getElementById("logTable");
-      table.innerHTML = rows
-        .map(
-          l => `<tr class='hover:bg-indigo-50'>
-              <td class='p-3'>${l.username}</td>
-              <td class='p-3'>${l.role}</td>
-              <td class='p-3'>${l.action}</td>
-              <td class='p-3'>${l.target}</td>
-              <td class='p-3 text-gray-500'>${l.timestamp}</td>
-            </tr>`
-        )
-        .join("");
+      document.getElementById("logTable").innerHTML = rows.map(
+        l => `<tr class='hover:bg-indigo-50'>
+          <td class='p-3'>${l.username}</td>
+          <td class='p-3'>${l.role}</td>
+          <td class='p-3'>${l.action}</td>
+          <td class='p-3'>${l.target}</td>
+          <td class='p-3 text-gray-500'>${l.timestamp}</td>
+        </tr>`
+      ).join("");
       document.getElementById("pageInfoLog").textContent = `Halaman ${currentPage} dari ${totalPages || 1}`;
     }
 
+    // Controls
     document.getElementById("filterDate").onchange = renderLogTable;
     document.getElementById("searchLog").oninput = renderLogTable;
     document.getElementById("prevLog").onclick = () => { if (currentPage > 1) { currentPage--; renderLogTable(); } };
@@ -152,19 +141,17 @@
     document.getElementById("exportLogCSV").onclick = () => exportToCSV("audit_log.csv", filterLogs());
     document.getElementById("exportLogXLSX").onclick = () => exportToExcel("audit_log.xls", filterLogs());
 
-    // Verifikasi login
+    // Auto refresh setiap 30 detik
+    setInterval(loadLogs, 30000);
+
+    // Login verify
     (async () => {
       const res = await fetch(`${API_BASE}/auth/verify`, { headers: authHeaders() });
       const data = await res.json();
-      if (!data.ok) {
-        localStorage.clear();
-        location.href = "/login.html";
+      if (!data.ok || !["super", "semi"].includes(data.user.type)) {
+        showToast("Akses ditolak. Hanya admin/semi.", "error");
+        setTimeout(() => location.href = "/dashboard.html", 2000);
       } else {
-        if (!["super", "semi"].includes(data.user.type)) {
-          alert("Akses ditolak. Hanya admin/semi yang dapat melihat log.");
-          location.href = "/dashboard.html";
-          return;
-        }
         loadLogs();
       }
     })();
