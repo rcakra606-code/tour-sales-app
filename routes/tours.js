@@ -1,20 +1,33 @@
-// routes/tours.js
 const express = require("express");
 const router = express.Router();
-const tourController = require("../controllers/tourController");
+const { getDB } = require("../db");
+const auth = require("../middleware/auth");
+const { logAction } = require("../middleware/log");
 
-// GET list & summary
-router.get("/", tourController.getTours);
-router.get("/summary", tourController.getTourSummary);
+router.use(auth);
 
-// POST new tour
-router.post("/", tourController.createTour);
+router.get("/", (req, res) => {
+  const db = getDB();
+  const data = db.prepare("SELECT * FROM tours ORDER BY id DESC").all();
+  res.json(data);
+});
 
-// DELETE
-router.delete("/:id", tourController.deleteTour);
+router.post("/", (req, res) => {
+  try {
+    const db = getDB();
+    const user = req.user;
+    const { registration_date, tour_code, lead_passenger, pax_count, region, tour_price } = req.body;
 
-// EXPORT routes
-router.get("/export/excel", tourController.exportToursExcel);
-router.get("/export/csv", tourController.exportToursCSV);
+    db.prepare(`
+      INSERT INTO tours (registration_date, tour_code, lead_passenger, pax_count, region, tour_price, staff_username)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(registration_date, tour_code, lead_passenger, pax_count, region, tour_price, user.username);
+
+    logAction(user, "Menambahkan Tour Baru", tour_code);
+    res.json({ message: "Tour berhasil ditambahkan" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
