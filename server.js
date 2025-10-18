@@ -1,122 +1,101 @@
 /**
  * ==========================================================
- * server.js — Travel Dashboard Enterprise v3.3 FINAL
+ * server.js — Travel Dashboard Enterprise v3.4.1
  * ==========================================================
- * ✅ Express Server with Helmet & CSP
- * ✅ Role-Based Auth (JWT)
- * ✅ Auto DB Initialization
- * ✅ API Modular Routes (Tours, Sales, Documents, etc)
- * ✅ Automatic Backup Retention (7 days)
+ * ✅ Express.js backend dengan PostgreSQL (Neon)
+ * ✅ Render-ready (tanpa volume / disk)
+ * ✅ Helmet CSP + CORS
+ * ✅ Cron backup (opsional, untuk ekspor CSV)
+ * ✅ Modular route loading
  * ==========================================================
  */
 
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const fs = require("fs");
 const path = require("path");
-const bodyParser = require("body-parser");
 const cron = require("node-cron");
+require("dotenv").config();
 
-const { initDB } = require("./db");
-const { logAction } = require("./middleware/log");
-
-// Inisialisasi app
 const app = express();
 const PORT = process.env.PORT || 3000;
-const BACKUP_DIR = path.join(__dirname, "backups");
-const DB_PATH = path.join(__dirname, "data", "travel.db");
 
-// Pastikan direktori backup tersedia
-if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR);
-
-// Security Middleware
+// --- Middleware ---
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
     directives: {
       "default-src": ["'self'"],
       "script-src": ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
-      "img-src": ["'self'", "data:", "blob:"],
       "style-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      "font-src": ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "font-src": ["'self'", "https://fonts.gstatic.com"],
     },
   },
 }));
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// Inisialisasi Database
-initDB();
+// --- Database Connection Check ---
+const db = require("./config/database"); // centralized Neon connector
+(async () => {
+  try {
+    const res = await db.query("SELECT NOW()");
+    console.log("✅ PostgreSQL (Neon) Connected — Server time:", res.rows[0].now);
+  } catch (err) {
+    console.error("❌ Database connection failed:", err.message);
+  }
+})();
 
-// ROUTES IMPORT
+// --- Routes Import ---
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashboard");
 const toursRoutes = require("./routes/tours");
 const salesRoutes = require("./routes/sales");
 const documentsRoutes = require("./routes/documents");
+const regionsRoutes = require("./routes/regions");
 const usersRoutes = require("./routes/users");
 const logsRoutes = require("./routes/logs");
-const regionsRoutes = require("./routes/regions");
 
-// REGISTER ROUTES
+// --- API Routing ---
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tours", toursRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/documents", documentsRoutes);
+app.use("/api/regions", regionsRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/logs", logsRoutes);
-app.use("/api/regions", regionsRoutes);
 
-// HEALTH CHECK (untuk Render & Docker)
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date() });
-});
-
-// AUTO BACKUP DATABASE (Setiap hari jam 03:00)
-cron.schedule("0 3 * * *", () => {
+// --- Health Check (for Render) ---
+app.get("/api/health", async (req, res) => {
   try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const backupFile = path.join(BACKUP_DIR, `backup-${timestamp}.db`);
-    fs.copyFileSync(DB_PATH, backupFile);
-    console.log(`💾 Backup DB sukses: ${backupFile}`);
-    logAction({ username: "system", type: "system" }, "Backup DB Otomatis", backupFile);
-    cleanupOldBackups();
+    const result = await db.query("SELECT NOW()");
+    res.json({ status: "ok", time: result.rows[0].now });
   } catch (err) {
-    console.error("❌ Gagal backup database:", err);
+    res.status(500).json({ status: "error", error: err.message });
   }
 });
 
-// Hapus backup yang lebih dari 7 hari
-function cleanupOldBackups() {
-  const files = fs.readdirSync(BACKUP_DIR);
-  const now = Date.now();
-  files.forEach(file => {
-    const filePath = path.join(BACKUP_DIR, file);
-    const stats = fs.statSync(filePath);
-    const age = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
-    if (age > 7) {
-      fs.unlinkSync(filePath);
-      console.log(`🧹 Menghapus backup lama: ${file}`);
-    }
-  });
-}
-
-// DEFAULT ROUTE
+// --- Default Route (Frontend Fallback) ---
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
-// ERROR HANDLER
+// --- Error Handler ---
 app.use((err, req, res, next) => {
-  console.error("❌ Server Error:", err);
+  console.error("❌ Internal Error:", err.stack);
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-// START SERVER
+// --- Optional: Cron Backup Task (manual export) ---
+cron.schedule("0 3 * * *", () => {
+  console.log("🕒 Scheduled maintenance task (03:00 AM) — Database is cloud-based, no local backup required.");
+});
+
+// --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`🚀 Server berjalan di port ${PORT}`);
-  console.log("🧩 Travel Dashboard Enterprise v3.3 siap digunakan");
+  console.log(`🚀 Travel Dashboard Enterprise running on port ${PORT}`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
 });
