@@ -37,7 +37,7 @@
         <div class="bg-white bg-opacity-20 w-10 h-10 rounded-xl flex items-center justify-center text-2xl">🌍</div>
         <div>
           <h1 class="text-2xl font-bold">Travel Dashboard Enterprise</h1>
-          <p class="text-xs text-indigo-200">v3.3 — Integrated Reporting System</p>
+          <p class="text-xs text-indigo-200">v3.3 — Integrated System (Tour + Sales)</p>
         </div>
       </div>
 
@@ -84,18 +84,18 @@
     </aside>
 
     <!-- MAIN CONTENT -->
-    <main class="flex-1 overflow-y-auto p-6">
+    <main class="flex-1 overflow-y-auto p-6 space-y-10">
       <section id="dashboardSection">
         <h2 class="text-xl font-bold text-gray-800 mb-6">📊 Dashboard Overview</h2>
 
         <!-- SUMMARY CARDS -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
           <div class="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-5 rounded-xl shadow">
-            <p class="text-sm opacity-80">Total Sales</p>
+            <p class="text-sm opacity-80">Total Sales (Tour)</p>
             <h3 id="totalSales" class="text-2xl font-bold mt-1">0</h3>
           </div>
           <div class="bg-gradient-to-r from-green-500 to-teal-500 text-white p-5 rounded-xl shadow">
-            <p class="text-sm opacity-80">Total Profit</p>
+            <p class="text-sm opacity-80">Total Profit (Tour)</p>
             <h3 id="totalProfit" class="text-2xl font-bold mt-1">0</h3>
           </div>
           <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-5 rounded-xl shadow">
@@ -110,17 +110,17 @@
 
         <!-- CHART SECTION -->
         <div class="mt-8 bg-white shadow rounded-xl p-6">
-          <h3 class="text-lg font-bold mb-3">📈 Sales & Profit Chart</h3>
+          <h3 class="text-lg font-bold mb-3">📈 Sales & Profit Chart (Tour)</h3>
           <canvas id="salesChart" height="100"></canvas>
         </div>
 
         <!-- REGION DISTRIBUTION -->
         <div class="mt-8 bg-white shadow rounded-xl p-6">
-          <h3 class="text-lg font-bold mb-3">🌍 Region Distribution</h3>
+          <h3 class="text-lg font-bold mb-3">🌍 Region Distribution (Tour)</h3>
           <canvas id="regionChart" height="100"></canvas>
         </div>
 
-        <!-- RECENT TOURS SECTION -->
+        <!-- RECENT TOURS -->
         <div class="mt-8 bg-white shadow rounded-xl p-6">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-lg font-bold">🧳 Recent Tours</h3>
@@ -133,9 +133,8 @@
                   <th class="p-3 text-left">Kode Tour</th>
                   <th class="p-3 text-left">Lead Passenger</th>
                   <th class="p-3 text-left">Region</th>
-                  <th class="p-3 text-left">Departure</th>
-                  <th class="p-3 text-left">Sales (Rp)</th>
-                  <th class="p-3 text-left">Profit (Rp)</th>
+                  <th class="p-3 text-left">Sales</th>
+                  <th class="p-3 text-left">Profit</th>
                   <th class="p-3 text-left">Status</th>
                 </tr>
               </thead>
@@ -143,11 +142,34 @@
             </table>
           </div>
         </div>
+
+        <!-- RECENT SALES -->
+        <div class="mt-8 bg-white shadow rounded-xl p-6">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-lg font-bold">💰 Recent Sales Transactions</h3>
+            <a href="/report_sales.html" class="text-indigo-600 text-sm font-medium hover:underline">Lihat Semua →</a>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-gray-700">
+              <thead class="bg-green-600 text-white">
+                <tr>
+                  <th class="p-3 text-left">Tanggal</th>
+                  <th class="p-3 text-left">Invoice</th>
+                  <th class="p-3 text-left">Sales (Rp)</th>
+                  <th class="p-3 text-left">Profit (Rp)</th>
+                  <th class="p-3 text-left">Diskon (Rp)</th>
+                  <th class="p-3 text-left">Staff</th>
+                </tr>
+              </thead>
+              <tbody id="recentSalesTable" class="divide-y divide-gray-200"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
     </main>
   </div>
 
-  <!-- GLOBAL LOADER -->
+  <!-- LOADER -->
   <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
     <div class="flex flex-col items-center space-y-3 text-indigo-600">
       <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -158,37 +180,49 @@
     </div>
   </div>
 
-  <!-- TOAST -->
   <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
 
   <script src="/app.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return location.href = "/login.html";
+      const headers = { "Authorization": `Bearer ${token}` };
+
       try {
-        const token = localStorage.getItem("token");
-        if (!token) return location.href = "/login.html";
-
-        const headers = { "Authorization": `Bearer ${token}` };
-
-        // Ambil 5 Tour terbaru
-        const res = await fetch("/api/tours", { headers });
-        const tours = await res.json();
+        // RECENT TOURS
+        const resTour = await fetch("/api/tours", { headers });
+        const tours = await resTour.json();
         const recentTours = tours.slice(0, 5);
-
-        const tbody = document.getElementById("recentTourTable");
-        tbody.innerHTML = recentTours.map(t => `
-          <tr class="hover:bg-indigo-50 transition-all">
+        const tourBody = document.getElementById("recentTourTable");
+        tourBody.innerHTML = recentTours.map(t => `
+          <tr>
             <td class="p-3 font-semibold">${t.tourCode || '-'}</td>
             <td class="p-3">${t.leadPassenger || '-'}</td>
             <td class="p-3">${t.region || '-'}</td>
-            <td class="p-3">${t.departureDate || '-'}</td>
             <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
             <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
             <td class="p-3 font-medium ${t.departureStatus === 'CONFIRMED' ? 'text-green-600' : t.departureStatus === 'CANCELLED' ? 'text-red-600' : 'text-yellow-600'}">${t.departureStatus}</td>
           </tr>
         `).join("");
+
+        // RECENT SALES
+        const resSales = await fetch("/api/sales", { headers });
+        const sales = await resSales.json();
+        const recentSales = sales.slice(0, 5);
+        const salesBody = document.getElementById("recentSalesTable");
+        salesBody.innerHTML = recentSales.map(s => `
+          <tr>
+            <td class="p-3">${s.transaction_date || '-'}</td>
+            <td class="p-3 font-semibold">${s.invoice_number || '-'}</td>
+            <td class="p-3 text-right">${s.sales_amount?.toLocaleString('id-ID')}</td>
+            <td class="p-3 text-right">${s.profit_amount?.toLocaleString('id-ID')}</td>
+            <td class="p-3 text-right">${s.discount_amount?.toLocaleString('id-ID')}</td>
+            <td class="p-3">${s.staff_username || '-'}</td>
+          </tr>
+        `).join("");
       } catch (err) {
-        console.error("Error loading recent tours:", err);
+        console.error("Error loading dashboard:", err);
       }
     });
   </script>
