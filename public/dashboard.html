@@ -1,84 +1,28 @@
 <!DOCTYPE html>
 <html lang="id" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dashboard | Reporting Sales & Tour</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="icon" href="/assets/icon.png" />
   <style>
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    /* === Gradient Styles === */
-    .gradient-bg {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
-    .gradient-card {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    }
-
-    .gradient-success {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    }
-
-    .gradient-warning {
-      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    }
-
-    .gradient-info {
-      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    }
-
-    /* Sidebar & Hover */
-    .sidebar-item {
-      transition: all 0.3s ease;
-      border-radius: 8px;
-      margin: 4px 8px;
-      position: relative;
-    }
-
-    .sidebar-item:hover {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      transform: translateX(4px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
-    .sidebar-item.active {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    /* Chart Container */
-    .chart-container {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Header Gradient */
-    .header-gradient {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
-    }
-
-    /* Dark Mode Styles (toggle via JS) */
-    .dark .bg-white {
-      background-color: #2d2d2d !important;
-      color: #e5e5e5 !important;
-    }
+    body { font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+    .gradient-card { background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); }
+    .chart-container { background: white; border-radius: 16px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+    .sidebar-item { transition: all .25s ease; border-radius: 8px; margin: 4px 8px; display: block; padding: 10px; }
+    .sidebar-item:hover { transform: translateX(4px); background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; }
+    .sidebar-item.active { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; box-shadow: 0 6px 18px rgba(102,126,234,0.25); }
+    .dark .bg-white { background-color: #2d2d2d !important; color: #e5e5e5 !important; }
+    /* Modal minor animation */
+    #globalModal > div { transform-origin: center; transition: transform .18s ease; }
+    #globalModal.flex > div { transform: scale(1); }
+    #globalModal.hidden > div { transform: scale(.98); }
   </style>
 </head>
 <body class="h-full bg-gray-50">
 
-  <!-- Wrapper -->
   <div id="mainApp" class="h-full flex flex-col">
 
     <!-- Header -->
@@ -94,6 +38,8 @@
               <p class="text-sm text-indigo-200">Sistem Manajemen Terintegrasi</p>
             </div>
           </div>
+
+          <!-- RIGHT SIDE: user area + logout + dark toggle container -->
           <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-3 bg-white bg-opacity-20 rounded-full px-4 py-2">
               <div class="w-8 h-8 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-sm">👤</div>
@@ -102,41 +48,58 @@
                 <p id="currentUser" class="text-sm font-semibold"></p>
               </div>
             </div>
-            <button id="logoutBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300">
-              🚪 Logout
-            </button>
+
+            <div class="flex items-center space-x-4"> <!-- this container exists so app.js can append dark toggle here -->
+              <button id="logoutBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300">
+                🚪 Logout
+              </button>
+            </div>
           </div>
+
         </div>
       </div>
     </header>
 
-    <!-- Content Wrapper -->
+    <!-- Content -->
     <div class="flex flex-1 overflow-hidden">
-
       <!-- Sidebar -->
-      <aside class="sidebar-gradient w-72 p-6 overflow-y-auto border-r border-indigo-100 hidden md:block">
+      <aside class="w-72 p-6 overflow-y-auto border-r hidden md:block">
         <h2 class="text-lg font-bold text-gray-700 mb-4">Menu Navigasi</h2>
         <ul class="space-y-2 text-gray-700 text-sm font-medium">
-          <li><button data-page="dashboard" class="sidebar-item w-full flex items-center px-4 py-3">📈 Dashboard Tour</button></li>
-          <li><button data-page="dashboardSales" class="sidebar-item w-full flex items-center px-4 py-3">💰 Dashboard Sales</button></li>
-          <li><button data-page="reportData" class="sidebar-item w-full flex items-center px-4 py-3">📊 Report Tour</button></li>
-          <li><button data-page="reportSales" class="sidebar-item w-full flex items-center px-4 py-3">📋 Report Sales</button></li>
-          <li><button data-page="reportDocument" class="sidebar-item w-full flex items-center px-4 py-3">📄 Report Dokumen</button></li>
-          <li><button data-page="manageUsers" class="sidebar-item w-full flex items-center px-4 py-3">👥 Kelola User</button></li>
-          <li><button data-page="manageRegions" class="sidebar-item w-full flex items-center px-4 py-3">🌍 Kelola Region</button></li>
-          <li><button data-page="executive" class="sidebar-item w-full flex items-center px-4 py-3">🏢 Executive Summary</button></li>
+          <li><button data-page="dashboard" class="sidebar-item w-full text-left">📈 Dashboard Tour</button></li>
+          <li><button data-page="dashboardSales" class="sidebar-item w-full text-left">💰 Dashboard Sales</button></li>
+          <li><button data-page="reportData" class="sidebar-item w-full text-left">📊 Report Tour</button></li>
+          <li><button data-page="reportSales" class="sidebar-item w-full text-left">📋 Report Sales</button></li>
+          <li><button data-page="reportDocument" class="sidebar-item w-full text-left">📄 Report Dokumen</button></li>
+          <li><button data-page="manageUsers" class="sidebar-item w-full text-left">👥 Kelola User</button></li>
+          <li><button data-page="manageRegions" class="sidebar-item w-full text-left">🌍 Kelola Region</button></li>
+          <li><button data-page="executive" class="sidebar-item w-full text-left">🏢 Executive Summary</button></li>
         </ul>
       </aside>
 
-      <!-- Main Content -->
+      <!-- Main -->
       <main id="mainContent" class="flex-1 overflow-y-auto p-6">
-        <!-- Pages dynamically loaded here by app.js -->
         <div id="pageContent" class="animate-fadeIn">
           <div class="flex items-center justify-center h-full text-gray-400">
             <p class="text-lg">📊 Pilih menu dari sidebar untuk mulai melihat laporan</p>
           </div>
         </div>
       </main>
+    </div>
+  </div>
+
+  <!-- Global Modal (insert before app.js) -->
+  <div id="globalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform scale-95">
+      <div class="border-b px-6 py-4 flex justify-between items-center">
+        <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">Modal Title</h3>
+        <button id="modalCloseBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <form id="modalForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]"></form>
+      <div class="border-t px-6 py-4 flex justify-end space-x-3">
+        <button id="modalCancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-xl hover:bg-gray-200">Batal</button>
+        <button id="modalSubmitBtn" type="submit" form="modalForm" class="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Simpan</button>
+      </div>
     </div>
   </div>
 
