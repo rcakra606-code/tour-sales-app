@@ -1,5 +1,5 @@
 /* =====================================================
-   APP.JS - Frontend Controller (Final with Modal CRUD)
+   APP.JS - Frontend Controller (FINAL VERSION)
    ===================================================== */
 
 const API_BASE = "/api";
@@ -35,7 +35,7 @@ function formatNumber(num) {
 }
 
 /* =====================================================
-   GLOBAL MODAL UTILITY
+   GLOBAL MODAL UTILITY + SPINNER
    ===================================================== */
 function openModal(title, fields, onSubmit, initialData = {}) {
   const modal = document.getElementById("globalModal");
@@ -43,6 +43,8 @@ function openModal(title, fields, onSubmit, initialData = {}) {
   const modalForm = document.getElementById("modalForm");
   const closeBtn = document.getElementById("modalCloseBtn");
   const cancelBtn = document.getElementById("modalCancelBtn");
+  const spinner = document.getElementById("modalSpinner");
+  const submitBtn = document.getElementById("modalSubmitBtn");
 
   modalTitle.textContent = title;
   modalForm.innerHTML = "";
@@ -74,11 +76,67 @@ function openModal(title, fields, onSubmit, initialData = {}) {
     const formData = new FormData(modalForm);
     const data = {};
     formData.forEach((v, k) => data[k] = v);
-    await onSubmit(data);
-    close();
+
+    try {
+      spinner.classList.remove("hidden");
+      submitBtn.disabled = true;
+      cancelBtn.disabled = true;
+      await onSubmit(data);
+      showToast("Data berhasil disimpan.", "success");
+      close();
+    } catch (err) {
+      showToast("Terjadi kesalahan: " + err.message, "error");
+    } finally {
+      spinner.classList.add("hidden");
+      submitBtn.disabled = false;
+      cancelBtn.disabled = false;
+    }
   }
   modalForm.addEventListener("submit", submitHandler);
 }
+
+/* =====================================================
+   TOAST SYSTEM + ESC CLOSE
+   ===================================================== */
+function showToast(message, type = "info") {
+  const container = document.getElementById("toastContainer");
+  if (!container) return;
+  const toast = document.createElement("div");
+
+  const colors = {
+    success: "bg-green-500 text-white",
+    error: "bg-red-500 text-white",
+    info: "bg-gray-700 text-white"
+  };
+
+  toast.className = `${colors[type] || colors.info} px-4 py-2 rounded-lg shadow-lg text-sm animate-fade-in`;
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("opacity-0", "translate-x-5");
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    const modal = document.getElementById("globalModal");
+    if (modal && !modal.classList.contains("hidden")) {
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+  }
+});
+
+const style = document.createElement("style");
+style.textContent = `
+@keyframes fadeIn { from { opacity:0; transform:translateX(10px);} to {opacity:1; transform:none;} }
+.animate-fade-in { animation: fadeIn .3s ease; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.animate-spin { animation: spin 1s linear infinite; }
+`;
+document.head.appendChild(style);
 
 /* =====================================================
    LOGIN PAGE
@@ -164,7 +222,9 @@ if (location.pathname.endsWith("dashboard.html")) {
     }
   }
 
-  /* DASHBOARD TOUR */
+  /* =====================================================
+     DASHBOARD TOUR
+     ===================================================== */
   async function renderDashboardTour() {
     pageContent.innerHTML = `
       <div class="max-w-7xl mx-auto">
@@ -187,7 +247,6 @@ if (location.pathname.endsWith("dashboard.html")) {
       ], async d => {
         d.staff_username = JSON.parse(localStorage.getItem("user")).username;
         await apiPost(`${API_BASE}/tours`, d);
-        alert("Tour ditambahkan.");
         renderDashboardTour();
       });
     };
@@ -205,15 +264,16 @@ if (location.pathname.endsWith("dashboard.html")) {
         <p class="text-2xl font-bold">${formatNumber(c.v)}</p>
       </div>`).join("");
 
-    const ctx = document.getElementById("tourChart").getContext("2d");
-    new Chart(ctx, {
+    new Chart(document.getElementById("tourChart"), {
       type: "bar",
       data: { labels: data.regions.map(r => r.name), datasets: [{ label: "Jumlah Tour", data: data.regions.map(r => r.count) }] },
       options: { responsive: true, scales: { y: { beginAtZero: true } } }
     });
   }
 
-  /* DASHBOARD SALES */
+  /* =====================================================
+     DASHBOARD SALES
+     ===================================================== */
   async function renderDashboardSales() {
     pageContent.innerHTML = `
       <div class="max-w-7xl mx-auto">
@@ -232,7 +292,6 @@ if (location.pathname.endsWith("dashboard.html")) {
         { name: "profit_amount", label: "Profit", type: "number" }
       ], async d => {
         await apiPost(`${API_BASE}/sales`, d);
-        alert("Sales ditambahkan.");
         renderDashboardSales();
       });
     };
@@ -251,13 +310,14 @@ if (location.pathname.endsWith("dashboard.html")) {
     });
   }
 
-  /* REPORTS (similar structure for Tours, Sales, Docs, Users, Regions) */
+  /* =====================================================
+     REPORT PAGES & MANAGEMENT
+     ===================================================== */
   async function renderReportTours() {
     pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>📋 Report Tour</h2>
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'>
-        <thead class='bg-indigo-500 text-white'>
-          <tr><th class='p-2'>Code</th><th class='p-2'>Lead</th><th class='p-2'>Region</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr>
-        </thead><tbody id='tourTbl'></tbody></table>`;
+        <thead class='bg-indigo-500 text-white'><tr><th class='p-2'>Code</th><th class='p-2'>Lead</th><th class='p-2'>Region</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr></thead>
+        <tbody id='tourTbl'></tbody></table>`;
     const t = await apiGet(`${API_BASE}/tours`);
     document.getElementById("tourTbl").innerHTML = t.map(r => `
       <tr class='hover:bg-indigo-50'><td class='p-2'>${r.tour_code}</td><td>${r.lead_passenger}</td><td>${r.region}</td><td>${r.sales_amount}</td><td>${r.profit_amount}</td></tr>`).join("");
@@ -266,8 +326,8 @@ if (location.pathname.endsWith("dashboard.html")) {
   async function renderReportSales() {
     pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>💼 Report Sales</h2>
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Tanggal</th><th class='p-2'>Invoice</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr>
-      </thead><tbody id='salesTbl'></tbody></table>`;
+      <tr><th class='p-2'>Tanggal</th><th class='p-2'>Invoice</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr></thead>
+      <tbody id='salesTbl'></tbody></table>`;
     const s = await apiGet(`${API_BASE}/sales`);
     document.getElementById("salesTbl").innerHTML = s.map(r => `
       <tr class='hover:bg-indigo-50'><td class='p-2'>${r.transaction_date}</td><td>${r.invoice_number}</td><td>${r.sales_amount}</td><td>${r.profit_amount}</td></tr>`).join("");
@@ -276,8 +336,8 @@ if (location.pathname.endsWith("dashboard.html")) {
   async function renderReportDocuments() {
     pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>📄 Report Dokumen</h2>
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Nama</th><th class='p-2'>Invoice</th><th class='p-2'>Proses</th><th class='p-2'>Status</th></tr>
-      </thead><tbody id='docTbl'></tbody></table>`;
+      <tr><th class='p-2'>Nama</th><th class='p-2'>Invoice</th><th class='p-2'>Proses</th><th class='p-2'>Status</th></tr></thead>
+      <tbody id='docTbl'></tbody></table>`;
     const d = await apiGet(`${API_BASE}/documents`);
     document.getElementById("docTbl").innerHTML = d.map(r => `
       <tr class='hover:bg-indigo-50'><td class='p-2'>${r.guest_names}</td><td>${r.invoice_number}</td><td>${r.process_type}</td><td>${r.document_status}</td></tr>`).join("");
@@ -287,8 +347,7 @@ if (location.pathname.endsWith("dashboard.html")) {
     pageContent.innerHTML = `<div class='flex justify-between mb-4'><h2 class='text-2xl font-bold'>👥 Users</h2>
       <button id='addUserBtn' class='px-4 py-2 bg-indigo-600 text-white rounded-xl'>+ User</button></div>
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Username</th><th class='p-2'>Name</th><th class='p-2'>Role</th></tr>
-      </thead><tbody id='usrTbl'></tbody></table>`;
+      <tr><th class='p-2'>Username</th><th class='p-2'>Name</th><th class='p-2'>Role</th></tr></thead><tbody id='usrTbl'></tbody></table>`;
     document.getElementById("addUserBtn").onclick = () => {
       openModal("Tambah User", [
         { name: "username", label: "Username", required: true },
@@ -298,7 +357,6 @@ if (location.pathname.endsWith("dashboard.html")) {
         { name: "type", label: "Role (basic/semi/super)" }
       ], async d => {
         await apiPost(`${API_BASE}/users`, d);
-        alert("User ditambahkan.");
         renderManageUsers();
       });
     };
@@ -316,7 +374,6 @@ if (location.pathname.endsWith("dashboard.html")) {
         { name: "name", label: "Nama Region", required: true }
       ], async d => {
         await apiPost(`${API_BASE}/regions`, d);
-        alert("Region ditambahkan.");
         renderManageRegions();
       });
     };
