@@ -1,5 +1,5 @@
 // =========================================================
-// server.js — Travel Dashboard Enterprise v2.1 (SECURE)
+// server.js — Travel Dashboard Enterprise v2.2 (SECURE + CSP FIX)
 // =========================================================
 
 require("dotenv").config();
@@ -31,14 +31,14 @@ console.log(`[${new Date().toISOString()}] ✅ Database connected: ${dbPath}`);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Allow frontend & backend connection
+// ✅ CORS (for frontend connection)
 app.use(cors({
   origin: process.env.FRONTEND_URL || "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// ✅ Helmet (secure headers but CSP disabled for HTML inline scripts)
+// ✅ Helmet (CSP fixed for Tailwind, Chart.js, etc.)
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -47,32 +47,44 @@ app.use(
         "default-src": ["'self'"],
         "script-src": [
           "'self'",
-          "'unsafe-inline'",   // allows inline <script>
-          "'unsafe-eval'",     // <— add this line
+          "'unsafe-inline'",   // allow inline script
+          "'unsafe-eval'",     // fix Tailwind & Chart.js eval()
           "https://cdn.jsdelivr.net",
           "https://cdn.tailwindcss.com",
-          "https://unpkg.com"
+          "https://unpkg.com",
+          "https://cdn.jsdelivr.net/npm/sweetalert2@11"
         ],
         "style-src": [
           "'self'",
-          "'unsafe-inline'",
+          "'unsafe-inline'",   // allow inline styles
           "https://cdn.jsdelivr.net",
           "https://fonts.googleapis.com"
         ],
         "font-src": ["'self'", "https://fonts.gstatic.com"],
-        "img-src": ["'self'", "data:"],
-        "connect-src": ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+        "img-src": ["'self'", "data:", "https://cdn.jsdelivr.net"],
+        "connect-src": [
+          "'self'",
+          "https://cdn.jsdelivr.net",
+          "https://unpkg.com",
+          process.env.FRONTEND_URL || "http://localhost:5000"
+        ],
+        "frame-src": ["'self'"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"]
       },
     },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "no-referrer" },
+    hidePoweredBy: true,
   })
 );
 
-// ✅ Logger
+// ✅ Request logging
 app.use(morgan("dev"));
 
-// ✅ Serve public files (HTML, CSS, JS)
+// ✅ Serve static frontend files
 app.use(express.static(path.join(__dirname, "public")));
 
 // =========================================================
@@ -123,7 +135,7 @@ app.use("/api/dashboard", authMiddleware, dashboardRoutes);
 app.use("/api/executive", authMiddleware, executiveReportRoutes);
 
 // =========================================================
-// 🌐 STATIC FRONTEND ROUTES
+// 🌐 FRONTEND ROUTES
 // =========================================================
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
@@ -132,7 +144,7 @@ app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "public", "p
 app.get("/users", (req, res) => res.sendFile(path.join(__dirname, "public", "user-management.html")));
 
 // =========================================================
-// 💾 DAILY BACKUP (03:00 AM)
+// 💾 AUTO BACKUP (03:00 AM)
 // =========================================================
 const backupDir = process.env.BACKUP_DIR || path.join(__dirname, "backups");
 if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
@@ -140,29 +152,11 @@ if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 nodeCron.schedule(process.env.CRON_BACKUP_SCHEDULE || "0 3 * * *", () => {
   const date = new Date().toISOString().split("T")[0];
   const backupPath = path.join(backupDir, `backup_${date}.sqlite`);
-
   try {
-    // Copy database
     fs.copyFileSync(dbPath, backupPath);
-    console.log(`[${new Date().toISOString()}] 💾 Backup created: ${backupPath}`);
-
-    // Auto purge old backups (>7 days)
-    const RETENTION_DAYS = 7;
-    const now = Date.now();
-    const files = fs.readdirSync(backupDir);
-    files.forEach(file => {
-      if (file.startsWith("backup_") && file.endsWith(".sqlite")) {
-        const filePath = path.join(backupDir, file);
-        const stats = fs.statSync(filePath);
-        const ageDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
-        if (ageDays > RETENTION_DAYS) {
-          fs.unlinkSync(filePath);
-          console.log(`[${new Date().toISOString()}] 🧹 Deleted old backup: ${file}`);
-        }
-      }
-    });
+    console.log(`[${new Date().toISOString()}] 💾 Database backup created: ${backupPath}`);
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] ❌ Backup or purge failed: ${err.message}`);
+    console.error("❌ Backup failed:", err.message);
   }
 });
 
