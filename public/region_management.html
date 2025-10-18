@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kelola Region | Travel Dashboard Enterprise v3.3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/assets/icon.png" />
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-r from-teal-600 to-cyan-500 text-white shadow-md py-4">
+    <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
+      <h1 class="text-xl font-bold">🌍 Kelola Region</h1>
+      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">
+        🏠 Kembali ke Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- MAIN SECTION -->
+  <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <label for="searchRegion" class="text-sm font-medium text-gray-600">Cari Region:</label>
+        <input id="searchRegion" type="text" placeholder="Cari nama region..." class="border rounded-lg px-3 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-teal-500" />
+      </div>
+      <button id="addRegionBtn" class="hidden bg-teal-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-teal-700 transition-all">
+        ➕ Tambah Region
+      </button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
+      <table class="w-full text-sm" id="regionTable">
+        <thead class="bg-teal-600 text-white">
+          <tr>
+            <th class="p-3 text-left w-16">#</th>
+            <th class="p-3 text-left">Nama Region</th>
+            <th class="p-3 text-left">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="regionBody" class="divide-y divide-gray-200"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- MODAL FORM -->
+  <div id="regionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95">
+      <div class="border-b px-6 py-4 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-800">Tambah Region</h3>
+        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <form id="regionForm" class="p-6 space-y-4">
+        <div>
+          <label class="text-sm">Nama Region</label>
+          <input type="text" name="name" class="border rounded-lg w-full px-3 py-2" placeholder="Contoh: Eropa Barat" required>
+        </div>
+      </form>
+      <div class="border-t px-6 py-4 flex justify-end gap-3">
+        <button id="cancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
+        <button id="saveRegionBtn" type="submit" form="regionForm" class="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER -->
+  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
+    <div class="flex flex-col items-center space-y-3 text-teal-600">
+      <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span id="loaderMessage" class="text-sm font-medium">Memuat data region...</span>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
+
+  <script src="/app.js"></script>
+  <script>
+    const API_BASE = "/api";
+    const token = localStorage.getItem("token");
+    if (!token) location.href = "/login.html";
+
+    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    const regionBody = document.getElementById("regionBody");
+    const modal = document.getElementById("regionModal");
+    const form = document.getElementById("regionForm");
+    const addBtn = document.getElementById("addRegionBtn");
+    let userRole = "basic";
+
+    async function loadRegions() {
+      showLoader(true, "Memuat data region...");
+      try {
+        const res = await fetch(`${API_BASE}/regions`, { headers });
+        const regions = await res.json();
+        renderRegions(regions);
+      } catch (err) {
+        console.error("Error loading regions:", err);
+        showToast("Gagal memuat data region", "error");
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    function renderRegions(data) {
+      const search = document.getElementById("searchRegion").value.toLowerCase();
+      const filtered = data.filter(r => r.name.toLowerCase().includes(search));
+      regionBody.innerHTML = filtered.map((r, i) => `
+        <tr class="hover:bg-teal-50">
+          <td class="p-3">${i + 1}</td>
+          <td class="p-3 font-semibold">${r.name}</td>
+          <td class="p-3 flex gap-2">
+            ${(userRole === "super") 
+              ? `<button class="delete-btn text-red-600 hover:underline" data-id="${r.id}">Hapus</button>`
+              : `<span class="text-gray-400 italic">-</span>`}
+          </td>
+        </tr>
+      `).join("");
+
+      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteRegion(btn.dataset.id));
+    }
+
+    async function deleteRegion(id) {
+      if (!confirm("Yakin ingin menghapus region ini?")) return;
+      await fetch(`${API_BASE}/regions/${id}`, { method: "DELETE", headers });
+      showToast("🗑️ Region dihapus", "success");
+      loadRegions();
+    }
+
+    // Tambah Region
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      await fetch(`${API_BASE}/regions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(data),
+      });
+      showToast("✅ Region berhasil disimpan", "success");
+      modal.classList.add("hidden");
+      form.reset();
+      loadRegions();
+    };
+
+    // Events
+    addBtn.onclick = () => { modal.classList.remove("hidden"); modal.classList.add("flex"); };
+    document.getElementById("closeModalBtn").onclick = () => modal.classList.add("hidden");
+    document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
+    document.getElementById("searchRegion").oninput = loadRegions;
+
+    // Role Check + Init
+    (async () => {
+      const res = await fetch(`${API_BASE}/auth/verify`, { headers });
+      const data = await res.json();
+      if (!data.ok) location.href = "/login.html";
+      userRole = data.user.type;
+      if (["super", "semi"].includes(userRole)) addBtn.classList.remove("hidden");
+      loadRegions();
+    })();
+  </script>
+</body>
+</html>
