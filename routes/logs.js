@@ -10,7 +10,7 @@
  */
 
 const express = require("express");
-const db = require("../config/db");
+const db = require("../config/database");
 const auth = require("../middleware/auth");
 const { requireRole } = require("../middleware/roleCheck");
 
