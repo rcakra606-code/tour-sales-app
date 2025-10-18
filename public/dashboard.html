@@ -24,10 +24,6 @@
       color: white;
       box-shadow: 0 6px 18px rgba(102,126,234,0.25);
     }
-    .dark .bg-white {
-      background-color: #2d2d2d !important;
-      color: #e5e5e5 !important;
-    }
     #globalModal > div { transform-origin: center; transition: transform .18s ease; }
     #globalModal.flex > div { transform: scale(1); }
     #globalModal.hidden > div { transform: scale(.98); }
@@ -51,10 +47,11 @@
 
           <!-- RIGHT SIDE HEADER -->
           <div class="flex items-center space-x-4">
-            <!-- Notification bell -->
+            <!-- Notification Bell -->
             <div id="notifBell" class="relative cursor-pointer bg-white bg-opacity-20 p-2 rounded-full hover:bg-opacity-30 transition-all duration-200">
               🔔
               <span id="notifBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1 rounded-full hidden">0</span>
+              <span id="notifBadgeLogs" class="absolute -top-1 -right-4 bg-orange-500 text-white text-xs px-1 rounded-full hidden">0</span>
             </div>
 
             <!-- Current User -->
@@ -84,10 +81,10 @@
           <li><button data-page="dashboard" class="sidebar-item w-full text-left">📈 Dashboard Tour</button></li>
           <li><button data-page="dashboardSales" class="sidebar-item w-full text-left">💰 Dashboard Sales</button></li>
 
-          <!-- Reports open new tab -->
           <li><a href="/report_tour.html" target="_blank" class="sidebar-item block w-full">📊 Report Tour</a></li>
           <li><a href="/report_sales.html" target="_blank" class="sidebar-item block w-full">📋 Report Sales</a></li>
           <li><a href="/report_document.html" target="_blank" class="sidebar-item block w-full">📄 Report Dokumen</a></li>
+          <li><a href="/audit_log.html" target="_blank" class="sidebar-item block w-full">🧾 Audit Log</a></li>
 
           <li><button data-page="manageUsers" class="sidebar-item w-full text-left">👥 Kelola User</button></li>
           <li><button data-page="manageRegions" class="sidebar-item w-full text-left">🌍 Kelola Region</button></li>
