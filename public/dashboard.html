@@ -7,7 +7,159 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="icon" href="/assets/icon.png" />
+  <style><!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard | Reporting Sales & Tour</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" href="/assets/icon.png" />
   <style>
+    body {
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    .gradient-card { background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); }
+    .chart-container {
+      background: white;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+    .sidebar-item {
+      transition: all .25s ease;
+      border-radius: 8px;
+      margin: 4px 8px;
+      display: block;
+      padding: 10px;
+    }
+    .sidebar-item:hover {
+      transform: translateX(4px);
+      background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      color: white;
+    }
+    .sidebar-item.active {
+      background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      color: white;
+      box-shadow: 0 6px 18px rgba(102,126,234,0.25);
+    }
+    .dark .bg-white {
+      background-color: #2d2d2d !important;
+      color: #e5e5e5 !important;
+    }
+    #globalModal > div { transform-origin: center; transition: transform .18s ease; }
+    #globalModal.flex > div { transform: scale(1); }
+    #globalModal.hidden > div { transform: scale(.98); }
+  </style>
+</head>
+<body class="h-full bg-gray-50">
+
+  <div id="mainApp" class="h-full flex flex-col">
+
+    <!-- Header -->
+    <header class="header-gradient text-white shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-6">
+          <div class="flex items-center space-x-4">
+            <div class="stat-icon bg-white bg-opacity-20 w-12 h-12 rounded-xl flex items-center justify-center text-2xl">📊</div>
+            <div>
+              <h1 class="text-2xl font-bold">Aplikasi Reporting Sales & Tour</h1>
+              <p class="text-sm text-indigo-200">Sistem Manajemen Terintegrasi</p>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3 bg-white bg-opacity-20 rounded-full px-4 py-2">
+              <div class="w-8 h-8 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-sm">👤</div>
+              <div class="hidden sm:block">
+                <p class="text-xs opacity-90">Login sebagai</p>
+                <p id="currentUser" class="text-sm font-semibold"></p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-4">
+              <button id="logoutBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300">
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Sidebar -->
+      <aside class="w-72 p-6 overflow-y-auto border-r hidden md:block">
+        <h2 class="text-lg font-bold text-gray-700 mb-4">Menu Navigasi</h2>
+        <ul class="space-y-2 text-gray-700 text-sm font-medium">
+          <li><button data-page="dashboard" class="sidebar-item w-full text-left">📈 Dashboard Tour</button></li>
+          <li><button data-page="dashboardSales" class="sidebar-item w-full text-left">💰 Dashboard Sales</button></li>
+
+          <!-- New tabs for separated reports -->
+          <li><a href="/report_tour.html" target="_blank" class="sidebar-item block w-full">📊 Report Tour</a></li>
+          <li><a href="/report_sales.html" target="_blank" class="sidebar-item block w-full">📋 Report Sales</a></li>
+          <li><a href="/report_document.html" target="_blank" class="sidebar-item block w-full">📄 Report Dokumen</a></li>
+
+          <li><button data-page="manageUsers" class="sidebar-item w-full text-left">👥 Kelola User</button></li>
+          <li><button data-page="manageRegions" class="sidebar-item w-full text-left">🌍 Kelola Region</button></li>
+          <li><button data-page="executive" class="sidebar-item w-full text-left">🏢 Executive Summary</button></li>
+        </ul>
+      </aside>
+
+      <!-- Main -->
+      <main id="mainContent" class="flex-1 overflow-y-auto p-6">
+        <div id="pageContent" class="animate-fadeIn">
+          <div class="flex items-center justify-center h-full text-gray-400">
+            <p class="text-lg">📊 Pilih menu dari sidebar untuk mulai melihat laporan</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="globalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform scale-95">
+      <div class="border-b px-6 py-4 flex justify-between items-center">
+        <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">Modal Title</h3>
+        <button id="modalCloseBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+      <form id="modalForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]"></form>
+      <div class="border-t px-6 py-4 flex justify-end space-x-3 relative">
+        <div id="modalSpinner" class="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center rounded-b-2xl hidden">
+          <div class="flex items-center space-x-3 text-indigo-600">
+            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span class="text-sm font-medium">Menyimpan...</span>
+          </div>
+        </div>
+        <button id="modalCancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-xl hover:bg-gray-200">Batal</button>
+        <button id="modalSubmitBtn" type="submit" form="modalForm" class="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Loader -->
+  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70] transition-opacity duration-300 opacity-0">
+    <div class="flex flex-col items-center space-y-3 text-indigo-600">
+      <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+      </svg>
+      <span id="loaderMessage" class="text-sm font-medium">Memuat data...</span>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
+
     body {
       font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
     }
