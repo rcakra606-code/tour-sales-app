@@ -10,8 +10,9 @@ async function init() {
     process.exit(1);
   }
 
-  // create tables
-  const tablesSql = `
+  console.log("✅ Membuat tabel jika belum ada...");
+
+  const tables = `
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
@@ -60,13 +61,6 @@ async function init() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 
-  CREATE TABLE IF NOT EXISTS regions (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-
   CREATE TABLE IF NOT EXISTS logs (
     id SERIAL PRIMARY KEY,
     username TEXT,
@@ -78,31 +72,28 @@ async function init() {
   `;
 
   try {
-    await db.query(tablesSql);
-    console.log("✅ Tables created/checked.");
+    await db.query(tables);
+    console.log("✅ Semua tabel sudah siap.");
 
-    // create default admin if not exists
     const adminUser = "admin";
     const adminPass = process.env.INIT_ADMIN_PASSWORD || "admin123";
     const hashed = bcrypt.hashSync(adminPass, 10);
 
     const exists = await db.query("SELECT id FROM users WHERE username=$1", [adminUser]);
     if (exists.rowCount === 0) {
-      await db.query("INSERT INTO users (username, password, name, type) VALUES ($1, $2, $3, $4)", [
-        adminUser,
-        hashed,
-        "Administrator",
-        "super",
-      ]);
-      console.log(`✅ Created default admin user '${adminUser}' (password from INIT_ADMIN_PASSWORD or 'admin123').`);
+      await db.query(
+        "INSERT INTO users (username, password, name, type) VALUES ($1,$2,$3,$4)",
+        [adminUser, hashed, "Administrator", "super"]
+      );
+      console.log(`✅ Admin user dibuat: ${adminUser} / ${adminPass}`);
     } else {
-      console.log("ℹ️ Admin user already exists. Skipping creation.");
+      console.log("ℹ️ Admin user sudah ada, skip pembuatan.");
     }
 
-    console.log("🎉 Init complete.");
+    console.log("🎉 Init database selesai!");
     process.exit(0);
   } catch (err) {
-    console.error("❌ Init DB failed:", err.message || err);
+    console.error("❌ Init DB gagal:", err.message);
     process.exit(1);
   }
 }
