@@ -35,14 +35,10 @@ app.use(
 );
 app.use(cors());
 app.use(bodyParser.json());
-
-// static frontend
 app.use(express.static(path.join(__dirname, "public")));
 
-// init DB
 initDB();
 
-// routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/tours", require("./routes/tours"));
@@ -52,7 +48,7 @@ app.use("/api/users", require("./routes/users"));
 app.use("/api/regions", require("./routes/regions"));
 app.use("/api/logs", require("./routes/logs"));
 
-app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
-app.get("/dashboard.html", (req, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
+app.get("/", (_, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/dashboard.html", (_, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
 
 app.listen(PORT, () => console.log(`🚀 Server berjalan di http://localhost:${PORT}`));
