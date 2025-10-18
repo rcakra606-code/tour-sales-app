@@ -1,43 +1,42 @@
 # ==========================================================
-# 🚀 Render Deployment Config — Travel Dashboard Enterprise v2.3
+# 🚀 Render Deployment Config — Travel Dashboard Enterprise v3.0
 # ==========================================================
+
 services:
   - type: web
     name: travel-dashboard
-    env: node
+    env: docker
     region: singapore
-    plan: free  # bisa ganti ke starter atau pro
-    buildCommand: npm install
-    startCommand: npm start
+    plan: free # upgrade ke starter/pro untuk uptime lebih tinggi
+
+    # Docker build & start handled automatically
+    autoDeploy: true
+
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
-      - key: FRONTEND_URL
-        value: https://travel-dashboard.onrender.com
+        value: 3000
+      - key: TZ
+        value: Asia/Jakarta
       - key: JWT_SECRET
         generateValue: true
       - key: DB_PATH
-        value: ./data/database.sqlite
+        value: ./data/travel.db
       - key: BACKUP_DIR
         value: ./backups
-      - key: CRON_BACKUP_SCHEDULE
-        value: "0 3 * * *"
-      - key: JWT_EXPIRES_IN
-        value: 15m
-      - key: JWT_REFRESH_EXPIRES_IN
-        value: 7d
+      - key: FRONTEND_URL
+        value: https://travel-dashboard.onrender.com
+
     disk:
       name: data-storage
       mountPath: /opt/render/project/src/data
       sizeGB: 1
 
-    # optional: separate volume for backup if needed
+    # optional extra storage for backups (uncomment if used)
     # extraDisks:
     #   - name: backup-storage
     #     mountPath: /opt/render/project/src/backups
     #     sizeGB: 1
 
-    healthCheckPath: /api/health
-    autoDeploy: true
+    healthCheckPath: /api/dashboard/summary
