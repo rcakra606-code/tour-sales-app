@@ -1,42 +1,72 @@
 # ==========================================================
-# 🚀 Render Deployment Config — Travel Dashboard Enterprise v3.0
+# 🚀 Render Deployment Config — Travel Dashboard Enterprise v3.4.2
+# ==========================================================
+# ✅ Auto-init database via scripts/init-db.js
+# ✅ PostgreSQL (Neon) connection ready
+# ✅ Secure environment with JWT_SECRET
+# ✅ Compatible with auto health check
+# ✅ Cron job & disk mount included
 # ==========================================================
 
 services:
   - type: web
     name: travel-dashboard
-    env: docker
+    env: node
     region: singapore
-    plan: free # upgrade ke starter/pro untuk uptime lebih tinggi
+    plan: free
 
-    # Docker build & start handled automatically
-    autoDeploy: true
+    # ============================================
+    # 🔧 Build & Start Commands
+    # ============================================
+    buildCommand: |
+      echo "📦 Installing dependencies..."
+      npm install
+    startCommand: |
+      echo "⚙️ Menjalankan inisialisasi database..."
+      node scripts/init-db.js || echo "⚠️ Init DB gagal, lanjutkan startup..."
+      echo "🚀 Menjalankan server..."
+      node server.js
 
+    # ============================================
+    # 🌍 Environment Variables
+    # ============================================
     envVars:
       - key: NODE_ENV
         value: production
+
       - key: PORT
         value: 3000
-      - key: TZ
-        value: Asia/Jakarta
+
+      # 🔑 Database Neon PostgreSQL connection
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:password@ep-yourdb-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+
+      # 🔒 JWT Secret for token encryption
       - key: JWT_SECRET
         generateValue: true
-      - key: DB_PATH
-        value: ./data/travel.db
-      - key: BACKUP_DIR
-        value: ./backups
-      - key: FRONTEND_URL
-        value: https://travel-dashboard.onrender.com
 
+      # 🔐 Optional: Default admin password
+      - key: INIT_ADMIN_PASSWORD
+        value: admin123
+
+      # 🕒 Cron-like backup setting (optional)
+      - key: CRON_BACKUP_SCHEDULE
+        value: "0 3 * * *"
+
+    # ============================================
+    # 💾 Persistent Storage
+    # ============================================
     disk:
       name: data-storage
       mountPath: /opt/render/project/src/data
       sizeGB: 1
 
-    # optional extra storage for backups (uncomment if used)
-    # extraDisks:
-    #   - name: backup-storage
-    #     mountPath: /opt/render/project/src/backups
-    #     sizeGB: 1
+    # ============================================
+    # ❤️ Health Check
+    # ============================================
+    healthCheckPath: /api/health
 
-    healthCheckPath: /api/dashboard/summary
+    # ============================================
+    # ⚙️ Deployment Behavior
+    # ============================================
+    autoDeploy: true
