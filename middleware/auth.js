@@ -10,7 +10,7 @@
  */
 
 const jwt = require("jsonwebtoken");
-const db = require("../config/db");
+const db = require("../config/database");
 
 /**
  * Middleware untuk memverifikasi JWT token dan ambil user info
