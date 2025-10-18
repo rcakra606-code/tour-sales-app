@@ -1,13 +1,12 @@
 /**
  * ==========================================================
- * server.js — Travel Dashboard Enterprise v3.4.1
+ * server.js — Travel Dashboard Enterprise v3.4.2
  * ==========================================================
- * ✅ Express.js + PostgreSQL (Neon)
- * ✅ Wait for DB connection before starting
- * ✅ Secure headers via Helmet (CSP)
- * ✅ Modular routes
- * ✅ Global error handler
- * ✅ Static frontend (login + dashboard)
+ * ✅ Express + PostgreSQL (Neon)
+ * ✅ Auto run scripts/init-db.js at startup (Render Ready)
+ * ✅ Secure (Helmet CSP, CORS)
+ * ✅ Route modularization
+ * ✅ Global error handling
  * ==========================================================
  */
 
@@ -16,6 +15,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const path = require("path");
 const cron = require("node-cron");
+const { execSync } = require("child_process");
 require("dotenv").config();
 
 const db = require("./config/database");
@@ -24,9 +24,9 @@ const errorHandler = require("./middleware/errorHandler");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// =========================================
-// 🔒 Security Middleware
-// =========================================
+// =========================================================
+// 🧠 Security Middlewares
+// =========================================================
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -46,37 +46,38 @@ app.use(
     },
   })
 );
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// =========================================
-// 🧠 Routes Import
-// =========================================
+// =========================================================
+// 🧭 Import Routes
+// =========================================================
 const authRoutes = require("./routes/auth");
+const usersRoutes = require("./routes/users");
 const dashboardRoutes = require("./routes/dashboard");
 const toursRoutes = require("./routes/tours");
 const salesRoutes = require("./routes/sales");
 const documentsRoutes = require("./routes/documents");
 const regionsRoutes = require("./routes/regions");
-const usersRoutes = require("./routes/users");
 const logsRoutes = require("./routes/logs");
 
-// =========================================
-// 🧭 Route Definitions
-// =========================================
+// =========================================================
+// 🛠️ Use Routes
+// =========================================================
 app.use("/api/auth", authRoutes);
+app.use("/api/users", usersRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tours", toursRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api/regions", regionsRoutes);
-app.use("/api/users", usersRoutes);
 app.use("/api/logs", logsRoutes);
 
-// =========================================
+// =========================================================
 // 🩺 Health Check Endpoint (Render ping)
-// =========================================
+// =========================================================
 app.get("/api/health", async (req, res) => {
   try {
     const result = await db.query("SELECT NOW()");
@@ -86,40 +87,49 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// =========================================
-// 🔐 Root Redirect (Public Entry Point)
-// =========================================
-// Default behavior: redirect to login.html if no token found
+// =========================================================
+// 🌐 Default Route (redirect root ke login.html)
+// =========================================================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
-// =========================================
+// =========================================================
 // 🧹 Global Error Handler
-// =========================================
+// =========================================================
 app.use(errorHandler);
 
-// =========================================
-// 🕒 Optional: Scheduled Maintenance (Logging / Backups)
-// =========================================
+// =========================================================
+// 🕒 CRON Job Example (backup / log cleanup)
+// =========================================================
 cron.schedule("0 3 * * *", () => {
-  console.log("🕒 Scheduled task 03:00 — maintenance running...");
+  console.log("🕒 Scheduled task: Daily maintenance running...");
 });
 
-// =========================================
-// 🚀 Start Server (Wait for DB Ready)
-// =========================================
+// =========================================================
+// 🚀 Server Initialization (with DB auto init)
+// =========================================================
 (async () => {
-  console.log("⏳ Checking PostgreSQL connection...");
+  console.log("⏳ Memeriksa koneksi ke PostgreSQL (Neon)...");
   const ok = await db.verifyConnection(5, 3000);
   if (!ok) {
-    console.error("❌ Database connection failed. Exiting...");
+    console.error("❌ Database tidak dapat dihubungi. Server berhenti.");
     process.exit(1);
   }
 
+  // Jalankan init-db.js secara otomatis sebelum server aktif
+  try {
+    console.log("⚙️ Menjalankan inisialisasi database (init-db.js)...");
+    execSync("node scripts/init-db.js", { stdio: "inherit" });
+    console.log("✅ Inisialisasi database selesai.\n");
+  } catch (err) {
+    console.warn("⚠️ Gagal menjalankan init-db.js:", err.message);
+  }
+
+  // Jalankan server
   app.listen(PORT, () => {
-    console.log(`✅ Database connected successfully`);
-    console.log(`🚀 Travel Dashboard Enterprise running on port ${PORT}`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`✅ Database terkoneksi`);
+    console.log(`🚀 Server aktif di port ${PORT}`);
+    console.log(`🌐 Mode: ${process.env.NODE_ENV || "development"}`);
   });
 })();
