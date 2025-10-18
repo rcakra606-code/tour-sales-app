@@ -1,205 +1,145 @@
 <!DOCTYPE html>
-<html lang="id" class="transition-colors duration-500">
+<html lang="id" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Travel Dashboard</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css">
+  <title>Dashboard | Reporting Sales & Tour</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" href="/assets/icon.png" />
   <style>
-    /* Sidebar collapse transition */
-    #sidebar {
-      transition: width 0.3s ease-in-out;
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* Smooth fade for dark mode */
-    .fade-transition {
-      transition: background-color 0.5s, color 0.5s;
+    /* === Gradient Styles === */
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
-    /* Active menu style */
-    .menu-active {
-      background-color: rgba(255, 255, 255, 0.15);
-      font-weight: 600;
+    .gradient-card {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .gradient-success {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .gradient-warning {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .gradient-info {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    /* Sidebar & Hover */
+    .sidebar-item {
+      transition: all 0.3s ease;
+      border-radius: 8px;
+      margin: 4px 8px;
+      position: relative;
+    }
+
+    .sidebar-item:hover {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .sidebar-item.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* Chart Container */
+    .chart-container {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Header Gradient */
+    .header-gradient {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
+    }
+
+    /* Dark Mode Styles (toggle via JS) */
+    .dark .bg-white {
+      background-color: #2d2d2d !important;
+      color: #e5e5e5 !important;
     }
   </style>
 </head>
-<body class="bg-gray-100 text-gray-800 fade-transition" id="appBody">
+<body class="h-full bg-gray-50">
 
-  <!-- Layout Container -->
-  <div class="flex min-h-screen transition-all duration-500">
+  <!-- Wrapper -->
+  <div id="mainApp" class="h-full flex flex-col">
 
-    <!-- Sidebar -->
-    <aside id="sidebar" class="bg-indigo-700 text-white w-64 flex-shrink-0 flex flex-col shadow-lg">
-      <div class="px-6 py-4 flex justify-between items-center border-b border-indigo-500">
-        <h2 class="text-xl font-bold">🌍 Travel Dashboard</h2>
-        <button id="toggleSidebar" class="text-indigo-200 hover:text-white focus:outline-none text-lg">⏩</button>
-      </div>
-
-      <nav class="flex-1 px-4 py-6 space-y-2">
-        <a href="/dashboard" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="dashboard">🏠 Dashboard</a>
-        <a href="/users" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="users">👥 User Management</a>
-        <a href="/profile" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="profile">👤 Profile</a>
-        <a href="/tours.html" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="tours">🧳 Tours</a>
-        <a href="/executive-dashboard" class="block py-2 px-3 rounded hover:bg-indigo-600 menu-link" data-page="executive-dashboard">📈 Executive Report</a>
-      </nav>
-
-      <div class="p-4 border-t border-indigo-500 flex justify-between items-center">
-        <button id="themeToggle" class="bg-indigo-500 px-3 py-1 rounded hover:bg-indigo-400">🌞 / 🌙</button>
-        <button id="logoutBtn" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Keluar</button>
-      </div>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="flex-1 p-6 overflow-y-auto fade-transition">
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-semibold">📊 Dashboard Overview</h1>
-        <span id="userInfo" class="text-gray-600 text-sm"></span>
-      </div>
-
-      <!-- Summary Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-xl transition-all fade-transition">
-          <h3 class="font-semibold text-gray-600 dark:text-gray-300">Total Tours</h3>
-          <p id="totalTours" class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mt-2">0</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-xl transition-all fade-transition">
-          <h3 class="font-semibold text-gray-600 dark:text-gray-300">Total Sales (IDR)</h3>
-          <p id="totalSales" class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">0</p>
-        </div>
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-xl transition-all fade-transition">
-          <h3 class="font-semibold text-gray-600 dark:text-gray-300">Total Profit (IDR)</h3>
-          <p id="totalProfit" class="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">0</p>
+    <!-- Header -->
+    <header class="header-gradient text-white shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-6">
+          <div class="flex items-center space-x-4">
+            <div class="stat-icon bg-white bg-opacity-20 w-12 h-12 rounded-xl flex items-center justify-center text-2xl">
+              📊
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold">Aplikasi Reporting Sales & Tour</h1>
+              <p class="text-sm text-indigo-200">Sistem Manajemen Terintegrasi</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-3 bg-white bg-opacity-20 rounded-full px-4 py-2">
+              <div class="w-8 h-8 bg-white bg-opacity-30 rounded-full flex items-center justify-center text-sm">👤</div>
+              <div class="hidden sm:block">
+                <p class="text-xs opacity-90">Login sebagai</p>
+                <p id="currentUser" class="text-sm font-semibold"></p>
+              </div>
+            </div>
+            <button id="logoutBtn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-full text-sm font-medium transition-all duration-300">
+              🚪 Logout
+            </button>
+          </div>
         </div>
       </div>
+    </header>
 
-      <!-- Charts Section -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow fade-transition">
-          <h3 class="font-semibold text-gray-600 dark:text-gray-300 mb-2">Status Keberangkatan Tour</h3>
-          <canvas id="tourStatusChart"></canvas>
-        </div>
+    <!-- Content Wrapper -->
+    <div class="flex flex-1 overflow-hidden">
 
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow fade-transition">
-          <h3 class="font-semibold text-gray-600 dark:text-gray-300 mb-2">Sales vs Profit</h3>
-          <canvas id="salesChart"></canvas>
+      <!-- Sidebar -->
+      <aside class="sidebar-gradient w-72 p-6 overflow-y-auto border-r border-indigo-100 hidden md:block">
+        <h2 class="text-lg font-bold text-gray-700 mb-4">Menu Navigasi</h2>
+        <ul class="space-y-2 text-gray-700 text-sm font-medium">
+          <li><button data-page="dashboard" class="sidebar-item w-full flex items-center px-4 py-3">📈 Dashboard Tour</button></li>
+          <li><button data-page="dashboardSales" class="sidebar-item w-full flex items-center px-4 py-3">💰 Dashboard Sales</button></li>
+          <li><button data-page="reportData" class="sidebar-item w-full flex items-center px-4 py-3">📊 Report Tour</button></li>
+          <li><button data-page="reportSales" class="sidebar-item w-full flex items-center px-4 py-3">📋 Report Sales</button></li>
+          <li><button data-page="reportDocument" class="sidebar-item w-full flex items-center px-4 py-3">📄 Report Dokumen</button></li>
+          <li><button data-page="manageUsers" class="sidebar-item w-full flex items-center px-4 py-3">👥 Kelola User</button></li>
+          <li><button data-page="manageRegions" class="sidebar-item w-full flex items-center px-4 py-3">🌍 Kelola Region</button></li>
+          <li><button data-page="executive" class="sidebar-item w-full flex items-center px-4 py-3">🏢 Executive Summary</button></li>
+        </ul>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="mainContent" class="flex-1 overflow-y-auto p-6">
+        <!-- Pages dynamically loaded here by app.js -->
+        <div id="pageContent" class="animate-fadeIn">
+          <div class="flex items-center justify-center h-full text-gray-400">
+            <p class="text-lg">📊 Pilih menu dari sidebar untuk mulai melihat laporan</p>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 
-  <script>
-    // === AUTH CHECK ===
-    const token = localStorage.getItem("travel_token");
-    const user = JSON.parse(localStorage.getItem("travel_user") || "{}");
-    if (!token || !user.username) window.location.href = "/login";
-
-    document.getElementById("userInfo").textContent = `${user.name || user.username} (${user.type})`;
-
-    // === LOGOUT ===
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      localStorage.clear();
-      window.location.href = "/login";
-    });
-
-    // === SIDEBAR COLLAPSE ===
-    const sidebar = document.getElementById("sidebar");
-    document.getElementById("toggleSidebar").addEventListener("click", () => {
-      sidebar.classList.toggle("w-64");
-      sidebar.classList.toggle("w-20");
-    });
-
-    // === DARK MODE ===
-    const appBody = document.getElementById("appBody");
-    const themeToggle = document.getElementById("themeToggle");
-    const userPrefDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const savedTheme = localStorage.getItem("theme");
-
-    if (savedTheme === "dark" || (!savedTheme && userPrefDark)) {
-      enableDarkMode();
-    }
-
-    themeToggle.addEventListener("click", () => {
-      if (appBody.classList.contains("dark")) {
-        disableDarkMode();
-      } else {
-        enableDarkMode();
-      }
-    });
-
-    function enableDarkMode() {
-      appBody.classList.add("dark", "bg-gray-900", "text-gray-100");
-      localStorage.setItem("theme", "dark");
-    }
-
-    function disableDarkMode() {
-      appBody.classList.remove("dark", "bg-gray-900", "text-gray-100");
-      localStorage.setItem("theme", "light");
-    }
-
-    // === ACTIVE MENU HIGHLIGHT ===
-    const currentPath = window.location.pathname.split("/").pop().replace(".html", "") || "dashboard";
-    document.querySelectorAll(".menu-link").forEach(link => {
-      if (link.dataset.page === currentPath) {
-        link.classList.add("menu-active");
-      }
-    });
-
-    // === LOAD DASHBOARD DATA ===
-    async function loadDashboard() {
-      try {
-        const res = await fetch("/api/dashboard/summary", {
-          headers: { Authorization: "Bearer " + token }
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Gagal memuat data dashboard");
-
-        // Update Summary Cards
-        document.getElementById("totalTours").textContent = data.totalTours || 0;
-        document.getElementById("totalSales").textContent = new Intl.NumberFormat("id-ID").format(data.totalSales || 0);
-        document.getElementById("totalProfit").textContent = new Intl.NumberFormat("id-ID").format(data.totalProfit || 0);
-
-        renderCharts(data);
-      } catch (err) {
-        console.error("Dashboard Error:", err.message);
-      }
-    }
-
-    // === CHARTS ===
-    function renderCharts(data) {
-      const tourStatusData = data.tourStatus || [
-        { status: "JALAN", total: 0 },
-        { status: "TIDAK JALAN", total: 0 },
-        { status: "PENDING", total: 0 },
-      ];
-
-      new Chart(document.getElementById("tourStatusChart"), {
-        type: "doughnut",
-        data: {
-          labels: tourStatusData.map(s => s.status),
-          datasets: [{
-            data: tourStatusData.map(s => s.total),
-            backgroundColor: ["#22c55e", "#ef4444", "#f59e0b"],
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { position: "bottom" } } }
-      });
-
-      new Chart(document.getElementById("salesChart"), {
-        type: "bar",
-        data: {
-          labels: ["Sales", "Profit"],
-          datasets: [{
-            data: [data.totalSales || 0, data.totalProfit || 0],
-            backgroundColor: ["#3b82f6", "#10b981"],
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-      });
-    }
-
-    loadDashboard();
-  </script>
+  <script src="/app.js"></script>
 </body>
 </html>
