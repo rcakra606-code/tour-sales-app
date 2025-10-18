@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Report Tour | Aplikasi Reporting</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/assets/icon.png" />
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md py-4">
+    <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
+      <h1 class="text-xl font-bold">📊 Report Tour</h1>
+      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">🏠 Kembali ke Dashboard</a>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
+    <!-- Filter + Search -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <label for="filterRegion" class="text-sm font-medium text-gray-600">Filter Region:</label>
+        <select id="filterRegion" class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+          <option value="">Semua Region</option>
+        </select>
+      </div>
+      <input id="searchTour" type="text" placeholder="Cari Tour..." class="border rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-indigo-500" />
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
+      <table class="w-full text-sm">
+        <thead class="bg-indigo-500 text-white">
+          <tr>
+            <th class="p-3 text-left">Kode</th>
+            <th class="p-3 text-left">Lead Passenger</th>
+            <th class="p-3 text-left">Region</th>
+            <th class="p-3 text-left">Sales</th>
+            <th class="p-3 text-left">Profit</th>
+            <th class="p-3 text-left">Pax</th>
+          </tr>
+        </thead>
+        <tbody id="tourTable" class="divide-y"></tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-4">
+      <button id="prevTour" class="px-3 py-1 border rounded-lg text-sm bg-gray-100 hover:bg-gray-200">⬅️ Prev</button>
+      <span id="pageInfoTour" class="text-sm text-gray-500"></span>
+      <button id="nextTour" class="px-3 py-1 border rounded-lg text-sm bg-gray-100 hover:bg-gray-200">Next ➡️</button>
+    </div>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
