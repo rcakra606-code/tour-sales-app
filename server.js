@@ -1,5 +1,5 @@
 // =========================================================
-// server.js — Travel Dashboard Enterprise v2.2 (SECURE + CSP FIX)
+// server.js — Travel Dashboard Enterprise v2.3 (AUTO INIT + SECURE)
 // =========================================================
 
 require("dotenv").config();
@@ -18,10 +18,25 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
 
 // =========================================================
-// 🧱 DATABASE INITIALIZATION
+// 🧱 DATABASE INITIALIZATION (AUTO CHECK & INIT)
 // =========================================================
 const dbPath = path.join(__dirname, "data", "database.sqlite");
-if (!fs.existsSync(path.dirname(dbPath))) fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const dbDir = path.dirname(dbPath);
+
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
+// 🔹 Jika database belum ada, jalankan initDatabase.js otomatis
+if (!fs.existsSync(dbPath)) {
+  console.log("⚠️ Database not found. Initializing new database...");
+  try {
+    require("./scripts/initDatabase.js");
+    console.log("✅ Database initialized successfully.");
+  } catch (err) {
+    console.error("❌ Failed to initialize database:", err.message);
+    process.exit(1);
+  }
+}
+
 const db = new Database(dbPath);
 console.log(`[${new Date().toISOString()}] ✅ Database connected: ${dbPath}`);
 
@@ -31,14 +46,14 @@ console.log(`[${new Date().toISOString()}] ✅ Database connected: ${dbPath}`);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ CORS (for frontend connection)
+// ✅ CORS (untuk koneksi frontend)
 app.use(cors({
   origin: process.env.FRONTEND_URL || "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// ✅ Helmet (CSP fixed for Tailwind, Chart.js, etc.)
+// ✅ Helmet (CSP fix agar Tailwind/Chart.js tidak terblokir)
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -47,8 +62,8 @@ app.use(
         "default-src": ["'self'"],
         "script-src": [
           "'self'",
-          "'unsafe-inline'",   // allow inline script
-          "'unsafe-eval'",     // fix Tailwind & Chart.js eval()
+          "'unsafe-inline'",
+          "'unsafe-eval'",
           "https://cdn.jsdelivr.net",
           "https://cdn.tailwindcss.com",
           "https://unpkg.com",
@@ -56,7 +71,7 @@ app.use(
         ],
         "style-src": [
           "'self'",
-          "'unsafe-inline'",   // allow inline styles
+          "'unsafe-inline'",
           "https://cdn.jsdelivr.net",
           "https://fonts.googleapis.com"
         ],
@@ -81,10 +96,10 @@ app.use(
   })
 );
 
-// ✅ Request logging
+// ✅ Logging request
 app.use(morgan("dev"));
 
-// ✅ Serve static frontend files
+// ✅ Serve static files (frontend HTML)
 app.use(express.static(path.join(__dirname, "public")));
 
 // =========================================================
@@ -135,7 +150,7 @@ app.use("/api/dashboard", authMiddleware, dashboardRoutes);
 app.use("/api/executive", authMiddleware, executiveReportRoutes);
 
 // =========================================================
-// 🌐 FRONTEND ROUTES
+// 🌐 STATIC FRONTEND ROUTES
 // =========================================================
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public", "login.html")));
@@ -144,7 +159,7 @@ app.get("/profile", (req, res) => res.sendFile(path.join(__dirname, "public", "p
 app.get("/users", (req, res) => res.sendFile(path.join(__dirname, "public", "user-management.html")));
 
 // =========================================================
-// 💾 AUTO BACKUP (03:00 AM)
+// 💾 AUTO BACKUP (JAM 03:00)
 // =========================================================
 const backupDir = process.env.BACKUP_DIR || path.join(__dirname, "backups");
 if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
