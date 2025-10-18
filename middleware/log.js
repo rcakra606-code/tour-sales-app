@@ -1,11 +1,16 @@
-const { getDB } = require("../db");
-function logAction(user, action, target = "") {
+/**
+ * middleware/log.js
+ * Utility untuk mencatat aktivitas user
+ */
+const { logEvent } = require("../config/logger");
+
+async function logAction(user, action, target) {
+  if (!user || !user.username) return;
   try {
-    const db = getDB();
-    db.prepare("INSERT INTO logs (username, role, action, target) VALUES (?, ?, ?, ?)")
-      .run(user?.username || "anonymous", user?.type || "guest", action, target);
+    await logEvent(user.username, user.type, action, target);
   } catch (err) {
-    console.error("Log insert error:", err.message);
+    console.error("❌ Log error:", err.message);
   }
 }
+
 module.exports = { logAction };
