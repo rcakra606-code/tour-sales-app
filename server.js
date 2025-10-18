@@ -38,7 +38,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // --- Database Connection Check ---
-const db = require("./config/db"); // centralized Neon connector
+const db = require("./config/database"); // centralized Neon connector
 (async () => {
   try {
     const res = await db.query("SELECT NOW()");
