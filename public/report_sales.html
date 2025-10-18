@@ -1,210 +1,210 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Sales | Travel Dashboard Enterprise v3.4</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="icon" href="/assets/icon.png" />
-</head>
-<body class="bg-gray-50 min-h-screen">
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report Sales - Travel Dashboard Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
 
-  <!-- HEADER -->
-  <header class="bg-gradient-to-r from-green-600 to-teal-500 text-white shadow-md py-4">
-    <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
-      <h1 class="text-xl font-bold">💰 Report Sales</h1>
-      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">
-        🏠 Kembali ke Dashboard
-      </a>
-    </div>
-  </header>
-
-  <!-- MAIN SECTION -->
-  <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
-    <!-- FILTERS -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <label for="filterMonth" class="text-sm font-medium text-gray-600">Filter Bulan:</label>
-        <input id="filterMonth" type="month" class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500" />
-      </div>
-      <div class="flex items-center gap-2">
-        <input id="searchSales" type="text" placeholder="Cari invoice..." class="border rounded-lg px-3 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-green-500" />
-        <button id="addSalesBtn" class="hidden bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-all">
-          ➕ Tambah Sales
+  <body class="min-h-screen bg-gray-50 flex flex-col">
+    <!-- Header -->
+    <header class="bg-white shadow px-6 py-3 flex justify-between items-center">
+      <h1 class="font-bold text-lg text-indigo-700">Report Sales</h1>
+      <div class="flex items-center gap-4">
+        <span id="userNameDisplay" class="text-sm text-gray-600">Loading...</span>
+        <button data-logout class="text-sm text-red-600 font-semibold hover:underline">
+          Logout
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- EXPORT -->
-    <div class="flex items-center gap-3">
-      <button id="exportSalesCSV" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">📄 Export CSV</button>
-      <button id="exportSalesXLSX" class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm">📗 Export Excel</button>
-    </div>
+    <!-- Main -->
+    <main class="flex-1 p-6">
+      <div id="backendStatusBanner"
+           class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"></div>
 
-    <!-- TABLE -->
-    <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
-      <table class="w-full text-sm" id="salesTable">
-        <thead class="bg-green-600 text-white">
-          <tr>
-            <th class="p-3 text-left">Tanggal</th>
-            <th class="p-3 text-left">Invoice</th>
-            <th class="p-3 text-left">Sales (Rp)</th>
-            <th class="p-3 text-left">Profit (Rp)</th>
-            <th class="p-3 text-left">Diskon (Rp)</th>
-            <th class="p-3 text-left">Staff</th>
-            <th class="p-3 text-left">Aksi</th>
-          </tr>
-        </thead>
-        <tbody id="salesTableBody" class="divide-y divide-gray-200"></tbody>
-      </table>
-    </div>
-  </main>
-
-  <!-- MODAL FORM -->
-  <div id="salesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform scale-95">
-      <div class="border-b px-6 py-4 flex justify-between items-center">
-        <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">Tambah Sales</h3>
-        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-      </div>
-
-      <form id="salesForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
-        <div>
-          <label class="text-sm">Tanggal Transaksi</label>
-          <input type="date" name="transaction_date" class="border rounded-lg w-full px-3 py-2" required>
-        </div>
-        <div>
-          <label class="text-sm">Nomor Invoice</label>
-          <input type="text" name="invoice_number" class="border rounded-lg w-full px-3 py-2" required>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
+      <!-- Form -->
+      <section class="bg-white rounded-xl shadow p-6 border border-gray-100 mb-8">
+        <h2 class="text-lg font-semibold mb-4 text-gray-700">Tambah / Edit Data Sales</h2>
+        <form id="salesForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="text-sm">Sales Amount (Rp)</label>
-            <input type="number" name="sales_amount" class="border rounded-lg w-full px-3 py-2" step="0.01">
+            <label class="text-sm font-medium">Tanggal Transaksi</label>
+            <input type="date" id="transaction_date"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" required />
           </div>
           <div>
-            <label class="text-sm">Profit Amount (Rp)</label>
-            <input type="number" name="profit_amount" class="border rounded-lg w-full px-3 py-2" step="0.01">
+            <label class="text-sm font-medium">Nomor Invoice</label>
+            <input type="text" id="invoice_number"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" required />
           </div>
+          <div>
+            <label class="text-sm font-medium">Sales Amount</label>
+            <input type="number" id="sales_amount"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" required />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Profit Amount</label>
+            <input type="number" id="profit_amount"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" required />
+          </div>
+          <div>
+            <label class="text-sm font-medium">Discount Amount</label>
+            <input type="number" id="discount_amount"
+                   class="w-full border rounded-lg px-3 py-2 mt-1" />
+          </div>
+
+          <div class="col-span-1 md:col-span-2 flex gap-3 mt-4">
+            <button type="submit"
+                    class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+              Simpan
+            </button>
+            <button type="button" id="resetBtn"
+                    class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
+              Reset
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Tabel -->
+      <section class="bg-white rounded-xl shadow p-6 border border-gray-100">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold text-gray-700">Daftar Sales</h2>
+          <button id="refreshBtn"
+                  class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">
+            Refresh
+          </button>
         </div>
-        <div>
-          <label class="text-sm">Diskon (Rp)</label>
-          <input type="number" name="discount_amount" class="border rounded-lg w-full px-3 py-2" step="0.01">
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left border">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr>
+                <th class="py-2 px-2">#</th>
+                <th>Invoice</th>
+                <th>Tanggal</th>
+                <th>Sales</th>
+                <th>Profit</th>
+                <th>Discount</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="salesTable" class="text-gray-700"></tbody>
+          </table>
         </div>
-      </form>
+      </section>
+    </main>
 
-      <div class="border-t px-6 py-4 flex justify-end gap-3">
-        <button id="cancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
-        <button id="saveSalesBtn" type="submit" form="salesForm" class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Simpan</button>
-      </div>
-    </div>
-  </div>
+    <footer class="text-center text-xs text-gray-400 py-3 border-t">
+      © 2025 Travel Dashboard Enterprise v3.4.1
+    </footer>
 
-  <!-- LOADER -->
-  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
-    <div class="flex flex-col items-center space-y-3 text-green-600">
-      <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-      </svg>
-      <span id="loaderMessage" class="text-sm font-medium">Memuat data...</span>
-    </div>
-  </div>
+    <!-- Scripts -->
+    <script src="/js/app.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("salesForm");
+        const resetBtn = document.getElementById("resetBtn");
+        const tableBody = document.getElementById("salesTable");
+        const refreshBtn = document.getElementById("refreshBtn");
+        let editId = null;
 
-  <div id="toastContainer" class="fixed top-5 right-5 z-[80] space-y-2"></div>
+        async function loadSales() {
+          try {
+            const data = await apiFetch("/api/sales");
+            tableBody.innerHTML = data
+              .map(
+                (s, i) => `
+                <tr class="border-b hover:bg-gray-50">
+                  <td class="py-1 px-2">${i + 1}</td>
+                  <td>${s.invoice_number || "-"}</td>
+                  <td>${s.transaction_date || "-"}</td>
+                  <td>${formatNumber(s.sales_amount)}</td>
+                  <td>${formatNumber(s.profit_amount)}</td>
+                  <td>${formatNumber(s.discount_amount)}</td>
+                  <td class="flex gap-2">
+                    <button class="text-blue-600 hover:underline" data-edit="${s.id}">Edit</button>
+                    <button class="text-red-600 hover:underline" data-delete="${s.id}">Hapus</button>
+                  </td>
+                </tr>`
+              )
+              .join("");
+          } catch (err) {
+            showToast("Gagal memuat data sales", { type: "error" });
+          }
+        }
 
-  <script src="/app.js"></script>
-  <script>
-    const API_BASE = "/api";
-    const token = localStorage.getItem("token");
-    if (!token) location.href = "/login.html";
-    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+        loadSales();
 
-    const tableBody = document.getElementById("salesTableBody");
-    const addSalesBtn = document.getElementById("addSalesBtn");
-    const modal = document.getElementById("salesModal");
-    const form = document.getElementById("salesForm");
-    const modalTitle = document.getElementById("modalTitle");
-    let editingId = null;
-    let userRole = "basic";
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const payload = {
+            transaction_date: form.transaction_date.value,
+            invoice_number: form.invoice_number.value,
+            sales_amount: form.sales_amount.value,
+            profit_amount: form.profit_amount.value,
+            discount_amount: form.discount_amount.value,
+          };
 
-    async function loadSales() {
-      showLoader(true, "Memuat data sales...");
-      const res = await fetch(`${API_BASE}/sales`, { headers });
-      const sales = await res.json();
-      renderSales(sales);
-      showLoader(false);
-    }
+          try {
+            if (editId) {
+              await apiFetch(`/api/sales/${editId}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+              });
+              showToast("✅ Data sales diperbarui", { type: "success" });
+            } else {
+              await apiFetch("/api/sales", {
+                method: "POST",
+                body: JSON.stringify(payload),
+              });
+              showToast("✅ Data sales ditambahkan", { type: "success" });
+            }
+            editId = null;
+            form.reset();
+            loadSales();
+          } catch (err) {
+            showToast("❌ Gagal menyimpan data", { type: "error" });
+          }
+        });
 
-    function renderSales(data) {
-      const search = document.getElementById("searchSales").value.toLowerCase();
-      const month = document.getElementById("filterMonth").value;
-      const filtered = data.filter(s =>
-        (!search || (s.invoice_number || "").toLowerCase().includes(search)) &&
-        (!month || (s.transaction_date || "").startsWith(month))
-      );
-      tableBody.innerHTML = filtered.map(s => `
-        <tr class="hover:bg-green-50">
-          <td class="p-3">${s.transaction_date || '-'}</td>
-          <td class="p-3 font-semibold">${s.invoice_number || '-'}</td>
-          <td class="p-3 text-right">${s.sales_amount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 text-right">${s.profit_amount?.toLocaleString('id-ID')}</td>
-          <td class="p-3 text-right">${s.discount_amount?.toLocaleString('id-ID')}</td>
-          <td class="p-3">${s.staff_username || '-'}</td>
-          <td class="p-3 flex gap-2">
-            ${(userRole !== "basic") ? `<button class="edit-btn text-blue-600 hover:underline" data-id="${s.id}">Edit</button>` : ""}
-            ${(userRole === "super") ? `<button class="delete-btn text-red-600 hover:underline" data-id="${s.id}">Hapus</button>` : ""}
-          </td>
-        </tr>
-      `).join("");
+        resetBtn.addEventListener("click", () => {
+          form.reset();
+          editId = null;
+        });
 
-      document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
-      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteSales(btn.dataset.id));
-    }
+        refreshBtn.addEventListener("click", loadSales);
 
-    async function openEdit(id) {
-      const res = await fetch(`${API_BASE}/sales/${id}`, { headers });
-      const s = await res.json();
-      editingId = id;
-      modalTitle.textContent = "Edit Sales";
-      Object.entries(s).forEach(([key, val]) => { if (form[key]) form[key].value = val || ""; });
-      modal.classList.remove("hidden"); modal.classList.add("flex");
-    }
+        tableBody.addEventListener("click", async (e) => {
+          const id = e.target.dataset.edit || e.target.dataset.delete;
+          if (!id) return;
 
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
-      const method = editingId ? "PUT" : "POST";
-      const url = editingId ? `${API_BASE}/sales/${editingId}` : `${API_BASE}/sales`;
-      await fetch(url, { method, headers, body: JSON.stringify(data) });
-      showToast("✅ Data sales berhasil disimpan", "success");
-      modal.classList.add("hidden");
-      loadSales();
-      editingId = null;
-    });
+          if (e.target.dataset.edit) {
+            try {
+              const s = await apiFetch(`/api/sales/${id}`);
+              Object.keys(s).forEach((key) => {
+                if (form[key]) form[key].value = s[key];
+              });
+              editId = id;
+              showToast("✏️ Mode edit aktif", { type: "info" });
+            } catch {
+              showToast("Gagal memuat data untuk edit", { type: "error" });
+            }
+          }
 
-    async function deleteSales(id) {
-      if (!confirm("Yakin ingin menghapus data ini?")) return;
-      await fetch(`${API_BASE}/sales/${id}`, { method: "DELETE", headers });
-      showToast("🗑️ Sales dihapus", "success");
-      loadSales();
-    }
-
-    document.getElementById("closeModalBtn").onclick = () => modal.classList.add("hidden");
-    document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
-    addSalesBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Sales"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
-
-    (async () => {
-      const res = await fetch(`${API_BASE}/auth/verify`, { headers });
-      const data = await res.json();
-      if (!data.ok) location.href = "/login.html";
-      userRole = data.user.type;
-      if (["super", "semi"].includes(userRole)) addSalesBtn.classList.remove("hidden");
-      loadSales();
-    })();
-
-    document.getElementById("searchSales").oninput = loadSales;
-    document.getElementById("filterMonth").oninput = loadSales;
-  </script>
-</body>
+          if (e.target.dataset.delete) {
+            if (!confirm("Yakin ingin menghapus data ini?")) return;
+            try {
+              await apiFetch(`/api/sales/${id}`, { method: "DELETE" });
+              showToast("🗑️ Data sales dihapus", { type: "success" });
+              loadSales();
+            } catch {
+              showToast("Gagal menghapus data", { type: "error" });
+            }
+          }
+        });
+      });
+    </script>
+  </body>
 </html>
