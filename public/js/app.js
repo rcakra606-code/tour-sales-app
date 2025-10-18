@@ -1,41 +1,107 @@
 /* =====================================================
-   APP.JS - Frontend Controller (FINAL VERSION)
+   APP.JS - FINAL FRONTEND CONTROLLER (v2025)
    ===================================================== */
 
 const API_BASE = "/api";
 
-/* ---------- Helpers ---------- */
+/* =====================================================
+   BASIC HELPERS
+   ===================================================== */
 const authHeaders = () => ({
   "Content-Type": "application/json",
   "Authorization": `Bearer ${localStorage.getItem("token") || ""}`
 });
 
-async function apiGet(url) {
-  const res = await fetch(url, { headers: authHeaders() });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-async function apiPost(url, data) {
-  const res = await fetch(url, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-async function apiPut(url, data) {
-  const res = await fetch(url, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-async function apiDelete(url) {
-  const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
 function formatNumber(num) {
   return new Intl.NumberFormat("id-ID").format(num || 0);
 }
 
 /* =====================================================
-   GLOBAL MODAL UTILITY + SPINNER
+   ADVANCED GLOBAL LOADER HANDLER (FADE + DELAY + MESSAGE)
+   ===================================================== */
+let loaderTimer = null;
+function showLoader(show = true, message = "Memuat data...") {
+  const loader = document.getElementById("globalLoader");
+  const msg = document.getElementById("loaderMessage");
+  if (!loader || !msg) return;
+
+  if (show) {
+    msg.textContent = message;
+    loaderTimer = setTimeout(() => {
+      loader.classList.remove("hidden");
+      requestAnimationFrame(() => {
+        loader.classList.add("flex");
+        loader.classList.add("opacity-100");
+      });
+    }, 400); // delay 400ms agar tidak flicker
+  } else {
+    if (loaderTimer) clearTimeout(loaderTimer);
+    loader.classList.remove("opacity-100");
+    loader.classList.add("opacity-0");
+    setTimeout(() => {
+      loader.classList.add("hidden");
+      loader.classList.remove("flex");
+    }, 300);
+  }
+}
+
+/* =====================================================
+   API WRAPPERS (TERINTEGRASI DENGAN LOADER)
+   ===================================================== */
+async function apiGet(url, msg = "Mengambil data...") {
+  showLoader(true, msg);
+  try {
+    const res = await fetch(url, { headers: authHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function apiPost(url, data, msg = "Menyimpan data...") {
+  showLoader(true, msg);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function apiPut(url, data, msg = "Memperbarui data...") {
+  showLoader(true, msg);
+  try {
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  } finally {
+    showLoader(false);
+  }
+}
+
+async function apiDelete(url, msg = "Menghapus data...") {
+  showLoader(true, msg);
+  try {
+    const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  } finally {
+    showLoader(false);
+  }
+}
+
+/* =====================================================
+   GLOBAL MODAL UTILITY (DENGAN SPINNER DI DALAM)
    ===================================================== */
 function openModal(title, fields, onSubmit, initialData = {}) {
   const modal = document.getElementById("globalModal");
@@ -68,6 +134,7 @@ function openModal(title, fields, onSubmit, initialData = {}) {
     modal.classList.remove("flex");
     modalForm.removeEventListener("submit", submitHandler);
   }
+
   closeBtn.onclick = cancelBtn.onclick = close;
   modal.onclick = e => { if (e.target === modal) close(); };
 
@@ -92,6 +159,7 @@ function openModal(title, fields, onSubmit, initialData = {}) {
       cancelBtn.disabled = false;
     }
   }
+
   modalForm.addEventListener("submit", submitHandler);
 }
 
@@ -129,12 +197,18 @@ document.addEventListener("keydown", e => {
   }
 });
 
+/* =====================================================
+   ANIMATION STYLES
+   ===================================================== */
 const style = document.createElement("style");
 style.textContent = `
 @keyframes fadeIn { from { opacity:0; transform:translateX(10px);} to {opacity:1; transform:none;} }
 .animate-fade-in { animation: fadeIn .3s ease; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .animate-spin { animation: spin 1s linear infinite; }
+.transition-opacity { transition: opacity .3s ease; }
+.opacity-100 { opacity: 1 !important; }
+.opacity-0 { opacity: 0 !important; }
 `;
 document.head.appendChild(style);
 
@@ -183,7 +257,7 @@ if (location.pathname.endsWith("dashboard.html")) {
 
   logoutBtn.onclick = () => { localStorage.clear(); location.href = "/login.html"; };
 
-  // Dark Mode
+  // Dark Mode Toggle
   (function initDarkMode() {
     const header = document.querySelector("header .flex.items-center.space-x-4");
     const btn = document.createElement("button");
@@ -208,6 +282,9 @@ if (location.pathname.endsWith("dashboard.html")) {
   }));
   renderPage("dashboard");
 
+  /* =====================================================
+     PAGE RENDER FUNCTIONS
+     ===================================================== */
   async function renderPage(page) {
     switch (page) {
       case "dashboard": return renderDashboardTour();
@@ -222,9 +299,6 @@ if (location.pathname.endsWith("dashboard.html")) {
     }
   }
 
-  /* =====================================================
-     DASHBOARD TOUR
-     ===================================================== */
   async function renderDashboardTour() {
     pageContent.innerHTML = `
       <div class="max-w-7xl mx-auto">
@@ -246,12 +320,12 @@ if (location.pathname.endsWith("dashboard.html")) {
         { name: "tour_price", label: "Harga Tour", type: "number" }
       ], async d => {
         d.staff_username = JSON.parse(localStorage.getItem("user")).username;
-        await apiPost(`${API_BASE}/tours`, d);
+        await apiPost(`${API_BASE}/tours`, d, "Menyimpan data tour...");
         renderDashboardTour();
       });
     };
 
-    const data = await apiGet(`${API_BASE}/dashboard/summary`);
+    const data = await apiGet(`${API_BASE}/dashboard/summary`, "Mengambil data dashboard...");
     const cards = [
       { t: "Total Sales", v: data.totalSales, i: "💰" },
       { t: "Total Profit", v: data.totalProfit, i: "📊" },
@@ -271,9 +345,6 @@ if (location.pathname.endsWith("dashboard.html")) {
     });
   }
 
-  /* =====================================================
-     DASHBOARD SALES
-     ===================================================== */
   async function renderDashboardSales() {
     pageContent.innerHTML = `
       <div class="max-w-7xl mx-auto">
@@ -291,12 +362,12 @@ if (location.pathname.endsWith("dashboard.html")) {
         { name: "sales_amount", label: "Jumlah Sales", type: "number" },
         { name: "profit_amount", label: "Profit", type: "number" }
       ], async d => {
-        await apiPost(`${API_BASE}/sales`, d);
+        await apiPost(`${API_BASE}/sales`, d, "Menyimpan data sales...");
         renderDashboardSales();
       });
     };
 
-    const sales = await apiGet(`${API_BASE}/sales`);
+    const sales = await apiGet(`${API_BASE}/sales`, "Mengambil data penjualan...");
     const grouped = {};
     sales.forEach(s => {
       const ym = s.transaction_date?.substring(0,7);
@@ -310,15 +381,12 @@ if (location.pathname.endsWith("dashboard.html")) {
     });
   }
 
-  /* =====================================================
-     REPORT PAGES & MANAGEMENT
-     ===================================================== */
   async function renderReportTours() {
     pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>📋 Report Tour</h2>
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'>
         <thead class='bg-indigo-500 text-white'><tr><th class='p-2'>Code</th><th class='p-2'>Lead</th><th class='p-2'>Region</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr></thead>
         <tbody id='tourTbl'></tbody></table>`;
-    const t = await apiGet(`${API_BASE}/tours`);
+    const t = await apiGet(`${API_BASE}/tours`, "Mengambil data laporan tour...");
     document.getElementById("tourTbl").innerHTML = t.map(r => `
       <tr class='hover:bg-indigo-50'><td class='p-2'>${r.tour_code}</td><td>${r.lead_passenger}</td><td>${r.region}</td><td>${r.sales_amount}</td><td>${r.profit_amount}</td></tr>`).join("");
   }
@@ -328,7 +396,7 @@ if (location.pathname.endsWith("dashboard.html")) {
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
       <tr><th class='p-2'>Tanggal</th><th class='p-2'>Invoice</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr></thead>
       <tbody id='salesTbl'></tbody></table>`;
-    const s = await apiGet(`${API_BASE}/sales`);
+    const s = await apiGet(`${API_BASE}/sales`, "Mengambil data laporan sales...");
     document.getElementById("salesTbl").innerHTML = s.map(r => `
       <tr class='hover:bg-indigo-50'><td class='p-2'>${r.transaction_date}</td><td>${r.invoice_number}</td><td>${r.sales_amount}</td><td>${r.profit_amount}</td></tr>`).join("");
   }
@@ -338,7 +406,7 @@ if (location.pathname.endsWith("dashboard.html")) {
       <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
       <tr><th class='p-2'>Nama</th><th class='p-2'>Invoice</th><th class='p-2'>Proses</th><th class='p-2'>Status</th></tr></thead>
       <tbody id='docTbl'></tbody></table>`;
-    const d = await apiGet(`${API_BASE}/documents`);
+    const d = await apiGet(`${API_BASE}/documents`, "Mengambil data dokumen...");
     document.getElementById("docTbl").innerHTML = d.map(r => `
       <tr class='hover:bg-indigo-50'><td class='p-2'>${r.guest_names}</td><td>${r.invoice_number}</td><td>${r.process_type}</td><td>${r.document_status}</td></tr>`).join("");
   }
@@ -356,11 +424,11 @@ if (location.pathname.endsWith("dashboard.html")) {
         { name: "email", label: "Email" },
         { name: "type", label: "Role (basic/semi/super)" }
       ], async d => {
-        await apiPost(`${API_BASE}/users`, d);
+        await apiPost(`${API_BASE}/users`, d, "Membuat user baru...");
         renderManageUsers();
       });
     };
-    const u = await apiGet(`${API_BASE}/users`);
+    const u = await apiGet(`${API_BASE}/users`, "Mengambil daftar user...");
     document.getElementById("usrTbl").innerHTML = u.map(r => `<tr><td class='p-2'>${r.username}</td><td>${r.name}</td><td>${r.type}</td></tr>`).join("");
   }
 
@@ -373,17 +441,17 @@ if (location.pathname.endsWith("dashboard.html")) {
       openModal("Tambah Region", [
         { name: "name", label: "Nama Region", required: true }
       ], async d => {
-        await apiPost(`${API_BASE}/regions`, d);
+        await apiPost(`${API_BASE}/regions`, d, "Menambahkan region...");
         renderManageRegions();
       });
     };
-    const r = await apiGet(`${API_BASE}/regions`);
+    const r = await apiGet(`${API_BASE}/regions`, "Mengambil daftar region...");
     document.getElementById("regTbl").innerHTML = r.map(x => `<tr><td class='p-2'>${x.name}</td></tr>`).join("");
   }
 
   async function renderExecutiveReport() {
     pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>🏢 Executive Summary</h2><div class='chart-container'><canvas id='execChart'></canvas></div>`;
-    const d = await apiGet(`${API_BASE}/report/executive`);
+    const d = await apiGet(`${API_BASE}/report/executive`, "Mengambil executive summary...");
     new Chart(document.getElementById("execChart"), {
       type: "bar",
       data: { labels: d.topStaff.map(s => s.username), datasets: [{ label: "Top Staff Sales", data: d.topStaff.map(s => s.sales) }] },
