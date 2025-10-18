@@ -3,70 +3,100 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Dokumen | Aplikasi Reporting</title>
+  <title>Report Document | Travel Dashboard Enterprise v3.3</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/assets/icon.png" />
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md py-4">
+
+  <!-- HEADER -->
+  <header class="bg-gradient-to-r from-purple-600 to-indigo-500 text-white shadow-md py-4">
     <div class="max-w-6xl mx-auto flex justify-between items-center px-4">
-      <h1 class="text-xl font-bold">📄 Report Dokumen</h1>
-      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">🏠 Kembali ke Dashboard</a>
+      <h1 class="text-xl font-bold">📄 Report Document</h1>
+      <a href="/dashboard.html" class="text-white text-sm bg-white bg-opacity-20 px-3 py-1 rounded-xl hover:bg-opacity-30">
+        🏠 Kembali ke Dashboard
+      </a>
     </div>
   </header>
 
+  <!-- MAIN SECTION -->
   <main class="max-w-6xl mx-auto py-8 px-4 space-y-6">
-    <div class="flex justify-between items-center">
-      <p id="currentUser" class="text-sm text-gray-500"></p>
-      <button id="logoutBtn" class="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600">Logout</button>
-    </div>
-
-    <!-- Filter + Search -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div class="flex items-center gap-3">
-        <label for="filterStatus" class="text-sm font-medium text-gray-600">Filter Status:</label>
-        <select id="filterStatus" class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-          <option value="">Semua Status</option>
-          <option value="Diterima">Diterima</option>
-          <option value="Proses">Proses</option>
-          <option value="Selesai">Selesai</option>
-        </select>
+        <label for="searchDoc" class="text-sm font-medium text-gray-600">Cari Dokumen:</label>
+        <input id="searchDoc" type="text" placeholder="Cari nama tamu, booking..." class="border rounded-lg px-3 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-purple-500" />
       </div>
-      <input id="searchDoc" type="text" placeholder="Cari Nama Tamu..." class="border rounded-lg px-4 py-2 text-sm w-full md:w-64 focus:ring-2 focus:ring-indigo-500" />
+      <button id="addDocBtn" class="hidden bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-all">
+        ➕ Tambah Dokumen
+      </button>
     </div>
 
-    <!-- Export -->
-    <div class="flex items-center gap-3 mt-2">
+    <!-- EXPORT -->
+    <div class="flex items-center gap-3">
       <button id="exportDocCSV" class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm">📄 Export CSV</button>
       <button id="exportDocXLSX" class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm">📗 Export Excel</button>
     </div>
 
-    <!-- Table -->
+    <!-- TABLE -->
     <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
       <table class="w-full text-sm">
-        <thead class="bg-indigo-500 text-white">
+        <thead class="bg-purple-600 text-white">
           <tr>
+            <th class="p-3 text-left">Tanggal Terima</th>
             <th class="p-3 text-left">Nama Tamu</th>
-            <th class="p-3 text-left">Invoice</th>
-            <th class="p-3 text-left">Jenis Proses</th>
-            <th class="p-3 text-left">Status Dokumen</th>
-            <th class="p-3 text-left">Visa</th>
+            <th class="p-3 text-left">Kode Booking DMS</th>
+            <th class="p-3 text-left">Tour Code</th>
+            <th class="p-3 text-left">Catatan Dokumen</th>
+            <th class="p-3 text-left">Staff</th>
+            <th class="p-3 text-left">Aksi</th>
           </tr>
         </thead>
-        <tbody id="docTable" class="divide-y"></tbody>
+        <tbody id="documentTable" class="divide-y divide-gray-200"></tbody>
       </table>
-    </div>
-
-    <!-- Pagination -->
-    <div class="flex justify-between items-center mt-4">
-      <button id="prevDoc" class="px-3 py-1 border rounded-lg text-sm bg-gray-100 hover:bg-gray-200">⬅️ Prev</button>
-      <span id="pageInfoDoc" class="text-sm text-gray-500"></span>
-      <button id="nextDoc" class="px-3 py-1 border rounded-lg text-sm bg-gray-100 hover:bg-gray-200">Next ➡️</button>
     </div>
   </main>
 
-  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70] transition-opacity duration-300 opacity-0">
-    <div class="flex flex-col items-center space-y-3 text-indigo-600">
+  <!-- MODAL FORM -->
+  <div id="documentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg transform scale-95">
+      <div class="border-b px-6 py-4 flex justify-between items-center">
+        <h3 id="modalTitle" class="text-lg font-semibold text-gray-800">Tambah Dokumen</h3>
+        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+      </div>
+
+      <form id="documentForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div>
+          <label class="text-sm">Tanggal Terima Dokumen</label>
+          <input type="date" name="receive_date" class="border rounded-lg w-full px-3 py-2">
+        </div>
+        <div>
+          <label class="text-sm">Nama Tamu</label>
+          <input type="text" name="guest_name" class="border rounded-lg w-full px-3 py-2" placeholder="Nama tamu utama">
+        </div>
+        <div>
+          <label class="text-sm">Kode Booking DMS</label>
+          <input type="text" name="booking_code" class="border rounded-lg w-full px-3 py-2" placeholder="Kode booking DMS">
+        </div>
+        <div>
+          <label class="text-sm">Tour Code (Jika Ada)</label>
+          <input type="text" name="tour_code" class="border rounded-lg w-full px-3 py-2" placeholder="Opsional">
+        </div>
+        <div>
+          <label class="text-sm">Catatan Dokumen</label>
+          <textarea name="document_remarks" class="border rounded-lg w-full px-3 py-2" rows="3" placeholder="Tambahkan keterangan penting di sini"></textarea>
+        </div>
+      </form>
+
+      <div class="border-t px-6 py-4 flex justify-end gap-3">
+        <button id="cancelBtn" type="button" class="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
+        <button id="saveDocBtn" type="submit" form="documentForm" class="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADER -->
+  <div id="globalLoader" class="fixed inset-0 bg-white bg-opacity-70 hidden items-center justify-center z-[70]">
+    <div class="flex flex-col items-center space-y-3 text-purple-600">
       <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -79,17 +109,96 @@
 
   <script src="/app.js"></script>
   <script>
+    const API_BASE = "/api";
+    const token = localStorage.getItem("token");
+    if (!token) location.href = "/login.html";
+
+    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    const tableBody = document.getElementById("documentTable");
+    const addBtn = document.getElementById("addDocBtn");
+    const modal = document.getElementById("documentModal");
+    const form = document.getElementById("documentForm");
+    const modalTitle = document.getElementById("modalTitle");
+    let editingId = null;
+    let userRole = "basic";
+
+    async function loadDocs() {
+      showLoader(true, "Memuat data dokumen...");
+      const res = await fetch(`${API_BASE}/documents`, { headers });
+      const docs = await res.json();
+      renderDocs(docs);
+      showLoader(false);
+    }
+
+    function renderDocs(data) {
+      const search = document.getElementById("searchDoc").value.toLowerCase();
+      const filtered = data.filter(d =>
+        (!search || d.guest_name.toLowerCase().includes(search) || (d.booking_code || "").toLowerCase().includes(search))
+      );
+      tableBody.innerHTML = filtered.map(d => `
+        <tr class="hover:bg-purple-50">
+          <td class="p-3">${d.receive_date || '-'}</td>
+          <td class="p-3">${d.guest_name || '-'}</td>
+          <td class="p-3 font-semibold">${d.booking_code || '-'}</td>
+          <td class="p-3">${d.tour_code || '-'}</td>
+          <td class="p-3">${d.document_remarks || '-'}</td>
+          <td class="p-3">${d.staff || '-'}</td>
+          <td class="p-3 flex gap-2">
+            ${(userRole !== "basic") ? `<button class="edit-btn text-blue-600 hover:underline" data-id="${d.id}">Edit</button>` : ""}
+            ${(userRole === "super") ? `<button class="delete-btn text-red-600 hover:underline" data-id="${d.id}">Hapus</button>` : ""}
+          </td>
+        </tr>
+      `).join("");
+
+      document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
+      document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteDoc(btn.dataset.id));
+    }
+
+    async function openEdit(id) {
+      const res = await fetch(`${API_BASE}/documents/${id}`, { headers });
+      const d = await res.json();
+      editingId = id;
+      modalTitle.textContent = "Edit Dokumen";
+      Object.entries(d).forEach(([key, val]) => {
+        if (form[key]) form[key].value = val || "";
+      });
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      const method = editingId ? "PUT" : "POST";
+      const url = editingId ? `${API_BASE}/documents/${editingId}` : `${API_BASE}/documents`;
+      await fetch(url, { method, headers, body: JSON.stringify(data) });
+      showToast("✅ Data dokumen berhasil disimpan", "success");
+      modal.classList.add("hidden");
+      loadDocs();
+      editingId = null;
+    };
+
+    async function deleteDoc(id) {
+      if (!confirm("Yakin ingin menghapus data ini?")) return;
+      await fetch(`${API_BASE}/documents/${id}`, { method: "DELETE", headers });
+      showToast("🗑️ Dokumen dihapus", "success");
+      loadDocs();
+    }
+
+    document.getElementById("closeModalBtn").onclick = () => modal.classList.add("hidden");
+    document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
+    addBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Dokumen"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
+
     (async () => {
-      const res = await fetch('/api/auth/verify', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
+      const res = await fetch(`${API_BASE}/auth/verify`, { headers });
       const data = await res.json();
-      if (!data.ok) {
-        localStorage.clear();
-        location.href = '/login.html';
-      } else {
-        document.getElementById('currentUser').textContent = `${data.user.name || data.user.username} (${data.user.type})`;
-      }
+      if (!data.ok) location.href = "/login.html";
+      userRole = data.user.type;
+      if (["super", "semi"].includes(userRole)) addBtn.classList.remove("hidden");
+      loadDocs();
     })();
-    document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); location.href = '/login.html'; };
+
+    document.getElementById("searchDoc").oninput = loadDocs;
   </script>
 </body>
 </html>
