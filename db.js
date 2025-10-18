@@ -2,7 +2,6 @@ const Database = require("better-sqlite3");
 const path = require("path");
 
 let db;
-
 function getDB() {
   if (!db) db = new Database(path.join(__dirname, "data.db"));
   return db;
@@ -65,6 +64,17 @@ function initDB() {
     CREATE TABLE IF NOT EXISTS regions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT UNIQUE
+    )
+  `).run();
+
+  db.prepare(`
+    CREATE TABLE IF NOT EXISTS logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT,
+      role TEXT,
+      action TEXT,
+      target TEXT,
+      timestamp TEXT DEFAULT (datetime('now'))
     )
   `).run();
 
