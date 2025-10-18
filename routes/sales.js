@@ -1,104 +1,151 @@
+/**
+ * ==========================================================
+ * routes/sales.js — Travel Dashboard Enterprise v3.4.1
+ * ==========================================================
+ * ✅ PostgreSQL (Neon) Ready
+ * ✅ CRUD Sales Data
+ * ✅ Role-based Access Control
+ * ✅ Audit Logging Integration
+ * ==========================================================
+ */
+
 const express = require("express");
-const router = express.Router();
-const { getDB } = require("../db");
+const db = require("../config/db");
 const auth = require("../middleware/auth");
 const { logAction } = require("../middleware/log");
+const { requireRole } = require("../middleware/roleCheck");
 
+const router = express.Router();
+
+// Middleware auth untuk semua route
 router.use(auth);
 
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.type))
-      return res.status(403).json({ error: "Akses ditolak" });
-    next();
-  };
-}
-
-// GET ALL SALES
-router.get("/", (req, res) => {
+/**
+ * ==========================================================
+ * GET /api/sales
+ * Ambil semua data sales
+ * ==========================================================
+ */
+router.get("/", async (req, res) => {
   try {
-    const db = getDB();
-    const sales = db.prepare("SELECT * FROM sales ORDER BY id DESC").all();
-    res.json(sales);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET SINGLE
-router.get("/:id", (req, res) => {
-  try {
-    const db = getDB();
-    const s = db.prepare("SELECT * FROM sales WHERE id=?").get(req.params.id);
-    if (!s) return res.status(404).json({ error: "Data sales tidak ditemukan" });
-    res.json(s);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// CREATE SALES
-router.post("/", requireRole("super", "semi"), (req, res) => {
-  try {
-    const db = getDB();
-    const u = req.user;
-    const d = req.body;
-    db.prepare(`
-      INSERT INTO sales (transaction_date, invoice_number, sales_amount, profit_amount, discount_amount, staff_username)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      d.transaction_date || "",
-      d.invoice_number || "",
-      d.sales_amount || 0,
-      d.profit_amount || 0,
-      d.discount_amount || 0,
-      u.username || ""
+    const result = await db.query(
+      `SELECT id, transaction_date, invoice_number, sales_amount, 
+              profit_amount, discount_amount, staff_username 
+       FROM sales ORDER BY id DESC`
     );
-    logAction(u, "Menambahkan Sales Baru", d.invoice_number);
-    res.json({ message: "Sales berhasil ditambahkan" });
+    res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error GET /sales:", err.message);
+    res.status(500).json({ error: "Gagal memuat data sales" });
   }
 });
 
-// UPDATE SALES
-router.put("/:id", requireRole("super", "semi"), (req, res) => {
+/**
+ * ==========================================================
+ * GET /api/sales/:id
+ * Ambil detail sales berdasarkan ID
+ * ==========================================================
+ */
+router.get("/:id", async (req, res) => {
   try {
-    const db = getDB();
-    const u = req.user;
-    const d = req.body;
-    db.prepare(`
-      UPDATE sales SET
-      transaction_date=?, invoice_number=?, sales_amount=?, profit_amount=?, discount_amount=?, staff_username=?
-      WHERE id=?
-    `).run(
-      d.transaction_date || "",
-      d.invoice_number || "",
-      d.sales_amount || 0,
-      d.profit_amount || 0,
-      d.discount_amount || 0,
-      u.username || "",
-      req.params.id
-    );
-    logAction(u, "Mengubah Data Sales", d.invoice_number);
-    res.json({ message: "Sales berhasil diperbarui" });
+    const result = await db.query("SELECT * FROM sales WHERE id = $1", [req.params.id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: "Sales tidak ditemukan" });
+    res.json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error GET /sales/:id:", err.message);
+    res.status(500).json({ error: "Gagal mengambil detail sales" });
   }
 });
 
-// DELETE SALES
-router.delete("/:id", requireRole("super"), (req, res) => {
+/**
+ * ==========================================================
+ * POST /api/sales
+ * Tambah data sales baru (super/semi)
+ * ==========================================================
+ */
+router.post("/", requireRole("super", "semi"), async (req, res) => {
   try {
-    const db = getDB();
-    const u = req.user;
-    const s = db.prepare("SELECT invoice_number FROM sales WHERE id=?").get(req.params.id);
-    if (!s) return res.status(404).json({ error: "Sales tidak ditemukan" });
-    db.prepare("DELETE FROM sales WHERE id=?").run(req.params.id);
-    logAction(u, "Menghapus Sales", s.invoice_number);
-    res.json({ message: "Sales dihapus" });
+    const data = req.body;
+    const sql = `
+      INSERT INTO sales (
+        transaction_date, invoice_number, sales_amount, profit_amount, 
+        discount_amount, staff_username
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
+    `;
+    const params = [
+      data.transaction_date || null,
+      data.invoice_number || null,
+      data.sales_amount || 0,
+      data.profit_amount || 0,
+      data.discount_amount || 0,
+      req.user.username
+    ];
+
+    const result = await db.query(sql, params);
+    await logAction(req.user, "Menambahkan Sales", `Sales ID: ${result.rows[0].id}`);
+    res.json({ message: "✅ Data sales berhasil ditambahkan" });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error POST /sales:", err.message);
+    res.status(500).json({ error: "Gagal menambahkan sales" });
+  }
+});
+
+/**
+ * ==========================================================
+ * PUT /api/sales/:id
+ * Update data sales (super/semi)
+ * ==========================================================
+ */
+router.put("/:id", requireRole("super", "semi"), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const data = req.body;
+    const sql = `
+      UPDATE sales SET 
+        transaction_date=$1, invoice_number=$2, sales_amount=$3, 
+        profit_amount=$4, discount_amount=$5
+      WHERE id=$6
+    `;
+    const params = [
+      data.transaction_date || null,
+      data.invoice_number || null,
+      data.sales_amount || 0,
+      data.profit_amount || 0,
+      data.discount_amount || 0,
+      id
+    ];
+
+    await db.query(sql, params);
+    await logAction(req.user, "Mengubah Sales", `Sales ID: ${id}`);
+    res.json({ message: "✅ Data sales berhasil diperbarui" });
+  } catch (err) {
+    console.error("❌ Error PUT /sales/:id:", err.message);
+    res.status(500).json({ error: "Gagal memperbarui sales" });
+  }
+});
+
+/**
+ * ==========================================================
+ * DELETE /api/sales/:id
+ * Hapus data sales (super only)
+ * ==========================================================
+ */
+router.delete("/:id", requireRole("super"), async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await db.query("SELECT invoice_number FROM sales WHERE id=$1", [id]);
+    if (result.rowCount === 0) return res.status(404).json({ error: "Sales tidak ditemukan" });
+
+    const invoice = result.rows[0].invoice_number || `ID:${id}`;
+    await db.query("DELETE FROM sales WHERE id=$1", [id]);
+    await logAction(req.user, "Menghapus Sales", invoice);
+
+    res.json({ message: "🗑️ Data sales berhasil dihapus" });
+  } catch (err) {
+    console.error("❌ Error DELETE /sales/:id:", err.message);
+    res.status(500).json({ error: "Gagal menghapus sales" });
   }
 });
 
