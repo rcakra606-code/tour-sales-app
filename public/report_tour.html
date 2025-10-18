@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Tour | Travel Dashboard Enterprise v3.3</title>
+  <title>Report Tour | Travel Dashboard Enterprise v3.4</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/assets/icon.png" />
 </head>
@@ -43,7 +43,7 @@
 
     <!-- TABLE -->
     <div class="overflow-x-auto bg-white shadow-md rounded-xl mt-4">
-      <table class="w-full text-sm">
+      <table class="w-full text-sm" id="tourTable">
         <thead class="bg-indigo-500 text-white">
           <tr>
             <th class="p-3 text-left">Kode Tour</th>
@@ -56,7 +56,7 @@
             <th class="p-3 text-left">Aksi</th>
           </tr>
         </thead>
-        <tbody id="tourTable" class="divide-y divide-gray-200"></tbody>
+        <tbody id="tourTableBody" class="divide-y divide-gray-200"></tbody>
       </table>
     </div>
   </main>
@@ -69,7 +69,7 @@
         <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
       </div>
 
-      <!-- FORM CONTENT -->
+      <!-- FORM -->
       <form id="tourForm" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -92,41 +92,43 @@
           <textarea name="allPassengers" class="border rounded-lg w-full px-3 py-2" rows="2"></textarea>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Region</label>
-            <input type="text" name="region" class="border rounded-lg w-full px-3 py-2">
+        <!-- Region Searchable Dropdown -->
+        <div>
+          <label class="text-sm font-medium">Region</label>
+          <div class="relative">
+            <input type="text" id="regionSearch" placeholder="Ketik untuk mencari region..." class="border rounded-lg w-full px-3 py-2 focus:ring-2 focus:ring-indigo-500" autocomplete="off" />
+            <ul id="regionDropdown" class="absolute left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 hidden max-h-48 overflow-y-auto z-10"></ul>
           </div>
+          <input type="hidden" name="region" id="regionValue" />
+          <p id="regionError" class="text-red-600 text-xs mt-1 hidden">⚠️ Harap pilih region yang valid</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-sm">Tanggal Keberangkatan</label>
             <input type="date" name="departureDate" class="border rounded-lg w-full px-3 py-2">
           </div>
-        </div>
-
-        <div>
-          <label class="text-sm">Kode Booking</label>
-          <input type="text" name="bookingCode" class="border rounded-lg w-full px-3 py-2">
-        </div>
-
-        <div>
-          <label class="text-sm">Harga Tour (Rp)</label>
-          <input type="number" step="0.01" name="tourPrice" class="border rounded-lg w-full px-3 py-2">
-        </div>
-
-        <div>
-          <label class="text-sm">Keterangan Diskon</label>
-          <input type="text" name="discountRemarks" class="border rounded-lg w-full px-3 py-2">
-        </div>
-
-        <div>
-          <label class="text-sm">Bukti Pembayaran (URL/File)</label>
-          <input type="text" name="paymentProof" class="border rounded-lg w-full px-3 py-2">
+          <div>
+            <label class="text-sm">Kode Booking</label>
+            <input type="text" name="bookingCode" class="border rounded-lg w-full px-3 py-2">
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-sm">Dokumen Diterima</label>
-            <input type="date" name="documentReceived" class="border rounded-lg w-full px-3 py-2">
+            <label class="text-sm">Harga Tour (Rp)</label>
+            <input type="number" step="0.01" name="tourPrice" class="border rounded-lg w-full px-3 py-2">
+          </div>
+          <div>
+            <label class="text-sm">Sales Amount (Rp)</label>
+            <input type="number" step="0.01" name="salesAmount" class="border rounded-lg w-full px-3 py-2">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-sm">Profit Amount (Rp)</label>
+            <input type="number" step="0.01" name="profitAmount" class="border rounded-lg w-full px-3 py-2">
           </div>
           <div>
             <label class="text-sm">Status Keberangkatan</label>
@@ -135,33 +137,6 @@
               <option value="CONFIRMED">CONFIRMED</option>
               <option value="CANCELLED">CANCELLED</option>
             </select>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Mulai Proses Visa</label>
-            <input type="date" name="visaProcessStart" class="border rounded-lg w-full px-3 py-2">
-          </div>
-          <div>
-            <label class="text-sm">Selesai Proses Visa</label>
-            <input type="date" name="visaProcessEnd" class="border rounded-lg w-full px-3 py-2">
-          </div>
-        </div>
-
-        <div>
-          <label class="text-sm">Catatan Dokumen</label>
-          <textarea name="documentRemarks" class="border rounded-lg w-full px-3 py-2" rows="2"></textarea>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-sm">Sales Amount (Rp)</label>
-            <input type="number" step="0.01" name="salesAmount" class="border rounded-lg w-full px-3 py-2">
-          </div>
-          <div>
-            <label class="text-sm">Profit Amount (Rp)</label>
-            <input type="number" step="0.01" name="profitAmount" class="border rounded-lg w-full px-3 py-2">
           </div>
         </div>
       </form>
@@ -191,15 +166,25 @@
     const API_BASE = "/api";
     const token = localStorage.getItem("token");
     if (!token) location.href = "/login.html";
-
     const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-    const tableBody = document.getElementById("tourTable");
+
+    const tableBody = document.getElementById("tourTableBody");
     const addTourBtn = document.getElementById("addTourBtn");
     const modal = document.getElementById("tourModal");
     const form = document.getElementById("tourForm");
     const modalTitle = document.getElementById("modalTitle");
     let editingId = null;
     let userRole = "basic";
+    let regionList = [];
+
+    async function loadRegions() {
+      try {
+        const res = await fetch(`${API_BASE}/regions`, { headers });
+        regionList = await res.json();
+      } catch {
+        regionList = [];
+      }
+    }
 
     async function loadTours() {
       showLoader(true, "Memuat data tour...");
@@ -213,14 +198,14 @@
       const search = document.getElementById("searchTour").value.toLowerCase();
       const region = document.getElementById("regionFilter").value.toLowerCase();
       const filtered = data.filter(t =>
-        (!search || t.tourCode.toLowerCase().includes(search) || t.leadPassenger.toLowerCase().includes(search)) &&
-        (!region || t.region.toLowerCase().includes(region))
+        (!search || (t.tourCode || "").toLowerCase().includes(search) || (t.leadPassenger || "").toLowerCase().includes(search)) &&
+        (!region || (t.region || "").toLowerCase().includes(region))
       );
       tableBody.innerHTML = filtered.map(t => `
         <tr class="hover:bg-indigo-50">
-          <td class="p-3 font-semibold">${t.tourCode}</td>
-          <td class="p-3">${t.leadPassenger}</td>
-          <td class="p-3">${t.region}</td>
+          <td class="p-3 font-semibold">${t.tourCode || '-'}</td>
+          <td class="p-3">${t.leadPassenger || '-'}</td>
+          <td class="p-3">${t.region || '-'}</td>
           <td class="p-3">${t.departureDate || '-'}</td>
           <td class="p-3 text-right">${t.salesAmount?.toLocaleString('id-ID')}</td>
           <td class="p-3 text-right">${t.profitAmount?.toLocaleString('id-ID')}</td>
@@ -231,7 +216,6 @@
           </td>
         </tr>
       `).join("");
-
       document.querySelectorAll(".edit-btn").forEach(btn => btn.onclick = () => openEdit(btn.dataset.id));
       document.querySelectorAll(".delete-btn").forEach(btn => btn.onclick = () => deleteTour(btn.dataset.id));
     }
@@ -241,15 +225,46 @@
       const t = await res.json();
       editingId = id;
       modalTitle.textContent = "Edit Tour";
-      Object.entries(t).forEach(([key, val]) => {
-        if (form[key]) form[key].value = val || "";
-      });
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
+      Object.entries(t).forEach(([key, val]) => { if (form[key]) form[key].value = val || ""; });
+      modal.classList.remove("hidden"); modal.classList.add("flex");
     }
 
-    form.onsubmit = async e => {
+    // REGION AUTOCOMPLETE
+    const regionSearch = document.getElementById("regionSearch");
+    const regionDropdown = document.getElementById("regionDropdown");
+    const regionValue = document.getElementById("regionValue");
+    const regionError = document.getElementById("regionError");
+
+    regionSearch.addEventListener("input", () => {
+      const query = regionSearch.value.toLowerCase();
+      const filtered = regionList.filter(r => r.name.toLowerCase().includes(query));
+      regionDropdown.innerHTML = filtered.length
+        ? filtered.map(r => `<li class='px-3 py-2 hover:bg-indigo-100 cursor-pointer'>${r.name}</li>`).join("")
+        : `<li class='px-3 py-2 text-gray-400 text-sm'>Tidak ada hasil</li>`;
+      regionDropdown.classList.remove("hidden");
+    });
+
+    regionDropdown.addEventListener("click", e => {
+      if (e.target.tagName === "LI") {
+        regionSearch.value = e.target.textContent;
+        regionValue.value = e.target.textContent;
+        regionDropdown.classList.add("hidden");
+        regionError.classList.add("hidden");
+      }
+    });
+
+    document.addEventListener("click", e => {
+      if (!regionDropdown.contains(e.target) && e.target !== regionSearch) regionDropdown.classList.add("hidden");
+    });
+
+    form.addEventListener("submit", async e => {
       e.preventDefault();
+      const region = regionValue.value.trim();
+      if (!region) {
+        regionError.classList.remove("hidden");
+        showToast("❌ Harap pilih region sebelum menyimpan", "error");
+        return false;
+      }
       const data = Object.fromEntries(new FormData(form).entries());
       const method = editingId ? "PUT" : "POST";
       const url = editingId ? `${API_BASE}/tours/${editingId}` : `${API_BASE}/tours`;
@@ -258,7 +273,7 @@
       modal.classList.add("hidden");
       loadTours();
       editingId = null;
-    };
+    });
 
     async function deleteTour(id) {
       if (!confirm("Yakin ingin menghapus data ini?")) return;
@@ -271,14 +286,14 @@
     document.getElementById("cancelBtn").onclick = () => modal.classList.add("hidden");
     addTourBtn.onclick = () => { editingId = null; form.reset(); modalTitle.textContent = "Tambah Tour"; modal.classList.remove("hidden"); modal.classList.add("flex"); };
 
-    // Role check
     (async () => {
       const res = await fetch(`${API_BASE}/auth/verify`, { headers });
       const data = await res.json();
       if (!data.ok) location.href = "/login.html";
       userRole = data.user.type;
       if (["super", "semi"].includes(userRole)) addTourBtn.classList.remove("hidden");
-      loadTours();
+      await loadRegions();
+      await loadTours();
     })();
 
     document.getElementById("searchTour").oninput = loadTours;
