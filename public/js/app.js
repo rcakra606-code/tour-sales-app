@@ -1,11 +1,11 @@
 /* =====================================================
-   APP.JS - FINAL FRONTEND CONTROLLER (v2025)
+   APP.JS - FRONTEND CONTROLLER (FINAL BUILD 2025.10)
    ===================================================== */
 
 const API_BASE = "/api";
 
 /* =====================================================
-   BASIC HELPERS
+   HELPERS
    ===================================================== */
 const authHeaders = () => ({
   "Content-Type": "application/json",
@@ -30,10 +30,9 @@ function showLoader(show = true, message = "Memuat data...") {
     loaderTimer = setTimeout(() => {
       loader.classList.remove("hidden");
       requestAnimationFrame(() => {
-        loader.classList.add("flex");
-        loader.classList.add("opacity-100");
+        loader.classList.add("flex", "opacity-100");
       });
-    }, 400); // delay 400ms agar tidak flicker
+    }, 400);
   } else {
     if (loaderTimer) clearTimeout(loaderTimer);
     loader.classList.remove("opacity-100");
@@ -46,7 +45,7 @@ function showLoader(show = true, message = "Memuat data...") {
 }
 
 /* =====================================================
-   API WRAPPERS (TERINTEGRASI DENGAN LOADER)
+   API WRAPPERS (INTEGRATED WITH LOADER)
    ===================================================== */
 async function apiGet(url, msg = "Mengambil data...") {
   showLoader(true, msg);
@@ -57,110 +56,6 @@ async function apiGet(url, msg = "Mengambil data...") {
   } finally {
     showLoader(false);
   }
-}
-
-async function apiPost(url, data, msg = "Menyimpan data...") {
-  showLoader(true, msg);
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  } finally {
-    showLoader(false);
-  }
-}
-
-async function apiPut(url, data, msg = "Memperbarui data...") {
-  showLoader(true, msg);
-  try {
-    const res = await fetch(url, {
-      method: "PUT",
-      headers: authHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  } finally {
-    showLoader(false);
-  }
-}
-
-async function apiDelete(url, msg = "Menghapus data...") {
-  showLoader(true, msg);
-  try {
-    const res = await fetch(url, { method: "DELETE", headers: authHeaders() });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  } finally {
-    showLoader(false);
-  }
-}
-
-/* =====================================================
-   GLOBAL MODAL UTILITY (DENGAN SPINNER DI DALAM)
-   ===================================================== */
-function openModal(title, fields, onSubmit, initialData = {}) {
-  const modal = document.getElementById("globalModal");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalForm = document.getElementById("modalForm");
-  const closeBtn = document.getElementById("modalCloseBtn");
-  const cancelBtn = document.getElementById("modalCancelBtn");
-  const spinner = document.getElementById("modalSpinner");
-  const submitBtn = document.getElementById("modalSubmitBtn");
-
-  modalTitle.textContent = title;
-  modalForm.innerHTML = "";
-
-  fields.forEach(f => {
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = `
-      <label class="block text-sm font-medium text-gray-700 mb-1">${f.label}</label>
-      <input type="${f.type || 'text'}" name="${f.name}" value="${initialData[f.name] ?? ''}" 
-        class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-        ${f.required ? 'required' : ''} placeholder="${f.placeholder || ''}">
-    `;
-    modalForm.appendChild(wrapper);
-  });
-
-  modal.classList.remove("hidden");
-  modal.classList.add("flex");
-
-  function close() {
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-    modalForm.removeEventListener("submit", submitHandler);
-  }
-
-  closeBtn.onclick = cancelBtn.onclick = close;
-  modal.onclick = e => { if (e.target === modal) close(); };
-
-  async function submitHandler(e) {
-    e.preventDefault();
-    const formData = new FormData(modalForm);
-    const data = {};
-    formData.forEach((v, k) => data[k] = v);
-
-    try {
-      spinner.classList.remove("hidden");
-      submitBtn.disabled = true;
-      cancelBtn.disabled = true;
-      await onSubmit(data);
-      showToast("Data berhasil disimpan.", "success");
-      close();
-    } catch (err) {
-      showToast("Terjadi kesalahan: " + err.message, "error");
-    } finally {
-      spinner.classList.add("hidden");
-      submitBtn.disabled = false;
-      cancelBtn.disabled = false;
-    }
-  }
-
-  modalForm.addEventListener("submit", submitHandler);
 }
 
 /* =====================================================
@@ -239,7 +134,7 @@ if (location.pathname.endsWith("login.html")) {
 }
 
 /* =====================================================
-   DASHBOARD PAGE
+   DASHBOARD MAIN
    ===================================================== */
 if (location.pathname.endsWith("dashboard.html")) {
   const logoutBtn = document.getElementById("logoutBtn");
@@ -247,7 +142,7 @@ if (location.pathname.endsWith("dashboard.html")) {
   const pageContent = document.getElementById("pageContent");
   const sidebar = document.querySelectorAll(".sidebar-item");
 
-  // Auth verify
+  // Verify login
   (async () => {
     const res = await fetch(`${API_BASE}/auth/verify`, { headers: authHeaders() });
     const data = await res.json();
@@ -257,7 +152,7 @@ if (location.pathname.endsWith("dashboard.html")) {
 
   logoutBtn.onclick = () => { localStorage.clear(); location.href = "/login.html"; };
 
-  // Dark Mode Toggle
+  // Dark Mode toggle
   (function initDarkMode() {
     const header = document.querySelector("header .flex.items-center.space-x-4");
     const btn = document.createElement("button");
@@ -274,188 +169,177 @@ if (location.pathname.endsWith("dashboard.html")) {
     header.appendChild(btn);
   })();
 
-  // Sidebar navigation
   sidebar.forEach(b => b.addEventListener("click", () => {
     sidebar.forEach(x => x.classList.remove("active"));
     b.classList.add("active");
-    renderPage(b.dataset.page);
   }));
-  renderPage("dashboard");
+}
 
-  /* =====================================================
-     PAGE RENDER FUNCTIONS
-     ===================================================== */
-  async function renderPage(page) {
-    switch (page) {
-      case "dashboard": return renderDashboardTour();
-      case "dashboardSales": return renderDashboardSales();
-      case "reportData": return renderReportTours();
-      case "reportSales": return renderReportSales();
-      case "reportDocument": return renderReportDocuments();
-      case "manageUsers": return renderManageUsers();
-      case "manageRegions": return renderManageRegions();
-      case "executive": return renderExecutiveReport();
-      default: pageContent.innerHTML = `<div class='text-gray-400 text-center py-10'>Halaman tidak ditemukan.</div>`;
-    }
+/* =====================================================
+   REPORT: TOUR
+   ===================================================== */
+if (location.pathname.endsWith("report_tour.html")) {
+  let tours = [];
+  let currentPage = 1;
+  const perPage = 10;
+
+  async function loadTours() {
+    tours = await apiGet(`${API_BASE}/tours`, "Mengambil data tour...");
+    renderRegionFilter(tours);
+    renderTable();
   }
 
-  async function renderDashboardTour() {
-    pageContent.innerHTML = `
-      <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold">📈 Dashboard Tour</h2>
-          <button id="addTourBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">+ Tambah Tour</button>
-        </div>
-        <div id="tourSummary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
-        <div class="chart-container mt-8"><canvas id="tourChart"></canvas></div>
-      </div>
-    `;
-    document.getElementById("addTourBtn").onclick = () => {
-      openModal("Tambah Tour", [
-        { name: "registration_date", label: "Tanggal Registrasi", type: "date", required: true },
-        { name: "tour_code", label: "Kode Tour", required: true },
-        { name: "lead_passenger", label: "Lead Passenger" },
-        { name: "pax_count", label: "Jumlah Pax", type: "number" },
-        { name: "region", label: "Region" },
-        { name: "tour_price", label: "Harga Tour", type: "number" }
-      ], async d => {
-        d.staff_username = JSON.parse(localStorage.getItem("user")).username;
-        await apiPost(`${API_BASE}/tours`, d, "Menyimpan data tour...");
-        renderDashboardTour();
-      });
-    };
-
-    const data = await apiGet(`${API_BASE}/dashboard/summary`, "Mengambil data dashboard...");
-    const cards = [
-      { t: "Total Sales", v: data.totalSales, i: "💰" },
-      { t: "Total Profit", v: data.totalProfit, i: "📊" },
-      { t: "Registrants", v: data.totalRegistrants, i: "🧾" },
-      { t: "Total Pax", v: data.totalPax, i: "👥" }
-    ];
-    document.getElementById("tourSummary").innerHTML = cards.map(c => `
-      <div class="p-6 rounded-2xl text-white gradient-card shadow-lg">
-        <div class="flex justify-between mb-2"><span class="text-3xl">${c.i}</span><span>${c.t}</span></div>
-        <p class="text-2xl font-bold">${formatNumber(c.v)}</p>
-      </div>`).join("");
-
-    new Chart(document.getElementById("tourChart"), {
-      type: "bar",
-      data: { labels: data.regions.map(r => r.name), datasets: [{ label: "Jumlah Tour", data: data.regions.map(r => r.count) }] },
-      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  function renderRegionFilter(data) {
+    const regions = [...new Set(data.map(t => t.region).filter(Boolean))];
+    const select = document.getElementById("filterRegion");
+    regions.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r;
+      opt.textContent = r;
+      select.appendChild(opt);
     });
   }
 
-  async function renderDashboardSales() {
-    pageContent.innerHTML = `
-      <div class="max-w-7xl mx-auto">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold">💰 Dashboard Sales</h2>
-          <button id="addSaleBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">+ Tambah Sales</button>
-        </div>
-        <div class="chart-container"><canvas id="salesChart"></canvas></div>
-      </div>
-    `;
-    document.getElementById("addSaleBtn").onclick = () => {
-      openModal("Tambah Sales", [
-        { name: "transaction_date", label: "Tanggal Transaksi", type: "date", required: true },
-        { name: "invoice_number", label: "No. Invoice", required: true },
-        { name: "sales_amount", label: "Jumlah Sales", type: "number" },
-        { name: "profit_amount", label: "Profit", type: "number" }
-      ], async d => {
-        await apiPost(`${API_BASE}/sales`, d, "Menyimpan data sales...");
-        renderDashboardSales();
-      });
-    };
+  function renderTable() {
+    const table = document.getElementById("tourTable");
+    const region = document.getElementById("filterRegion").value.toLowerCase();
+    const keyword = document.getElementById("searchTour").value.toLowerCase();
 
-    const sales = await apiGet(`${API_BASE}/sales`, "Mengambil data penjualan...");
-    const grouped = {};
-    sales.forEach(s => {
-      const ym = s.transaction_date?.substring(0,7);
-      grouped[ym] = (grouped[ym]||0) + s.sales_amount;
-    });
-    const labels = Object.keys(grouped).sort();
-    new Chart(document.getElementById("salesChart"), {
-      type: "line",
-      data: { labels, datasets: [{ label: "Penjualan per Bulan", data: labels.map(l => grouped[l]) }] },
-      options: { responsive: true }
-    });
+    const filtered = tours.filter(t =>
+      (!region || (t.region || "").toLowerCase().includes(region)) &&
+      (!keyword || (t.tour_code + t.lead_passenger).toLowerCase().includes(keyword))
+    );
+
+    const totalPages = Math.ceil(filtered.length / perPage);
+    if (currentPage > totalPages) currentPage = totalPages || 1;
+
+    const start = (currentPage - 1) * perPage;
+    const rows = filtered.slice(start, start + perPage);
+
+    table.innerHTML = rows.map(t => `
+      <tr class="hover:bg-indigo-50">
+        <td class="p-3">${t.tour_code}</td>
+        <td class="p-3">${t.lead_passenger}</td>
+        <td class="p-3">${t.region}</td>
+        <td class="p-3">${formatNumber(t.sales_amount)}</td>
+        <td class="p-3">${formatNumber(t.profit_amount)}</td>
+        <td class="p-3">${t.pax_count}</td>
+      </tr>`).join("");
+
+    document.getElementById("pageInfoTour").textContent = `Halaman ${currentPage} dari ${totalPages || 1}`;
   }
 
-  async function renderReportTours() {
-    pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>📋 Report Tour</h2>
-      <table class='w-full border bg-white rounded-xl shadow-md text-sm'>
-        <thead class='bg-indigo-500 text-white'><tr><th class='p-2'>Code</th><th class='p-2'>Lead</th><th class='p-2'>Region</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr></thead>
-        <tbody id='tourTbl'></tbody></table>`;
-    const t = await apiGet(`${API_BASE}/tours`, "Mengambil data laporan tour...");
-    document.getElementById("tourTbl").innerHTML = t.map(r => `
-      <tr class='hover:bg-indigo-50'><td class='p-2'>${r.tour_code}</td><td>${r.lead_passenger}</td><td>${r.region}</td><td>${r.sales_amount}</td><td>${r.profit_amount}</td></tr>`).join("");
+  document.getElementById("filterRegion").onchange = renderTable;
+  document.getElementById("searchTour").oninput = renderTable;
+  document.getElementById("prevTour").onclick = () => { if (currentPage > 1) { currentPage--; renderTable(); } };
+  document.getElementById("nextTour").onclick = () => { currentPage++; renderTable(); };
+  loadTours();
+}
+
+/* =====================================================
+   REPORT: SALES
+   ===================================================== */
+if (location.pathname.endsWith("report_sales.html")) {
+  let sales = [];
+  let currentPage = 1;
+  const perPage = 10;
+
+  async function loadSales() {
+    sales = await apiGet(`${API_BASE}/sales`, "Mengambil data sales...");
+    renderMonthFilter(sales);
+    renderSalesTable();
   }
 
-  async function renderReportSales() {
-    pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>💼 Report Sales</h2>
-      <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Tanggal</th><th class='p-2'>Invoice</th><th class='p-2'>Sales</th><th class='p-2'>Profit</th></tr></thead>
-      <tbody id='salesTbl'></tbody></table>`;
-    const s = await apiGet(`${API_BASE}/sales`, "Mengambil data laporan sales...");
-    document.getElementById("salesTbl").innerHTML = s.map(r => `
-      <tr class='hover:bg-indigo-50'><td class='p-2'>${r.transaction_date}</td><td>${r.invoice_number}</td><td>${r.sales_amount}</td><td>${r.profit_amount}</td></tr>`).join("");
-  }
-
-  async function renderReportDocuments() {
-    pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>📄 Report Dokumen</h2>
-      <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Nama</th><th class='p-2'>Invoice</th><th class='p-2'>Proses</th><th class='p-2'>Status</th></tr></thead>
-      <tbody id='docTbl'></tbody></table>`;
-    const d = await apiGet(`${API_BASE}/documents`, "Mengambil data dokumen...");
-    document.getElementById("docTbl").innerHTML = d.map(r => `
-      <tr class='hover:bg-indigo-50'><td class='p-2'>${r.guest_names}</td><td>${r.invoice_number}</td><td>${r.process_type}</td><td>${r.document_status}</td></tr>`).join("");
-  }
-
-  async function renderManageUsers() {
-    pageContent.innerHTML = `<div class='flex justify-between mb-4'><h2 class='text-2xl font-bold'>👥 Users</h2>
-      <button id='addUserBtn' class='px-4 py-2 bg-indigo-600 text-white rounded-xl'>+ User</button></div>
-      <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Username</th><th class='p-2'>Name</th><th class='p-2'>Role</th></tr></thead><tbody id='usrTbl'></tbody></table>`;
-    document.getElementById("addUserBtn").onclick = () => {
-      openModal("Tambah User", [
-        { name: "username", label: "Username", required: true },
-        { name: "password", label: "Password", type: "password", required: true },
-        { name: "name", label: "Nama Lengkap" },
-        { name: "email", label: "Email" },
-        { name: "type", label: "Role (basic/semi/super)" }
-      ], async d => {
-        await apiPost(`${API_BASE}/users`, d, "Membuat user baru...");
-        renderManageUsers();
-      });
-    };
-    const u = await apiGet(`${API_BASE}/users`, "Mengambil daftar user...");
-    document.getElementById("usrTbl").innerHTML = u.map(r => `<tr><td class='p-2'>${r.username}</td><td>${r.name}</td><td>${r.type}</td></tr>`).join("");
-  }
-
-  async function renderManageRegions() {
-    pageContent.innerHTML = `<div class='flex justify-between mb-4'><h2 class='text-2xl font-bold'>🌍 Regions</h2>
-      <button id='addRegionBtn' class='px-4 py-2 bg-indigo-600 text-white rounded-xl'>+ Region</button></div>
-      <table class='w-full border bg-white rounded-xl shadow-md text-sm'><thead class='bg-indigo-500 text-white'>
-      <tr><th class='p-2'>Nama Region</th></tr></thead><tbody id='regTbl'></tbody></table>`;
-    document.getElementById("addRegionBtn").onclick = () => {
-      openModal("Tambah Region", [
-        { name: "name", label: "Nama Region", required: true }
-      ], async d => {
-        await apiPost(`${API_BASE}/regions`, d, "Menambahkan region...");
-        renderManageRegions();
-      });
-    };
-    const r = await apiGet(`${API_BASE}/regions`, "Mengambil daftar region...");
-    document.getElementById("regTbl").innerHTML = r.map(x => `<tr><td class='p-2'>${x.name}</td></tr>`).join("");
-  }
-
-  async function renderExecutiveReport() {
-    pageContent.innerHTML = `<h2 class='text-2xl font-bold mb-4'>🏢 Executive Summary</h2><div class='chart-container'><canvas id='execChart'></canvas></div>`;
-    const d = await apiGet(`${API_BASE}/report/executive`, "Mengambil executive summary...");
-    new Chart(document.getElementById("execChart"), {
-      type: "bar",
-      data: { labels: d.topStaff.map(s => s.username), datasets: [{ label: "Top Staff Sales", data: d.topStaff.map(s => s.sales) }] },
-      options: { responsive: true }
+  function renderMonthFilter(data) {
+    const months = [...new Set(data.map(s => (s.transaction_date || "").substring(0,7)))].filter(Boolean);
+    const select = document.getElementById("filterMonth");
+    months.forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = m;
+      select.appendChild(opt);
     });
   }
+
+  function renderSalesTable() {
+    const table = document.getElementById("salesTable");
+    const month = document.getElementById("filterMonth").value;
+    const keyword = document.getElementById("searchSales").value.toLowerCase();
+
+    const filtered = sales.filter(s =>
+      (!month || (s.transaction_date || "").includes(month)) &&
+      (!keyword || (s.invoice_number || "").toLowerCase().includes(keyword))
+    );
+
+    const totalPages = Math.ceil(filtered.length / perPage);
+    if (currentPage > totalPages) currentPage = totalPages || 1;
+
+    const start = (currentPage - 1) * perPage;
+    const rows = filtered.slice(start, start + perPage);
+
+    table.innerHTML = rows.map(s => `
+      <tr class="hover:bg-indigo-50">
+        <td class="p-3">${s.transaction_date}</td>
+        <td class="p-3">${s.invoice_number}</td>
+        <td class="p-3">${formatNumber(s.sales_amount)}</td>
+        <td class="p-3">${formatNumber(s.profit_amount)}</td>
+        <td class="p-3">${formatNumber(s.discount_amount)}</td>
+      </tr>`).join("");
+
+    document.getElementById("pageInfoSales").textContent = `Halaman ${currentPage} dari ${totalPages || 1}`;
+  }
+
+  document.getElementById("filterMonth").onchange = renderSalesTable;
+  document.getElementById("searchSales").oninput = renderSalesTable;
+  document.getElementById("prevSales").onclick = () => { if (currentPage > 1) { currentPage--; renderSalesTable(); } };
+  document.getElementById("nextSales").onclick = () => { currentPage++; renderSalesTable(); };
+  loadSales();
+}
+
+/* =====================================================
+   REPORT: DOCUMENT
+   ===================================================== */
+if (location.pathname.endsWith("report_document.html")) {
+  let docs = [];
+  let currentPage = 1;
+  const perPage = 10;
+
+  async function loadDocs() {
+    docs = await apiGet(`${API_BASE}/documents`, "Mengambil data dokumen...");
+    renderDocTable();
+  }
+
+  function renderDocTable() {
+    const table = document.getElementById("docTable");
+    const status = document.getElementById("filterStatus").value.toLowerCase();
+    const keyword = document.getElementById("searchDoc").value.toLowerCase();
+
+    const filtered = docs.filter(d =>
+      (!status || (d.document_status || "").toLowerCase().includes(status)) &&
+      (!keyword || (d.guest_names || "").toLowerCase().includes(keyword))
+    );
+
+    const totalPages = Math.ceil(filtered.length / perPage);
+    if (currentPage > totalPages) currentPage = totalPages || 1;
+
+    const start = (currentPage - 1) * perPage;
+    const rows = filtered.slice(start, start + perPage);
+
+    table.innerHTML = rows.map(d => `
+      <tr class="hover:bg-indigo-50">
+        <td class="p-3">${d.guest_names}</td>
+        <td class="p-3">${d.invoice_number}</td>
+        <td class="p-3">${d.process_type}</td>
+        <td class="p-3">${d.document_status}</td>
+        <td class="p-3">${d.visa_status}</td>
+      </tr>`).join("");
+
+    document.getElementById("pageInfoDoc").textContent = `Halaman ${currentPage} dari ${totalPages || 1}`;
+  }
+
+  document.getElementById("filterStatus").onchange = renderDocTable;
+  document.getElementById("searchDoc").oninput = renderDocTable;
+  document.getElementById("prevDoc").onclick = () => { if (currentPage > 1) { currentPage--; renderDocTable(); } };
+  document.getElementById("nextDoc").onclick = () => { currentPage++; renderDocTable(); };
+  loadDocs();
 }
