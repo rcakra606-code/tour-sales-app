@@ -1,11 +1,17 @@
 /**
- * db.js — Travel Dashboard Enterprise v3.3
- * SQLite database initialization
+ * ==========================================================
+ * db.js — Travel Dashboard Enterprise v3.3 Final
+ * ==========================================================
+ * ✅ SQLite Database Initialization
+ * ✅ Auto-create tables if not exist
+ * ✅ Schema updated for Documents (receive_date, guest_name, booking_code, tour_code, document_remarks)
+ * ==========================================================
  */
 
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
+
 let db;
 
 function getDB() {
@@ -20,7 +26,9 @@ function getDB() {
 function initDB() {
   const db = getDB();
 
-  // USERS
+  /* =====================================================
+     USERS TABLE
+     ===================================================== */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +40,9 @@ function initDB() {
     )
   `).run();
 
-  // TOURS (per package)
+  /* =====================================================
+     TOURS TABLE
+     ===================================================== */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS tours (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,7 +68,9 @@ function initDB() {
     )
   `).run();
 
-  // SALES (per invoice)
+  /* =====================================================
+     SALES TABLE
+     ===================================================== */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS sales (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,20 +84,25 @@ function initDB() {
     )
   `).run();
 
-  // DOCUMENTS
+  /* =====================================================
+     DOCUMENTS TABLE (Revised)
+     ===================================================== */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS documents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      guest_names TEXT,
-      invoice_number TEXT,
-      process_type TEXT,
-      document_status TEXT,
-      visa_status TEXT,
+      receive_date TEXT,
+      guest_name TEXT,
+      booking_code TEXT,
+      tour_code TEXT,
+      document_remarks TEXT,
+      staff TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
   `).run();
 
-  // REGIONS
+  /* =====================================================
+     REGIONS TABLE
+     ===================================================== */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS regions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,7 +110,9 @@ function initDB() {
     )
   `).run();
 
-  // LOGS
+  /* =====================================================
+     LOGS TABLE
+     ===================================================== */
   db.prepare(`
     CREATE TABLE IF NOT EXISTS logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -105,7 +124,7 @@ function initDB() {
     )
   `).run();
 
-  console.log("✅ Database initialized (Travel Dashboard v3.3)");
+  console.log("✅ Database initialized successfully (Travel Dashboard v3.3 Final)");
 }
 
 module.exports = { getDB, initDB };
