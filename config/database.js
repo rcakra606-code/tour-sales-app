@@ -1,53 +1,57 @@
 /**
- * ==========================================================
- * config/database.js — PostgreSQL (Neon) Configuration
- * ==========================================================
- * ✅ Connection pooling with pg.Pool
- * ✅ SSL Enabled (required by Neon)
- * ✅ Auto-reconnect handling
- * ✅ Centralized instance (used by all routes)
- * ==========================================================
+ * config/database.js
+ * PostgreSQL (Neon) pool with retry + verbose diagnostics
  */
 
 const { Pool } = require("pg");
 
-// --- Create Pool Instance ---
+const CONNECTION_STRING = process.env.DATABASE_URL || process.env.DATABASE_URI || process.env.PG_URI || null;
+
+if (!CONNECTION_STRING) {
+  console.error("❌ FATAL: environment variable DATABASE_URL (or DATABASE_URI/PG_URI) is not set.");
+  console.error("Please set DATABASE_URL to Neon connection string, e.g.:");
+  console.error("postgresql://USERNAME:PASSWORD@host:5432/dbname?sslmode=require");
+  // do not exit synchronously if you want process to continue; but safe to exit to avoid random errors
+  // process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: CONNECTION_STRING,
   ssl: { rejectUnauthorized: false },
+  // optional tuning:
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 20000,
 });
 
-// --- Verify Connection on Startup ---
-(async () => {
-  try {
-    const res = await pool.query("SELECT NOW()");
-    console.log("✅ Connected to PostgreSQL (Neon) at:", res.rows[0].now);
-  } catch (err) {
-    console.error("❌ Failed to connect to PostgreSQL:", err.message);
-  }
-})();
-
-// --- Export helper query function ---
-module.exports = {
-  /**
-   * @function query
-   * Execute SQL query safely using parameterized syntax
-   * @param {string} text SQL statement with $1, $2 placeholders
-   * @param {array} params Array of parameters
-   * @returns {Promise<object>} result.rows or empty array
-   */
-  query: async (text, params = []) => {
+async function verifyConnection(retries = 5, delayMs = 3000) {
+  for (let i = 0; i < retries; i++) {
     try {
-      const result = await pool.query(text, params);
-      return result;
+      const r = await pool.query("SELECT NOW()");
+      console.log("✅ Connected to PostgreSQL (Neon) — server time:", r.rows[0].now);
+      return true;
     } catch (err) {
-      console.error("❌ Database query error:", err.message);
-      throw err;
+      console.error(`❌ Failed to connect to PostgreSQL (attempt ${i + 1}/${retries}):`, err.message || err);
+      if (i < retries - 1) {
+        console.log(`⏳ Retrying in ${delayMs}ms...`);
+        await new Promise((res) => setTimeout(res, delayMs));
+      } else {
+        console.error("❌ All connection attempts failed. See message above.");
+        return false;
+      }
     }
-  },
+  }
+}
 
-  /**
-   * Get raw pool instance if needed (for advanced operations)
-   */
-  pool,
-};
+// wrapper query function with better error message
+async function query(text, params = []) {
+  try {
+    const res = await pool.query(text, params);
+    return res;
+  } catch (err) {
+    console.error("❌ Database query error:", err.message || err);
+    throw err;
+  }
+}
+
+module.exports = { pool, query, verifyConnection };
