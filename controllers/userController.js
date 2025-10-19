@@ -1,154 +1,106 @@
 /**
  * ==========================================================
- * controllers/userController.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 controllers/userController.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ CRUD User
- * ✅ Role-based management
- * ✅ Password hashing (bcryptjs)
- * ✅ Logging aktivitas user
+ * Controller untuk modul User Management:
+ * - Ambil semua user
+ * - Tambah / edit user
+ * - Hapus user
  * ==========================================================
  */
 
-const db = require("../config/database").getDB();
-const bcrypt = require("bcryptjs");
-const logger = require("../config/logger");
+import bcrypt from "bcrypt";
+import pkg from "pg";
+import dotenv from "dotenv";
 
-// ============================================================
-// 📘 GET /api/users
-// Ambil semua user
-// ============================================================
-exports.getAllUsers = async (req, res) => {
+dotenv.config();
+const { Pool } = pkg;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+/**
+ * 👥 Ambil semua user
+ */
+export const getUsers = async (req, res) => {
   try {
-    const users = await db.all("SELECT id, username, role, created_at FROM users ORDER BY id ASC");
-    logger.info(`👥 ${req.user.username} melihat daftar user`);
-    res.json(users);
+    const result = await pool.query(`
+      SELECT id, username, role, created_at
+      FROM users
+      ORDER BY created_at DESC
+    `);
+    res.json(result.rows);
   } catch (err) {
-    logger.error("❌ Error mengambil data user:", err);
-    res.status(500).json({ message: "Gagal mengambil data user" });
+    console.error("❌ Gagal memuat data user:", err.message);
+    res.status(500).json({ message: "Gagal memuat data user." });
   }
 };
 
-// ============================================================
-// 📘 GET /api/users/:id
-// Ambil detail user berdasarkan ID
-// ============================================================
-exports.getUserById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await db.get("SELECT id, username, role, created_at FROM users WHERE id = ?", [id]);
-    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
-
-    res.json(user);
-  } catch (err) {
-    logger.error("❌ Error mengambil user by ID:", err);
-    res.status(500).json({ message: "Gagal mengambil data user" });
-  }
-};
-
-// ============================================================
-// 🟢 POST /api/users
-// Tambah user baru
-// ============================================================
-exports.createUser = async (req, res) => {
+/**
+ * ➕ Tambah atau edit user
+ */
+export const createUser = async (req, res) => {
   try {
     const { username, password, role } = req.body;
-
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username dan password wajib diisi" });
+    if (!username) {
+      return res.status(400).json({ message: "Username wajib diisi." });
     }
 
-    const existing = await db.get("SELECT * FROM users WHERE username = ?", [username]);
-    if (existing) {
-      return res.status(409).json({ message: "Username sudah digunakan" });
+    const userCheck = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+
+    if (userCheck.rows.length > 0) {
+      // Update user
+      if (password) {
+        await pool.query(
+          `UPDATE users SET password=$1, role=$2 WHERE username=$3`,
+          [hashedPassword, role || userCheck.rows[0].role, username]
+        );
+      } else {
+        await pool.query(
+          `UPDATE users SET role=$1 WHERE username=$2`,
+          [role || userCheck.rows[0].role, username]
+        );
+      }
+      return res.json({ message: "User berhasil diperbarui." });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
-    await db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [
-      username.trim(),
-      hashed,
-      role || "basic",
-    ]);
-
-    logger.info(`✅ User '${username}' berhasil dibuat oleh ${req.user.username}`);
-    res.json({ message: "✅ User baru berhasil ditambahkan" });
-  } catch (err) {
-    logger.error("❌ Error menambahkan user:", err);
-    res.status(500).json({ message: "Gagal menambahkan user" });
-  }
-};
-
-// ============================================================
-// 🟡 PUT /api/users/:id
-// Update data user (username, password, role)
-// ============================================================
-exports.updateUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { username, password, role } = req.body;
-
-    const user = await db.get("SELECT * FROM users WHERE id = ?", [id]);
-    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
-
-    let hashed = user.password;
-    if (password && password.trim() !== "") {
-      hashed = await bcrypt.hash(password, 10);
+    // Buat user baru
+    if (!password) {
+      return res.status(400).json({ message: "Password wajib diisi untuk user baru." });
     }
 
-    await db.run(
-      "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?",
-      [username || user.username, hashed, role || user.role, id]
+    await pool.query(
+      `INSERT INTO users (username, password, role, created_at)
+       VALUES ($1, $2, $3, NOW())`,
+      [username, hashedPassword, role || "basic"]
     );
 
-    logger.info(`✏️ User ID ${id} diperbarui oleh ${req.user.username}`);
-    res.json({ message: "✅ Data user berhasil diperbarui" });
+    res.status(201).json({ message: "User berhasil ditambahkan." });
   } catch (err) {
-    logger.error("❌ Error memperbarui user:", err);
-    res.status(500).json({ message: "Gagal memperbarui data user" });
+    console.error("❌ Gagal menambah/memperbarui user:", err.message);
+    res.status(500).json({ message: "Gagal menambah/memperbarui user." });
   }
 };
 
-// ============================================================
-// 🔴 DELETE /api/users/:id
-// Hapus user (khusus super admin)
-// ============================================================
-exports.deleteUser = async (req, res) => {
+/**
+ * ❌ Hapus user berdasarkan username
+ */
+export const deleteUser = async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await db.get("SELECT * FROM users WHERE id = ?", [id]);
-    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
+    const { username } = req.params;
+    if (!username) return res.status(400).json({ message: "Username tidak ditemukan." });
 
-    await db.run("DELETE FROM users WHERE id = ?", [id]);
-    logger.warn(`🗑️ User '${user.username}' dihapus oleh ${req.user.username}`);
-    res.json({ message: "✅ User berhasil dihapus" });
+    const result = await pool.query("DELETE FROM users WHERE username = $1", [username]);
+    if (result.rowCount === 0)
+      return res.status(404).json({ message: "User tidak ditemukan." });
+
+    res.json({ message: "User berhasil dihapus." });
   } catch (err) {
-    logger.error("❌ Error menghapus user:", err);
-    res.status(500).json({ message: "Gagal menghapus user" });
-  }
-};
-
-// ============================================================
-// 🔄 PATCH /api/users/:id/role
-// Ubah role user (super, semi, basic)
-// ============================================================
-exports.changeUserRole = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { role } = req.body;
-
-    const validRoles = ["super", "semi", "basic"];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({ message: "Role tidak valid" });
-    }
-
-    const user = await db.get("SELECT * FROM users WHERE id = ?", [id]);
-    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
-
-    await db.run("UPDATE users SET role = ? WHERE id = ?", [role, id]);
-
-    logger.info(`🔄 Role user '${user.username}' diubah menjadi '${role}' oleh ${req.user.username}`);
-    res.json({ message: `✅ Role user berhasil diubah menjadi '${role}'` });
-  } catch (err) {
-    logger.error("❌ Error mengubah role user:", err);
-    res.status(500).json({ message: "Gagal mengubah role user" });
+    console.error("❌ Gagal menghapus user:", err.message);
+    res.status(500).json({ message: "Gagal menghapus user." });
   }
 };
