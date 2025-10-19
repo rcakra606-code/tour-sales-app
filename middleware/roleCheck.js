@@ -1,40 +1,44 @@
 /**
  * ==========================================================
- * middleware/roleCheck.js — Travel Dashboard Enterprise v3.4.1
+ * middleware/roleCheck.js — Travel Dashboard Enterprise v3.9.2
  * ==========================================================
  * ✅ Role-Based Access Control (RBAC)
- * ✅ Dipakai di seluruh route (users, sales, documents, logs, dll)
- * ✅ Kompatibel PostgreSQL + Render
+ * ✅ Cegah akses tanpa hak
+ * ✅ Integrasi dengan verifyToken
  * ==========================================================
  */
 
+const logger = require("../config/logger");
+
 /**
- * @function requireRole
- * Middleware untuk membatasi akses berdasarkan role user
- *
- * @param {...string} allowedRoles - daftar role yang diizinkan (misal: "super", "semi")
- * @returns middleware Express
+ * @param {string[]} allowedRoles — daftar role yang diizinkan untuk route ini
+ * @returns middleware function
  */
-function requireRole(...allowedRoles) {
+module.exports = function roleCheck(allowedRoles = []) {
   return (req, res, next) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ error: "Tidak terautentikasi" });
+        logger.warn("🚫 Akses ditolak: user belum terautentikasi");
+        return res.status(401).json({ message: "User belum login atau token tidak valid" });
       }
 
-      const userRole = req.user.type?.toLowerCase();
+      const userRole = req.user.role;
 
-      if (!allowedRoles.map(r => r.toLowerCase()).includes(userRole)) {
-        console.warn(`🚫 Akses ditolak: ${req.user.username} mencoba mengakses dengan role '${userRole}'`);
-        return res.status(403).json({ error: "Akses ditolak — Role tidak diizinkan" });
+      if (!allowedRoles.includes(userRole)) {
+        logger.warn(
+          `🚫 Akses ditolak untuk user ${req.user.username} (role: ${userRole}), membutuhkan salah satu dari: ${allowedRoles.join(
+            ", "
+          )}`
+        );
+        return res.status(403).json({
+          message: `Akses ditolak: role '${userRole}' tidak diizinkan untuk operasi ini`,
+        });
       }
 
       next();
     } catch (err) {
-      console.error("❌ Error di middleware requireRole:", err.message);
-      res.status(500).json({ error: "Terjadi kesalahan saat validasi role" });
+      logger.error("❌ Error dalam roleCheck middleware:", err);
+      res.status(500).json({ message: "Gagal memverifikasi role user" });
     }
   };
-}
-
-module.exports = { requireRole };
+};
