@@ -1,53 +1,47 @@
-const forge = require('node-forge');
-const fs = require('fs');
-const path = require('path');
+/**
+ * ==========================================================
+ * 📁 scripts/generate-ssl.js
+ * Travel Dashboard Enterprise v5.0
+ * ==========================================================
+ * Membuat sertifikat self-signed SSL untuk environment lokal
+ * agar pengujian HTTPS dan CSP dapat dilakukan tanpa error.
+ * ==========================================================
+ */
 
-function generateSelfSignedCertificate() {
-    console.log('🔐 Generating self-signed SSL certificate...');
-    const sslDir = path.join(__dirname, '..', 'ssl');
-    if (!fs.existsSync(sslDir)) fs.mkdirSync(sslDir, { recursive: true });
+import fs from "fs";
+import path from "path";
+import { execSync } from "child_process";
 
-    const keys = forge.pki.rsa.generateKeyPair(2048);
-    const cert = forge.pki.createCertificate();
-    cert.publicKey = keys.publicKey;
-    cert.serialNumber = (Math.floor(Math.random()*100000)+1).toString();
-    cert.validity.notBefore = new Date();
-    cert.validity.notAfter = new Date();
-    cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear()+1);
+const SSL_DIR = path.resolve("./ssl");
+const KEY_FILE = path.join(SSL_DIR, "server.key");
+const CERT_FILE = path.join(SSL_DIR, "server.crt");
 
-    const attrs = [
-        { name: 'countryName', value: 'ID' },
-        { name: 'stateOrProvinceName', value: 'Jakarta' },
-        { name: 'localityName', value: 'Jakarta' },
-        { name: 'organizationName', value: 'Tour Sales Management' },
-        { name: 'organizationalUnitName', value: 'IT Department' },
-        { name: 'commonName', value: 'localhost' }
-    ];
-
-    cert.setSubject(attrs);
-    cert.setIssuer(attrs);
-    cert.setExtensions([
-        { name: 'basicConstraints', cA: true },
-        { name: 'keyUsage', keyCertSign: true, digitalSignature: true, keyEncipherment: true },
-        { name: 'extKeyUsage', serverAuth: true, clientAuth: true },
-        { name: 'subjectAltName', altNames: [
-            { type: 2, value: 'localhost' }, { type: 2, value: '*.localhost' },
-            { type: 7, ip: '127.0.0.1' }, { type: 7, ip: '::1' }
-        ]}
-    ]);
-
-    cert.sign(keys.privateKey);
-    const privateKeyPem = forge.pki.privateKeyToPem(keys.privateKey);
-    const certificatePem = forge.pki.certificateToPem(cert);
-
-    fs.writeFileSync(path.join(sslDir, 'private-key.pem'), privateKeyPem);
-    fs.writeFileSync(path.join(sslDir, 'certificate.pem'), certificatePem);
-
-    console.log('✅ SSL generated:', path.join(sslDir));
-    return { key: path.join(sslDir, 'private-key.pem'), cert: path.join(sslDir, 'certificate.pem') };
+// Pastikan folder tersedia
+if (!fs.existsSync(SSL_DIR)) {
+  fs.mkdirSync(SSL_DIR, { recursive: true });
+  console.log("📁 Folder SSL dibuat:", SSL_DIR);
 }
 
-if (require.main === module) {
-  try { generateSelfSignedCertificate(); } catch(e) { console.error('SSL generation error', e); process.exit(1); }
+// Jika sudah ada file, tidak perlu dibuat ulang
+if (fs.existsSync(KEY_FILE) && fs.existsSync(CERT_FILE)) {
+  console.log("✅ Sertifikat SSL sudah ada, tidak perlu dibuat ulang.");
+  process.exit(0);
 }
-module.exports = generateSelfSignedCertificate;
+
+try {
+  console.log("🔧 Membuat sertifikat self-signed SSL...");
+
+  const cmd = `
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout ${KEY_FILE} -out ${CERT_FILE} \
+    -subj "/C=ID/ST=Jakarta/L=Jakarta/O=TravelDashboard/OU=Dev/CN=localhost"
+  `;
+
+  execSync(cmd, { stdio: "inherit" });
+
+  console.log("✅ Sertifikat SSL berhasil dibuat!");
+  console.log("📂 Key:", KEY_FILE);
+  console.log("📂 Cert:", CERT_FILE);
+} catch (err) {
+  console.error("❌ Gagal membuat sertifikat SSL:", err.message);
+}
