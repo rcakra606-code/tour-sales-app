@@ -8,124 +8,40 @@
     <meta name="color-scheme" content="light dark" />
 
     <style>
-      /* Sidebar transition */
-      .sidebar-collapsed {
-        width: 4rem;
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .sidebar-expanded {
-        width: 16rem;
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      /* Smooth theme transition */
-      .theme-transition {
-        transition: background-color 0.4s ease, color 0.4s ease;
-      }
-
-      /* Button & Link Animations */
-      button,
-      a {
-        position: relative;
-        overflow: hidden;
-        transition: all 0.25s ease;
-      }
-
-      button:hover,
-      a:hover {
-        transform: scale(1.03);
-      }
-
-      /* Ripple animation */
-      .ripple {
-        position: absolute;
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 50%;
-        transform: scale(0);
-        animation: ripple 0.6s linear;
-        pointer-events: none;
-      }
-
-      @keyframes ripple {
-        to {
-          transform: scale(4);
-          opacity: 0;
-        }
-      }
-
-      /* Card Hover */
-      .card-hover {
-        transition: all 0.3s ease-in-out;
-      }
-
-      /* Dark mode adjustments */
-      .dark {
-        background-color: #0f172a;
-        color: #f8fafc;
-      }
-      .dark .bg-white {
-        background-color: #1e293b !important;
-      }
-      .dark .text-gray-700 {
-        color: #e2e8f0 !important;
-      }
+      .sidebar-collapsed { width: 4rem; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+      .sidebar-expanded { width: 16rem; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+      .theme-transition { transition: background-color 0.4s ease, color 0.4s ease; }
+      button, a { position: relative; overflow: hidden; transition: all 0.25s ease; }
+      button:hover, a:hover { transform: scale(1.03); }
+      .ripple { position: absolute; background: rgba(255,255,255,0.5); border-radius: 50%; transform: scale(0); animation: ripple 0.6s linear; pointer-events: none; }
+      @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+      .card-hover { transition: all 0.3s ease-in-out; }
+      .dark { background-color: #0f172a; color: #f8fafc; }
+      .dark .bg-white { background-color: #1e293b !important; }
+      .dark .text-gray-700 { color: #e2e8f0 !important; }
     </style>
   </head>
 
   <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
     <!-- Sidebar -->
-    <aside
-      id="sidebar"
-      class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300"
-    >
+    <aside id="sidebar" class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300">
       <div class="flex items-center justify-between p-4 border-b border-gray-200">
         <h2 id="sidebarTitle" class="text-lg font-bold text-indigo-700">Menu</h2>
-        <button
-          id="toggleSidebar"
-          class="text-gray-500 hover:text-indigo-600 transition"
-          title="Expand/Collapse"
-        >
-          ☰
-        </button>
+        <button id="toggleSidebar" class="text-gray-500 hover:text-indigo-600 transition" title="Expand/Collapse">☰</button>
       </div>
 
       <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
-        <a href="/dashboard.html" class="block px-3 py-2 rounded hover:bg-indigo-100">
-          🏠 Dashboard
-        </a>
-        <a
-          href="/report_tour.html"
-          class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700"
-        >
-          ✈️ Report Tour
-        </a>
-        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">
-          💰 Report Sales
-        </a>
-        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">
-          📄 Report Dokumen
-        </a>
-        <a
-          href="/user-management.html"
-          data-role="super,semi"
-          class="block px-3 py-2 rounded hover:bg-indigo-100"
-        >
-          👥 User Management
-        </a>
-        <a
-          href="/audit_log.html"
-          data-role="super"
-          class="block px-3 py-2 rounded hover:bg-indigo-100"
-        >
-          🧾 Audit Log
-        </a>
+        <a href="/dashboard.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🏠 Dashboard</a>
+        <a href="/report_tour.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">✈️ Report Tour</a>
+        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">💰 Report Sales</a>
+        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
+        <a href="/region_management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🌍 Region Management</a>
+        <a href="/user-management.html" data-role="super,semi" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
+        <a href="/audit_log.html" data-role="super" class="block px-3 py-2 rounded hover:bg-indigo-100">🧾 Audit Log</a>
       </nav>
 
       <div class="p-3 border-t border-gray-200">
-        <button
-          id="themeToggle"
-          class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
-        >
+        <button id="themeToggle" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
           🌙 Ganti Mode
         </button>
       </div>
@@ -133,68 +49,47 @@
 
     <!-- Main -->
     <div class="flex-1 flex flex-col">
-      <header
-        class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100"
-      >
+      <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100">
         <div class="flex items-center gap-3">
           <h1 class="text-lg font-bold text-indigo-700">Report Tour</h1>
-          <span
-            id="currentMode"
-            class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded"
-          >
-            Light Mode
-          </span>
+          <span id="currentMode" class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Light Mode</span>
         </div>
         <div class="flex items-center gap-4">
           <span id="userNameDisplay" class="text-sm text-gray-600 font-medium"></span>
-          <button
-            data-logout
-            class="text-sm text-red-600 hover:text-red-700 font-semibold transition"
-          >
-            Logout
-          </button>
+          <button data-logout class="text-sm text-red-600 hover:text-red-700 font-semibold transition">Logout</button>
         </div>
       </header>
 
-      <!-- Main content -->
       <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
-        <div
-          id="backendStatusBanner"
-          class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"
-        ></div>
-
-        <!-- Form Tambah/Edit Tour -->
-        <section
-          class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover"
-        >
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
           <h2 class="text-lg font-semibold mb-4 text-gray-700">Tambah / Edit Data Tour</h2>
           <form id="tourForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="text-sm font-medium">Tanggal Registrasi</label>
-              <input type="date" id="registrationDate" class="w-full border rounded-lg px-3 py-2 mt-1" />
+              <input type="date" id="registrationDate" class="w-full border rounded-lg px-3 py-2 mt-1" required />
             </div>
             <div>
-              <label class="text-sm font-medium">Lead Passenger</label>
-              <input type="text" id="leadPassenger" class="w-full border rounded-lg px-3 py-2 mt-1" />
+              <label class="text-sm font-medium">Nama Lead Passenger</label>
+              <input type="text" id="leadPassenger" class="w-full border rounded-lg px-3 py-2 mt-1" required />
             </div>
             <div>
-              <label class="text-sm font-medium">All Passengers (pisahkan dengan koma)</label>
-              <input type="text" id="allPassengers" class="w-full border rounded-lg px-3 py-2 mt-1" />
+              <label class="text-sm font-medium">Nama Semua Penumpang</label>
+              <input type="text" id="allPassengers" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="Pisahkan dengan koma" />
             </div>
             <div>
-              <label class="text-sm font-medium">Tour Code</label>
+              <label class="text-sm font-medium">Kode Tour</label>
               <input type="text" id="tourCode" class="w-full border rounded-lg px-3 py-2 mt-1" />
             </div>
             <div>
               <label class="text-sm font-medium">Region</label>
-              <input type="text" id="region" placeholder="Cari region..." class="w-full border rounded-lg px-3 py-2 mt-1" />
+              <input type="text" id="region" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="Cari atau ketik region" />
             </div>
             <div>
               <label class="text-sm font-medium">Tanggal Keberangkatan</label>
               <input type="date" id="departureDate" class="w-full border rounded-lg px-3 py-2 mt-1" />
             </div>
             <div>
-              <label class="text-sm font-medium">Booking Code</label>
+              <label class="text-sm font-medium">Kode Booking</label>
               <input type="text" id="bookingCode" class="w-full border rounded-lg px-3 py-2 mt-1" />
             </div>
             <div>
@@ -202,15 +97,43 @@
               <input type="number" id="tourPrice" class="w-full border rounded-lg px-3 py-2 mt-1" />
             </div>
             <div>
-              <label class="text-sm font-medium">Sales Amount</label>
+              <label class="text-sm font-medium">Keterangan Diskon</label>
+              <input type="text" id="discountRemarks" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Bukti Pembayaran</label>
+              <input type="text" id="paymentProof" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Dokumen Diterima</label>
+              <input type="text" id="documentReceived" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Mulai Proses Visa</label>
+              <input type="date" id="visaProcessStart" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Akhir Proses Visa</label>
+              <input type="date" id="visaProcessEnd" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Keterangan Dokumen</label>
+              <input type="text" id="documentRemarks" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Nama Staff</label>
+              <input type="text" id="staff" class="w-full border rounded-lg px-3 py-2 mt-1" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Total Sales</label>
               <input type="number" id="salesAmount" class="w-full border rounded-lg px-3 py-2 mt-1" />
             </div>
             <div>
-              <label class="text-sm font-medium">Profit Amount</label>
+              <label class="text-sm font-medium">Total Profit</label>
               <input type="number" id="profitAmount" class="w-full border rounded-lg px-3 py-2 mt-1" />
             </div>
             <div>
-              <label class="text-sm font-medium">Departure Status</label>
+              <label class="text-sm font-medium">Status Keberangkatan</label>
               <select id="departureStatus" class="w-full border rounded-lg px-3 py-2 mt-1">
                 <option value="PENDING">PENDING</option>
                 <option value="CONFIRMED">CONFIRMED</option>
@@ -219,35 +142,26 @@
             </div>
 
             <div class="col-span-1 md:col-span-2 flex gap-3 mt-4">
-              <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-                Simpan
-              </button>
-              <button type="button" id="resetBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
-                Reset
+              <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Simpan</button>
+              <button type="button" id="resetBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Reset</button>
+              <button type="button" id="exportTour" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto">
+                ⬇️ Export ke Excel
               </button>
             </div>
           </form>
         </section>
 
-        <!-- Data Table -->
-        <section
-          class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover"
-        >
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-gray-700">Daftar Tour</h2>
-            <button id="refreshBtn" class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">
-              Refresh
-            </button>
-          </div>
+        <!-- Table Section -->
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700">Data Tour</h2>
           <div class="overflow-x-auto">
             <table class="w-full text-sm text-left border">
               <thead class="bg-gray-100 text-gray-700">
                 <tr>
-                  <th class="py-2 px-2">#</th>
-                  <th>Tour Code</th>
+                  <th>#</th>
                   <th>Lead Passenger</th>
+                  <th>Tour Code</th>
                   <th>Region</th>
-                  <th>Departure</th>
                   <th>Sales</th>
                   <th>Profit</th>
                   <th>Status</th>
@@ -260,11 +174,8 @@
         </section>
       </main>
 
-      <!-- Footer -->
-      <footer
-        class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900"
-      >
-        © 2025 Travel Dashboard Enterprise v3.7
+      <footer class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900">
+        © 2025 Travel Dashboard Enterprise v3.9.2
       </footer>
     </div>
 
@@ -274,33 +185,27 @@
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const form = document.getElementById("tourForm");
-        const resetBtn = document.getElementById("resetBtn");
         const tableBody = document.getElementById("tourTable");
-        const refreshBtn = document.getElementById("refreshBtn");
+        const exportBtn = document.getElementById("exportTour");
         let editId = null;
 
         async function loadTours() {
           try {
             const data = await apiFetch("/api/tours");
-            tableBody.innerHTML = data
-              .map(
-                (t, i) => `
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-1 px-2">${i + 1}</td>
-                  <td>${t.tourcode || "-"}</td>
-                  <td>${t.leadpassenger || "-"}</td>
-                  <td>${t.region || "-"}</td>
-                  <td>${t.departuredate || "-"}</td>
-                  <td>${formatNumber(t.salesamount)}</td>
-                  <td>${formatNumber(t.profitamount)}</td>
-                  <td>${t.departurestatus || "-"}</td>
-                  <td class="flex gap-2">
-                    <button class="text-blue-600 hover:underline" data-edit="${t.id}">Edit</button>
-                    <button class="text-red-600 hover:underline" data-delete="${t.id}">Hapus</button>
-                  </td>
-                </tr>`
-              )
-              .join("");
+            tableBody.innerHTML = data.map((t, i) => `
+              <tr class="border-b hover:bg-gray-50">
+                <td>${i + 1}</td>
+                <td>${t.leadPassenger || "-"}</td>
+                <td>${t.tourCode || "-"}</td>
+                <td>${t.region || "-"}</td>
+                <td>${formatNumber(t.salesAmount)}</td>
+                <td>${formatNumber(t.profitAmount)}</td>
+                <td>${t.departureStatus}</td>
+                <td>
+                  <button class="text-blue-600 hover:underline" data-edit="${t.id}">Edit</button>
+                  <button class="text-red-600 hover:underline" data-delete="${t.id}">Hapus</button>
+                </td>
+              </tr>`).join("");
           } catch {
             showToast("Gagal memuat data tour", { type: "error" });
           }
@@ -308,71 +213,22 @@
 
         loadTours();
 
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const payload = {
-            registrationDate: form.registrationDate.value,
-            leadPassenger: form.leadPassenger.value,
-            allPassengers: form.allPassengers.value,
-            tourCode: form.tourCode.value,
-            region: form.region.value,
-            departureDate: form.departureDate.value,
-            bookingCode: form.bookingCode.value,
-            tourPrice: form.tourPrice.value,
-            salesAmount: form.salesAmount.value,
-            profitAmount: form.profitAmount.value,
-            departureStatus: form.departureStatus.value,
-          };
-
+        exportBtn.addEventListener("click", async () => {
+          const token = localStorage.getItem("token");
+          const url = "/api/tours/export";
           try {
-            if (editId) {
-              await apiFetch(`/api/tours/${editId}`, { method: "PUT", body: JSON.stringify(payload) });
-              showToast("✅ Data tour diperbarui", { type: "success" });
-            } else {
-              await apiFetch("/api/tours", { method: "POST", body: JSON.stringify(payload) });
-              showToast("✅ Data tour ditambahkan", { type: "success" });
-            }
-            editId = null;
-            form.reset();
-            loadTours();
+            const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const a = document.createElement("a");
+            const fileURL = URL.createObjectURL(blob);
+            a.href = fileURL;
+            a.download = `Tour_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(fileURL);
+            showToast("✅ Laporan tour berhasil diunduh", { type: "success" });
           } catch {
-            showToast("❌ Gagal menyimpan data", { type: "error" });
-          }
-        });
-
-        resetBtn.addEventListener("click", () => {
-          form.reset();
-          editId = null;
-        });
-
-        refreshBtn.addEventListener("click", loadTours);
-
-        tableBody.addEventListener("click", async (e) => {
-          const id = e.target.dataset.edit || e.target.dataset.delete;
-          if (!id) return;
-
-          if (e.target.dataset.edit) {
-            try {
-              const tour = await apiFetch(`/api/tours/${id}`);
-              Object.keys(tour).forEach((key) => {
-                if (form[key]) form[key].value = tour[key];
-              });
-              editId = id;
-              showToast("✏️ Mode edit aktif", { type: "info" });
-            } catch {
-              showToast("Gagal memuat data untuk edit", { type: "error" });
-            }
-          }
-
-          if (e.target.dataset.delete) {
-            if (!confirm("Yakin ingin menghapus data ini?")) return;
-            try {
-              await apiFetch(`/api/tours/${id}`, { method: "DELETE" });
-              showToast("🗑️ Data tour dihapus", { type: "success" });
-              loadTours();
-            } catch {
-              showToast("Gagal menghapus data", { type: "error" });
-            }
+            showToast("❌ Gagal mengekspor laporan tour", { type: "error" });
           }
         });
       });
