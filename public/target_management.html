@@ -1,228 +1,257 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Target Bulanan | Travel Dashboard Enterprise</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Target Management | Travel Dashboard Enterprise</title>
+
   <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+
   <style>
-    body { font-family: "Inter", sans-serif; background:#f9fafb; margin:0; padding:0; }
-    .form-container {
-      max-width: 760px;
-      margin: 40px auto;
-      padding: 24px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    :root {
+      --bg-color: #f9fafb;
+      --card-bg: #ffffff;
+      --text-color: #111827;
+      --header-bg: #1f2937;
+      --shadow-color: rgba(0, 0, 0, 0.05);
     }
-    label { display:block; font-weight:600; margin-top:12px; }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 6px;
-      border: 1px solid #ccc;
+
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --card-bg: #1f2937;
+      --text-color: #f9fafb;
+      --header-bg: #0f172a;
+      --shadow-color: rgba(255, 255, 255, 0.08);
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    header {
+      background: var(--header-bg);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px var(--shadow-color);
+      margin-bottom: 20px;
+    }
+
+    input, select, button {
+      padding: 6px 10px;
       border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
     }
-    .btn { display:inline-block; padding:10px 16px; margin-top:14px; border:none; border-radius:6px; cursor:pointer; }
-    .btn-primary { background:#1f7aec; color:white; }
-    .btn-danger { background:#e11d48; color:white; }
-    .row { display:flex; gap:12px; }
-    .row > div { flex:1; }
-    .targets-list { margin-top: 20px; }
-    .target-item { background:#f9fafb; border:1px solid #eee; border-radius:8px; padding:12px; margin-bottom:8px; }
-    .target-item b { color:#1f2937; }
-    .actions button { margin-right:8px; }
+
+    button.primary {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button.primary:hover { background: #1d4ed8; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    tr:hover { background: rgba(37,99,235,0.05); }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
   </style>
 </head>
+
 <body>
-  <div class="form-container">
-    <h2>🎯 Target Bulanan</h2>
-    <div id="notice" style="color:#dc2626; font-weight:500; margin-bottom:8px;"></div>
-
-    <form id="targetForm">
-      <label for="staff">Staff</label>
-      <select id="staff" name="staff"></select>
-
-      <div class="row">
-        <div>
-          <label for="month">Bulan</label>
-          <select id="month" name="month">
-            <script>
-              for (let i=1;i<=12;i++){ document.write(`<option value="${i}">${i}</option>`); }
-            </script>
-          </select>
-        </div>
-        <div>
-          <label for="year">Tahun</label>
-          <select id="year" name="year">
-            <script>
-              const now = new Date(); const y = now.getFullYear();
-              for (let yr=y-2; yr<=y+1; yr++){ document.write(`<option value="${yr}">${yr}</option>`); }
-            </script>
-          </select>
-        </div>
-      </div>
-
-      <label>Target Sales (angka tanpa format)</label>
-      <input type="number" id="target_sales" min="0" step="0.01" />
-
-      <label>Target Profit (angka tanpa format)</label>
-      <input type="number" id="target_profit" min="0" step="0.01" />
-
-      <label>Target Tour (jumlah tour)</label>
-      <input type="number" id="target_tour" min="0" step="1" />
-
-      <div style="margin-top:16px;">
-        <button class="btn btn-primary" id="saveBtn">💾 Simpan</button>
-        <button type="button" class="btn btn-danger" id="resetBtn">Reset</button>
-      </div>
-    </form>
-
-    <div class="targets-list">
-      <h3>📋 Daftar Target</h3>
-      <div id="targetsList"></div>
+  <header>
+    <h1>🎯 Target Management</h1>
+    <div>
+      <button id="toggleThemeBtn" class="primary">🌙</button>
+      <button id="logoutBtn" class="primary" style="background:#dc2626;">Logout</button>
     </div>
+  </header>
+
+  <div class="main-content">
+    <main class="container">
+      <section class="card">
+        <h2>🧾 Input Target Bulanan</h2>
+        <form id="targetForm">
+          <div class="grid-3">
+            <div>
+              <label>Staff</label>
+              <input type="text" id="staff_name" placeholder="Nama staff" required>
+            </div>
+            <div>
+              <label>Bulan</label>
+              <select id="month" required></select>
+            </div>
+            <div>
+              <label>Tahun</label>
+              <select id="year" required></select>
+            </div>
+            <div>
+              <label>Target Sales</label>
+              <input type="number" id="target_sales" step="0.01" placeholder="0">
+            </div>
+            <div>
+              <label>Target Profit</label>
+              <input type="number" id="target_profit" step="0.01" placeholder="0">
+            </div>
+            <div>
+              <label>Target Tours</label>
+              <input type="number" id="target_tours" placeholder="0">
+            </div>
+          </div>
+          <button type="submit" class="primary" style="margin-top:12px;">💾 Simpan Target</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>📊 Data Target Bulanan</h2>
+        <table id="targetTable">
+          <thead>
+            <tr>
+              <th>Staff</th>
+              <th>Bulan</th>
+              <th>Tahun</th>
+              <th>Sales</th>
+              <th>Profit</th>
+              <th>Tours</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
   </div>
 
-<script>
-const token = localStorage.getItem("token");
-if (!token) {
-  document.getElementById("notice").innerText = "Anda belum login. Silakan login terlebih dahulu.";
-}
+  <!-- Scripts -->
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/theme.js" type="module"></script>
 
-// ============ Helper API ============
-async function api(path, method="GET", body){
-  const res = await fetch(path, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + token
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
-  return res;
-}
+  <script>
+  const token = localStorage.getItem("token") || "";
 
-// ============ Load user & staff list ============
-async function initForm() {
-  const res = await api("/api/auth/verify");
-  if (!res.ok) { document.getElementById("notice").innerText = "Gagal memuat data user."; return; }
-  const user = await res.json();
-  const staffSel = document.getElementById("staff");
-  staffSel.innerHTML = "";
-
-  if (user.role === "super") {
-    const ru = await api("/api/users");
-    if (ru.ok) {
-      const users = await ru.json();
-      users.forEach(u => {
-        const opt = document.createElement("option");
-        opt.value = u.username;
-        opt.textContent = u.username;
-        staffSel.appendChild(opt);
-      });
-    }
-  } else {
-    const opt = document.createElement("option");
-    opt.value = user.username;
-    opt.textContent = user.username;
-    staffSel.appendChild(opt);
-    staffSel.disabled = true;
+  function api(path, method="GET", body){
+    return fetch(path, {
+      method,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: body ? JSON.stringify(body) : undefined
+    });
   }
 
-  const now = new Date();
-  document.getElementById("month").value = now.getMonth()+1;
-  document.getElementById("year").value = now.getFullYear();
-
-  loadTargets();
-}
-
-// ============ Load targets list ============
-async function loadTargets(){
-  const staff = document.getElementById("staff").value;
-  const month = document.getElementById("month").value;
-  const year = document.getElementById("year").value;
-
-  const res = await api(`/api/targets?staff=${encodeURIComponent(staff)}&month=${month}&year=${year}`);
-  const list = document.getElementById("targetsList");
-  if (!res.ok) { list.innerHTML = "<p>Gagal memuat data.</p>"; return; }
-
-  const data = await res.json();
-  if (data.length === 0) {
-    list.innerHTML = "<p>Belum ada target untuk periode ini.</p>";
-    return;
+  async function loadTargets(){
+    const res = await api("/api/targets");
+    if (!res.ok) return;
+    const data = await res.json();
+    const tbody = document.querySelector("#targetTable tbody");
+    tbody.innerHTML = "";
+    data.forEach(t=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${t.staff_name}</td>
+        <td>${t.month}</td>
+        <td>${t.year}</td>
+        <td>${t.target_sales}</td>
+        <td>${t.target_profit}</td>
+        <td>${t.target_tours}</td>
+        <td>
+          <button onclick="editTarget(${t.id}, '${t.staff_name}', ${t.month}, ${t.year}, ${t.target_sales}, ${t.target_profit}, ${t.target_tours})">✏️ Edit</button>
+          <button onclick="deleteTarget(${t.id})" style="color:#dc2626;">🗑️ Hapus</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
   }
 
-  list.innerHTML = "";
-  data.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "target-item";
-    div.innerHTML = `
-      <b>${t.staff_name}</b> — ${t.month}/${t.year}
-      <div>Sales: ${t.target_sales} | Profit: ${t.target_profit} | Tours: ${t.target_tour}</div>
-      <div class="actions" style="margin-top:8px;">
-        <button data-id="${t.id}" class="editBtn">Edit</button>
-        <button data-id="${t.id}" class="delBtn">Hapus</button>
-      </div>
-    `;
-    list.appendChild(div);
-  });
+  function fillMonthYearSelectors(){
+    const monthSel = document.getElementById("month");
+    const yearSel = document.getElementById("year");
+    for (let i=1;i<=12;i++) monthSel.appendChild(new Option(i,i));
+    const now = new Date();
+    for (let y=now.getFullYear()-2; y<=now.getFullYear()+1; y++) yearSel.appendChild(new Option(y,y));
+    monthSel.value = now.getMonth()+1;
+    yearSel.value = now.getFullYear();
+  }
 
-  document.querySelectorAll(".editBtn").forEach(btn => {
-    btn.onclick = () => {
-      const rec = data.find(x => x.id == btn.dataset.id);
-      if (!rec) return;
-      document.getElementById("staff").value = rec.staff_name;
-      document.getElementById("month").value = rec.month;
-      document.getElementById("year").value = rec.year;
-      document.getElementById("target_sales").value = rec.target_sales;
-      document.getElementById("target_profit").value = rec.target_profit;
-      document.getElementById("target_tour").value = rec.target_tour;
+  async function saveTarget(e){
+    e.preventDefault();
+    const body = {
+      staff_name: document.getElementById("staff_name").value,
+      month: parseInt(document.getElementById("month").value),
+      year: parseInt(document.getElementById("year").value),
+      target_sales: parseFloat(document.getElementById("target_sales").value || 0),
+      target_profit: parseFloat(document.getElementById("target_profit").value || 0),
+      target_tours: parseInt(document.getElementById("target_tours").value || 0)
     };
-  });
+    const res = await api("/api/targets", "POST", body);
+    if (res.ok){
+      alert("Target berhasil disimpan!");
+      loadTargets();
+      document.getElementById("targetForm").reset();
+    } else alert("Gagal menyimpan target.");
+  }
 
-  document.querySelectorAll(".delBtn").forEach(btn => {
-    btn.onclick = async () => {
-      if (!confirm("Hapus target ini?")) return;
-      const r = await api(`/api/targets/${btn.dataset.id}`, "DELETE");
-      if (r.ok) { alert("Target dihapus."); loadTargets(); }
-      else alert("Gagal menghapus target.");
-    };
-  });
-}
+  async function deleteTarget(id){
+    if (!confirm("Hapus target ini?")) return;
+    const res = await api(`/api/targets/${id}`, "DELETE");
+    if (res.ok){
+      alert("Target dihapus.");
+      loadTargets();
+    } else alert("Gagal menghapus target.");
+  }
 
-// ============ Save Target ============
-document.getElementById("targetForm").addEventListener("submit", async (e)=>{
-  e.preventDefault();
-  const body = {
-    staff_name: document.getElementById("staff").value,
-    month: parseInt(document.getElementById("month").value),
-    year: parseInt(document.getElementById("year").value),
-    target_sales: parseFloat(document.getElementById("target_sales").value || 0),
-    target_profit: parseFloat(document.getElementById("target_profit").value || 0),
-    target_tour: parseInt(document.getElementById("target_tour").value || 0)
+  function editTarget(id, staff, month, year, sales, profit, tours){
+    document.getElementById("staff_name").value = staff;
+    document.getElementById("month").value = month;
+    document.getElementById("year").value = year;
+    document.getElementById("target_sales").value = sales;
+    document.getElementById("target_profit").value = profit;
+    document.getElementById("target_tours").value = tours;
+  }
+
+  document.getElementById("targetForm").addEventListener("submit", saveTarget);
+  document.getElementById("logoutBtn").onclick = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login.html";
   };
-  const res = await api("/api/targets", "POST", body);
-  if (res.ok) {
-    alert("Target tersimpan.");
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    fillMonthYearSelectors();
     loadTargets();
-  } else {
-    alert("Gagal menyimpan target.");
-  }
-});
-
-// ============ Reset form ============
-document.getElementById("resetBtn").onclick = ()=>{
-  document.getElementById("target_sales").value = "";
-  document.getElementById("target_profit").value = "";
-  document.getElementById("target_tour").value = "";
-};
-
-document.getElementById("month").addEventListener("change", loadTargets);
-document.getElementById("year").addEventListener("change", loadTargets);
-document.getElementById("staff").addEventListener("change", loadTargets);
-
-initForm();
-</script>
+  });
+  </script>
 </body>
 </html>
