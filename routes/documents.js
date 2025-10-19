@@ -1,53 +1,31 @@
 /**
  * ==========================================================
- * routes/documents.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 routes/documents.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ CRUD data Dokumen
- * ✅ Export Excel
- * ✅ Middleware auth & role
+ * Endpoint untuk modul Dokumen:
+ * - Ambil semua data dokumen
+ * - Tambah dokumen baru
+ * - Hapus dokumen berdasarkan ID
  * ==========================================================
  */
 
-const express = require("express");
+import express from "express";
+import {
+  getDocuments,
+  createDocument,
+  deleteDocument
+} from "../controllers/documentController.js";
+
 const router = express.Router();
-const documentController = require("../controllers/documentController");
-const { verifyToken } = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
 
-// ============================================================
-// 📘 GET /api/documents
-// Ambil semua data dokumen
-// ============================================================
-router.get("/", verifyToken, documentController.getAllDocuments);
+// 📋 Ambil semua dokumen
+router.get("/", getDocuments);
 
-// ============================================================
-// 📘 GET /api/documents/:id
-// Ambil 1 data dokumen berdasarkan ID
-// ============================================================
-router.get("/:id", verifyToken, documentController.getDocumentById);
+// 💾 Tambah dokumen baru
+router.post("/", createDocument);
 
-// ============================================================
-// 🟢 POST /api/documents
-// Tambah data dokumen baru
-// ============================================================
-router.post("/", verifyToken, roleCheck(["super", "semi"]), documentController.createDocument);
+// ❌ Hapus dokumen berdasarkan ID
+router.delete("/:id", deleteDocument);
 
-// ============================================================
-// 🟡 PUT /api/documents/:id
-// Update data dokumen
-// ============================================================
-router.put("/:id", verifyToken, roleCheck(["super", "semi"]), documentController.updateDocument);
-
-// ============================================================
-// 🔴 DELETE /api/documents/:id
-// Hapus data dokumen
-// ============================================================
-router.delete("/:id", verifyToken, roleCheck(["super"]), documentController.deleteDocument);
-
-// ============================================================
-// 📤 GET /api/documents/export
-// Export data dokumen ke Excel
-// ============================================================
-router.get("/export", verifyToken, roleCheck(["super", "semi", "basic"]), documentController.exportDocumentReport);
-
-module.exports = router;
+export default router;
