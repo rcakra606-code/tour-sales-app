@@ -1,91 +1,145 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Dashboard — Travel Dashboard Enterprise</title>
-  <link rel="stylesheet" href="/css/style.css" />
-</head>
-<body class="theme-light">
-  <!-- SIDEBAR -->
-  <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-    <div class="sidebar-top">
-      <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">
-        ☰
-      </button>
-      <h1 class="brand">TravelDash</h1>
-      <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Travel Dashboard Enterprise</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+
+  <body class="theme-light">
+    <!-- =============================== -->
+    <!-- SIDEBAR -->
+    <!-- =============================== -->
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">
+          ☰
+        </button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
+          🌓
+        </button>
+      </div>
+
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html" class="active">Dashboard</a></li>
+          <li><a href="/report_tour.html">Report Tour</a></li>
+          <li><a href="/report_sales.html">Report Sales</a></li>
+          <li><a href="/report_document.html">Report Document</a></li>
+          <li><a href="/user-management.html">User Management</a></li>
+          <li><a href="/executive-dashboard.html">Executive</a></li>
+          <li><a href="/audit_log.html">Audit Log</a></li>
+          <li><a href="/profile.html">Profile</a></li>
+          <li><a href="/logout.html">Logout</a></li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
+
+    <!-- =============================== -->
+    <!-- MAIN CONTENT -->
+    <!-- =============================== -->
+    <div id="main" class="main-content">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h2>Dashboard</h2>
+        </div>
+        <div class="topbar-right">
+          <div id="userBadge" class="user-badge">admin</div>
+        </div>
+      </header>
+
+      <main class="container">
+        <!-- DASHBOARD SUMMARY CARDS -->
+        <section class="cards-grid" id="summaryCards">
+          <div class="card">
+            <h3>Total Sales</h3>
+            <p id="totalSales">—</p>
+          </div>
+          <div class="card">
+            <h3>Total Profit</h3>
+            <p id="totalProfit">—</p>
+          </div>
+          <div class="card">
+            <h3>Total Tours</h3>
+            <p id="totalTours">—</p>
+          </div>
+          <div class="card">
+            <h3>Active Targets</h3>
+            <p id="totalTargets">—</p>
+          </div>
+          <div class="card">
+            <h3>Total Pax</h3>
+            <p id="totalPax">—</p>
+          </div>
+        </section>
+
+        <!-- PANELS -->
+        <section class="panels-grid">
+          <!-- Tour Summary Panel -->
+          <div class="panel">
+            <h4>Tour Summary</h4>
+
+            <div class="table-container">
+              <h5>📅 Per Bulan</h5>
+              <table id="tourByMonth" class="data-table">
+                <thead>
+                  <tr>
+                    <th>Bulan</th>
+                    <th>Tahun</th>
+                    <th>Jumlah Tour</th>
+                    <th>Total Pax</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="4" style="text-align:center;">Loading...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-container">
+              <h5>🌍 Per Region</h5>
+              <table id="tourByRegion" class="data-table">
+                <thead>
+                  <tr>
+                    <th>Region</th>
+                    <th>Jumlah Tour</th>
+                    <th>Total Pax</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3" style="text-align:center;">Loading...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sales Performance Panel -->
+          <div class="panel">
+            <h4>Sales Performance</h4>
+            <div id="salesSummary">Loading...</div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
+      </footer>
     </div>
 
-    <nav class="sidebar-nav" role="navigation">
-      <ul>
-        <li><a href="/dashboard.html" class="active">Dashboard</a></li>
-        <li><a href="/report_tour.html">Report Tour</a></li>
-        <li><a href="/report_sales.html">Report Sales</a></li>
-        <li><a href="/report_document.html">Report Document</a></li>
-        <li><a href="/user-management.html">User Management</a></li>
-        <li><a href="/executive-dashboard.html">Executive</a></li>
-        <li><a href="/audit_log.html">Audit Log</a></li>
-        <li><a href="/profile.html">Profile</a></li>
-        <li><a href="/logout.html">Logout</a></li>
-      </ul>
-    </nav>
-
-    <div class="sidebar-footer">
-      <small>v5.0 • Travel Dashboard</small>
-    </div>
-  </aside>
-
-  <!-- MAIN CONTENT -->
-  <div id="main" class="main-content">
-    <header class="topbar">
-      <div class="topbar-left">
-        <h2>Dashboard</h2>
-      </div>
-      <div class="topbar-right">
-        <div id="userBadge" class="user-badge">admin</div>
-      </div>
-    </header>
-
-    <main class="container">
-      <!-- summary cards -->
-      <section class="cards-grid" id="summaryCards">
-        <div class="card">
-          <h3>Total Sales</h3>
-          <p id="totalSales">—</p>
-        </div>
-        <div class="card">
-          <h3>Total Profit</h3>
-          <p id="totalProfit">—</p>
-        </div>
-        <div class="card">
-          <h3>Total Tours</h3>
-          <p id="totalTours">—</p>
-        </div>
-        <div class="card">
-          <h3>Targets Active</h3>
-          <p id="totalTargets">—</p>
-        </div>
-      </section>
-
-      <!-- placeholder chart / lists -->
-      <section class="panels-grid">
-        <div class="panel">
-          <h4>Tour Summary</h4>
-          <div id="tourSummary">Loading...</div>
-        </div>
-        <div class="panel">
-          <h4>Sales Performance</h4>
-          <div id="salesSummary">Loading...</div>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-    </footer>
-  </div>
-
-  <script src="/js/dashboard.js" type="module"></script>
-</body>
+    <!-- =============================== -->
+    <!-- JS -->
+    <!-- =============================== -->
+    <script type="module" src="/js/dashboard.js"></script>
+  </body>
 </html>
