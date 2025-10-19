@@ -1,12 +1,10 @@
 /**
  * ==========================================================
- * server.js — Travel Dashboard Enterprise v3.9.7
+ * server.js — Travel Dashboard Enterprise v3.9.8
  * ==========================================================
- * ✅ Express API Server (Production Ready)
- * ✅ PostgreSQL (Neon) + SQLite fallback
- * ✅ Auto Route Verification + Smart Import Handler
- * ✅ Helmet CSP + CORS + Morgan Logging
- * ✅ Graceful Error Handling
+ * 🧩 Build diagnostik untuk mendeteksi route non-middleware
+ * ✅ Menampilkan tipe ekspor tiap route di log
+ * ✅ Melanjutkan startup meskipun 1 route error
  * ==========================================================
  */
 
@@ -16,6 +14,7 @@ const path = require("path");
 const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
+const fs = require("fs");
 const logger = require("./config/logger");
 const { initDatabase, getDB } = require("./config/database");
 const { errorHandler } = require("./middleware/errorHandler");
@@ -25,7 +24,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ============================================================
-// 🧩 1️⃣ Verifikasi Routes Sebelum Server Jalan
+// 🧠 1️⃣ Verifikasi route sebelum start
 // ============================================================
 try {
   verifyRoutes();
@@ -35,159 +34,118 @@ try {
 }
 
 // ============================================================
-// ⚙️ 2️⃣ Middleware Utama
+// ⚙️ 2️⃣ Middleware dasar
 // ============================================================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-
-// CORS — izinkan frontend Render
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "*",
-    credentials: true,
-  })
-);
-
-// Helmet CSP untuk keamanan
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.tailwindcss.com",
-          "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com",
-          "https://cdn.jsdelivr.net/npm/chart.js",
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.jsdelivr.net",
-          "https://fonts.googleapis.com",
-        ],
-        imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", process.env.FRONTEND_URL || "*"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
-      },
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-  })
-);
-
-// Morgan logging
+app.use(cors({ origin: process.env.FRONTEND_URL || "*", credentials: true }));
 app.use(morgan("tiny", { stream: logger.stream }));
 
-// ============================================================
-// 📁 3️⃣ Static File Serving
-// ============================================================
-app.use(express.static(path.join(__dirname, "public")));
+// Helmet CSP
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // ============================================================
-// 🌐 4️⃣ Safe Route Loader (Smart Import Handler)
+// 🧩 3️⃣ Fungsi debug route
 // ============================================================
-function safeLoadRoute(routePath) {
+function loadRouteSafely(routePath) {
+  const absolute = path.join(__dirname, routePath);
   try {
-    const mod = require(routePath);
-
-    // CommonJS export
-    if (typeof mod === "function" && typeof mod.use === "function") {
-      logger.info(`✅ Route aktif: ${routePath} (CommonJS)`);
-      return mod;
-    }
-
-    // ESM default export
-    if (
+    const mod = require(absolute);
+    const isValid =
+      mod && (typeof mod === "function" || typeof mod.use === "function");
+    const isESM =
       mod &&
       mod.default &&
-      (typeof mod.default === "function" || typeof mod.default.use === "function")
-    ) {
-      logger.info(`✅ Route aktif: ${routePath} (ESM default)`);
-      return mod.default;
-    }
+      (typeof mod.default === "function" ||
+        typeof mod.default.use === "function");
 
-    // Invalid route
-    logger.error(`❌ Route ${routePath} tidak mengembalikan express.Router() valid.`);
-    logger.error(`⚠️ Type: ${typeof mod}, keys: ${Object.keys(mod || {})}`);
-    throw new TypeError(`Route ${routePath} invalid — bukan express.Router()`);
+    console.log(
+      "🔍 Route check:",
+      routePath,
+      {
+        exists: fs.existsSync(absolute),
+        type: typeof mod,
+        keys: Object.keys(mod || {}),
+        hasUse: typeof mod?.use,
+        hasDefault: !!mod?.default,
+        defaultType: typeof mod?.default,
+      }
+    );
+
+    if (isValid) return mod;
+    if (isESM) return mod.default;
+
+    console.warn(
+      `⚠️ Route ${routePath} tidak valid (skip sementara agar server bisa start).`
+    );
+    return (req, res) =>
+      res.status(500).json({
+        message: `Route ${routePath} invalid, lihat log startup untuk detail.`,
+      });
   } catch (err) {
-    logger.error(`💥 Gagal memuat route ${routePath}: ${err.message}`);
-    process.exit(1);
+    console.error(`💥 Gagal memuat route ${routePath}:`, err.message);
+    return (req, res) =>
+      res.status(500).json({ message: `Gagal load ${routePath}` });
   }
 }
 
 // ============================================================
-// 🚀 5️⃣ Register Routes
+// 🌐 4️⃣ Register semua routes
 // ============================================================
-app.use("/api/auth", safeLoadRoute("./routes/auth"));
-app.use("/api/dashboard", safeLoadRoute("./routes/dashboard"));
-app.use("/api/tours", safeLoadRoute("./routes/tours"));
-app.use("/api/sales", safeLoadRoute("./routes/sales")); // ✅ fix safe load
-app.use("/api/documents", safeLoadRoute("./routes/documents"));
-app.use("/api/executive", safeLoadRoute("./routes/executiveReport"));
-app.use("/api/users", safeLoadRoute("./routes/users"));
-app.use("/api/regions", safeLoadRoute("./routes/regions"));
-app.use("/api/logs", safeLoadRoute("./routes/logs"));
+app.use("/api/auth", loadRouteSafely("./routes/auth"));
+app.use("/api/dashboard", loadRouteSafely("./routes/dashboard"));
+app.use("/api/tours", loadRouteSafely("./routes/tours"));
+app.use("/api/sales", loadRouteSafely("./routes/sales"));
+app.use("/api/documents", loadRouteSafely("./routes/documents"));
+app.use("/api/executive", loadRouteSafely("./routes/executiveReport"));
+app.use("/api/users", loadRouteSafely("./routes/users"));
+app.use("/api/regions", loadRouteSafely("./routes/regions"));
+app.use("/api/logs", loadRouteSafely("./routes/logs"));
 
 // ============================================================
-// ❤️ 6️⃣ Health Check Endpoint
+// ❤️ Health check
 // ============================================================
 app.get("/api/health", async (req, res) => {
   try {
     const db = getDB();
     await db.get("SELECT 1");
-    res.json({
-      status: "ok",
-      db: "connected",
-      timestamp: new Date(),
-      environment: process.env.NODE_ENV,
-      port: PORT,
-    });
+    res.json({ status: "ok", db: "connected", port: PORT });
   } catch (err) {
-    res.status(500).json({
-      status: "error",
-      db: "disconnected",
-      error: err.message,
-    });
+    res.status(500).json({ status: "error", db: "disconnected" });
   }
 });
 
 // ============================================================
-// ⚠️ 7️⃣ 404 Handler
+// ⚠️ 404 dan Error handler
 // ============================================================
-app.use((req, res) => {
-  res.status(404).json({ message: "Endpoint tidak ditemukan" });
-});
-
-// ============================================================
-// 🧯 8️⃣ Global Error Handler
-// ============================================================
+app.use((req, res) => res.status(404).json({ message: "Endpoint tidak ditemukan" }));
 app.use(errorHandler);
 
 // ============================================================
-// 🚀 9️⃣ Start Server + Init Database
+// 🚀 Jalankan server
 // ============================================================
 (async () => {
   try {
     await initDatabase();
-
     app.listen(PORT, () => {
-      const envLabel = process.env.RENDER ? "Render" : "Local";
-      logger.info(`🚀 Server berjalan di port ${PORT} [${envLabel}]`);
+      logger.info(`🚀 Server berjalan di port ${PORT}`);
       logger.info(`🌍 Mode: ${process.env.NODE_ENV || "development"}`);
       logger.info(
         `📦 Database: ${
           process.env.DATABASE_URL ? "PostgreSQL (Neon)" : "SQLite fallback"
         }`
       );
+      console.log("===========================================");
+      console.log("📂 Routes terdaftar:", fs.readdirSync(path.join(__dirname, "routes")));
+      console.log("===========================================");
     });
   } catch (err) {
-    logger.error("❌ Gagal menginisialisasi aplikasi:", err);
+    logger.error("❌ Startup error:", err);
     process.exit(1);
   }
 })();
