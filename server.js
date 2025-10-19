@@ -1,12 +1,12 @@
 /**
  * ==========================================================
- * server.js — Travel Dashboard Enterprise v3.9.2
+ * server.js — Travel Dashboard Enterprise v3.9.3
  * ==========================================================
- * ✅ Express API Server
- * ✅ Integrasi semua routes
- * ✅ PostgreSQL + SQLite hybrid
- * ✅ Security Headers (CSP)
- * ✅ Logger & Error Handler
+ * ✅ Express API Server (Production-ready)
+ * ✅ PostgreSQL (Neon) + SQLite fallback
+ * ✅ Auto-verify all routes before startup
+ * ✅ Helmet CSP + CORS + Morgan Logging
+ * ✅ Logger + Global Error Handler
  * ==========================================================
  */
 
@@ -20,16 +20,29 @@ const logger = require("./config/logger");
 const { initDatabase, getDB } = require("./config/database");
 const { errorHandler } = require("./middleware/errorHandler");
 
+// 🧩 Tambahkan auto-verifikasi routes sebelum start
+const { verifyRoutes } = require("./scripts/verify-routes");
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ============================================================
-// 🧩 Middleware Utama
+// 🧠 Jalankan verifikasi routes terlebih dahulu
+// ============================================================
+try {
+  verifyRoutes();
+} catch (err) {
+  logger.error("❌ Route verification failed:", err);
+  process.exit(1);
+}
+
+// ============================================================
+// ⚙️ Middleware Utama
 // ============================================================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS Configuration (izinkan frontend URL Render)
+// CORS — izinkan frontend Render
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "*",
@@ -37,7 +50,7 @@ app.use(
   })
 );
 
-// Helmet Security (termasuk CSP)
+// Helmet CSP untuk keamanan
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -69,16 +82,16 @@ app.use(
   })
 );
 
-// Logging setiap request
+// Logging setiap request HTTP
 app.use(morgan("tiny", { stream: logger.stream }));
 
 // ============================================================
-// 📁 Static File (Frontend)
+// 📁 Static Files
 // ============================================================
 app.use(express.static(path.join(__dirname, "public")));
 
 // ============================================================
-// 🌐 Route Integrations
+// 🌐 ROUTE REGISTRATION
 // ============================================================
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/dashboard", require("./routes/dashboard"));
@@ -104,19 +117,19 @@ app.get("/api/health", async (req, res) => {
 });
 
 // ============================================================
-// ⚠️ 404 Handler (jika route tidak ditemukan)
+// ⚠️ 404 Handler
 // ============================================================
 app.use((req, res) => {
   res.status(404).json({ message: "Endpoint tidak ditemukan" });
 });
 
 // ============================================================
-// 🧯 Error Handler Global
+// 🧯 Global Error Handler
 // ============================================================
 app.use(errorHandler);
 
 // ============================================================
-// 🚀 Jalankan Server + Database
+// 🚀 Jalankan Server + Database Initialization
 // ============================================================
 (async () => {
   try {
