@@ -1,10 +1,10 @@
 /**
  * ==========================================================
- * 📁 scripts/setup-admin.js
+ * 📁 scripts/setup-admin.js (Fixed)
  * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * Script untuk otomatis membuat akun SUPER ADMIN
- * jika belum ada di database (NeonDB / PostgreSQL).
+ * Script otomatis membuat akun SUPER ADMIN
+ * dengan perbaikan koneksi Pool (Render-safe)
  * ==========================================================
  */
 
@@ -32,8 +32,7 @@ async function setupAdmin() {
 
     if (check.rows.length > 0) {
       console.log("✅ Akun super admin sudah ada:", check.rows[0].username);
-      await pool.end();
-      return;
+      return; // ❗ STOP di sini tanpa menutup pool
     }
 
     console.log("🚀 Membuat akun super admin baru...");
@@ -50,7 +49,12 @@ async function setupAdmin() {
   } catch (err) {
     console.error("❌ Gagal membuat akun super admin:", err.message);
   } finally {
-    await pool.end();
+    try {
+      await pool.end();
+      console.log("🔌 Koneksi database ditutup dengan aman.");
+    } catch (e) {
+      console.warn("⚠️ Koneksi sudah ditutup sebelumnya, aman diabaikan.");
+    }
   }
 }
 
