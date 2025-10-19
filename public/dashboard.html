@@ -13,13 +13,9 @@
     <!-- =============================== -->
     <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">
-          ☰
-        </button>
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">
-          🌓
-        </button>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
       </div>
 
       <nav class="sidebar-nav" role="navigation">
@@ -127,7 +123,19 @@
           <!-- Sales Performance Panel -->
           <div class="panel">
             <h4>Sales Performance</h4>
-            <div id="salesSummary">Loading...</div>
+            <div id="salesSummary">
+              <p><strong>Total Sales:</strong> <span id="salesTotal">Rp 0</span></p>
+              <p><strong>Total Profit:</strong> <span id="profitTotal">Rp 0</span></p>
+              <p class="muted">Lihat detail di Report Sales</p>
+            </div>
+          </div>
+
+          <!-- Target Performance Panel -->
+          <div class="panel">
+            <h4>🎯 Target Performance</h4>
+            <div id="targetContainer" class="target-list">
+              <p>Loading target data...</p>
+            </div>
           </div>
         </section>
       </main>
