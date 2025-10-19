@@ -94,6 +94,7 @@
         <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">✈️ Report Tour</a>
         <a href="/report_sales.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">💰 Report Sales</a>
         <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
+        <a href="/region_management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🌍 Region Management</a>
         <a href="/user-management.html" data-role="super,semi" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
         <a href="/audit_log.html" data-role="super" class="block px-3 py-2 rounded hover:bg-indigo-100">🧾 Audit Log</a>
       </nav>
@@ -138,6 +139,10 @@
               <input type="text" id="invoice_number" class="w-full border rounded-lg px-3 py-2 mt-1" required />
             </div>
             <div>
+              <label class="text-sm font-medium">Nama Staff</label>
+              <input type="text" id="staff_name" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="Nama staff yang menangani" required />
+            </div>
+            <div>
               <label class="text-sm font-medium">Sales Amount</label>
               <input type="number" id="sales_amount" class="w-full border rounded-lg px-3 py-2 mt-1" required />
             </div>
@@ -165,9 +170,7 @@
         <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold text-gray-700">Daftar Sales</h2>
-            <button id="refreshBtn" class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">
-              Refresh
-            </button>
+            <button id="refreshBtn" class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">Refresh</button>
           </div>
 
           <div class="overflow-x-auto">
@@ -177,6 +180,7 @@
                   <th class="py-2 px-2">#</th>
                   <th>Invoice</th>
                   <th>Tanggal</th>
+                  <th>Staff</th>
                   <th>Sales</th>
                   <th>Profit</th>
                   <th>Discount</th>
@@ -190,7 +194,7 @@
       </main>
 
       <footer class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900">
-        © 2025 Travel Dashboard Enterprise v3.7
+        © 2025 Travel Dashboard Enterprise v3.7.1
       </footer>
     </div>
 
@@ -215,6 +219,7 @@
                   <td class="py-1 px-2">${i + 1}</td>
                   <td>${s.invoice_number || "-"}</td>
                   <td>${s.transaction_date || "-"}</td>
+                  <td>${s.staff_name || "-"}</td>
                   <td>${formatNumber(s.sales_amount)}</td>
                   <td>${formatNumber(s.profit_amount)}</td>
                   <td>${formatNumber(s.discount_amount)}</td>
@@ -237,6 +242,7 @@
           const payload = {
             transaction_date: form.transaction_date.value,
             invoice_number: form.invoice_number.value,
+            staff_name: form.staff_name.value,
             sales_amount: form.sales_amount.value,
             profit_amount: form.profit_amount.value,
             discount_amount: form.discount_amount.value,
@@ -244,16 +250,10 @@
 
           try {
             if (editId) {
-              await apiFetch(`/api/sales/${editId}`, {
-                method: "PUT",
-                body: JSON.stringify(payload),
-              });
+              await apiFetch(`/api/sales/${editId}`, { method: "PUT", body: JSON.stringify(payload) });
               showToast("✅ Data sales diperbarui", { type: "success" });
             } else {
-              await apiFetch("/api/sales", {
-                method: "POST",
-                body: JSON.stringify(payload),
-              });
+              await apiFetch("/api/sales", { method: "POST", body: JSON.stringify(payload) });
               showToast("✅ Data sales ditambahkan", { type: "success" });
             }
             editId = null;
