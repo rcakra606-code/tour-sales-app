@@ -1,43 +1,31 @@
 /**
  * ==========================================================
- * middleware/authMiddleware.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 middleware/authMiddleware.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ Verifikasi token JWT
- * ✅ Menolak akses tanpa autentikasi
- * ✅ Logging error autentikasi
- * ✅ Integrasi untuk roleCheck
+ * Middleware untuk autentikasi berbasis JWT.
+ * - Mengecek token JWT
+ * - Melanjutkan request jika token valid
  * ==========================================================
  */
 
-const jwt = require("jsonwebtoken");
-const logger = require("../config/logger");
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
+dotenv.config();
 
-// ============================================================
-// 🔒 Middleware: verifyToken
-// ============================================================
-exports.verifyToken = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   try {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "Token tidak ditemukan." });
 
-    if (!token) {
-      logger.warn("🚫 Akses ditolak: token tidak ditemukan");
-      return res.status(401).json({ message: "Akses ditolak, token tidak ditemukan" });
-    }
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) {
-        logger.warn("🚫 Akses ditolak: token tidak valid atau kadaluwarsa");
-        return res.status(403).json({ message: "Token tidak valid atau kadaluwarsa" });
-      }
-
-      req.user = user;
-      next();
-    });
+    req.user = decoded;
+    next();
   } catch (err) {
-    logger.error("❌ Error verifying token:", err);
-    res.status(500).json({ message: "Gagal memverifikasi token" });
+    console.error("❌ Auth middleware error:", err.message);
+    res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
   }
 };
