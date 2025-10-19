@@ -1,16 +1,16 @@
 /**
  * ==========================================================
- * controllers/reportSalesController.js — Travel Dashboard Enterprise v3.9.2
+ * controllers/reportSalesController.js — Travel Dashboard Enterprise v3.9.3
  * ==========================================================
  * ✅ CRUD data sales
- * ✅ Filter berdasarkan staff_name (?staff=nama)
- * ✅ Summary penjualan per staff (untuk executive dashboard)
- * ✅ Export Excel (XLSX)
- * ✅ Integrasi logger & keamanan
+ * ✅ Filter berdasarkan staff
+ * ✅ Summary per staff
+ * ✅ Export Excel
+ * ✅ Logging + hybrid database
  * ==========================================================
  */
 
-const db = require("../config/database");
+const db = require("../config/database").getDB();
 const logger = require("../config/logger");
 const ExcelJS = require("exceljs");
 
@@ -29,8 +29,11 @@ exports.getAllSales = async (req, res) => {
       params.push(`%${staff.toLowerCase()}%`);
     }
 
+    query += " ORDER BY transaction_date DESC";
+
     const result = await db.all(query, params);
     res.json(result);
+    logger.info(`📄 Data sales diambil${staff ? ` (filter staff: ${staff})` : ""}`);
   } catch (err) {
     logger.error("❌ Error fetching sales data:", err);
     res.status(500).json({ message: "Gagal mengambil data sales" });
@@ -39,7 +42,7 @@ exports.getAllSales = async (req, res) => {
 
 // ============================================================
 // 📘 GET /api/sales/:id
-// Ambil 1 data sales berdasarkan ID
+// Ambil satu data sales berdasarkan ID
 // ============================================================
 exports.getSaleById = async (req, res) => {
   try {
@@ -51,6 +54,7 @@ exports.getSaleById = async (req, res) => {
     }
 
     res.json(sale);
+    logger.info(`📄 Detail sales ID ${id} diambil`);
   } catch (err) {
     logger.error("❌ Error fetching sale by ID:", err);
     res.status(500).json({ message: "Gagal mengambil data sales" });
@@ -73,14 +77,14 @@ exports.createSale = async (req, res) => {
     } = req.body;
 
     if (!transaction_date || !invoice_number || !staff_name) {
-      return res.status(400).json({ message: "Harap isi semua field wajib" });
+      return res.status(400).json({ message: "Tanggal, Invoice, dan Staff wajib diisi" });
     }
 
     await db.run(
       `
       INSERT INTO sales (transaction_date, invoice_number, staff_name, sales_amount, profit_amount, discount_amount)
       VALUES (?, ?, ?, ?, ?, ?)
-    `,
+      `,
       [
         transaction_date,
         invoice_number,
@@ -91,11 +95,11 @@ exports.createSale = async (req, res) => {
       ]
     );
 
-    logger.info(`✅ Sales ditambahkan oleh ${staff_name}`);
+    logger.info(`✅ Sales '${invoice_number}' ditambahkan oleh ${staff_name}`);
     res.json({ message: "✅ Data sales berhasil ditambahkan" });
   } catch (err) {
     logger.error("❌ Error creating sale:", err);
-    res.status(500).json({ message: "Gagal menambah data sales" });
+    res.status(500).json({ message: "Gagal menambahkan data sales" });
   }
 };
 
@@ -123,14 +127,8 @@ exports.updateSale = async (req, res) => {
     await db.run(
       `
       UPDATE sales 
-      SET transaction_date = ?, 
-          invoice_number = ?, 
-          staff_name = ?, 
-          sales_amount = ?, 
-          profit_amount = ?, 
-          discount_amount = ? 
-      WHERE id = ?
-    `,
+      SET transaction_date=?, invoice_number=?, staff_name=?, sales_amount=?, profit_amount=?, discount_amount=? 
+      WHERE id=?`,
       [
         transaction_date,
         invoice_number,
@@ -163,8 +161,7 @@ exports.deleteSale = async (req, res) => {
     }
 
     await db.run("DELETE FROM sales WHERE id = ?", [id]);
-
-    logger.info(`🗑️ Sales ID ${id} dihapus`);
+    logger.warn(`🗑️ Sales ID ${id} dihapus oleh ${req.user.username}`);
     res.json({ message: "✅ Data sales berhasil dihapus" });
   } catch (err) {
     logger.error("❌ Error deleting sale:", err);
@@ -190,9 +187,10 @@ exports.getSalesSummaryByStaff = async (req, res) => {
       ORDER BY total_sales DESC
     `);
 
+    logger.info("📊 Ringkasan sales per staff berhasil diambil");
     res.json({ summary });
   } catch (err) {
-    logger.error("❌ Error fetching sales summary per staff:", err);
+    logger.error("❌ Error fetching sales summary:", err);
     res.status(500).json({ message: "Gagal mengambil ringkasan penjualan per staff" });
   }
 };
@@ -205,7 +203,7 @@ exports.exportSalesReport = async (req, res) => {
   try {
     const filename = `Sales_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Sales Data");
+    const worksheet = workbook.addWorksheet("Sales Report");
 
     const data = await db.all("SELECT * FROM sales ORDER BY transaction_date DESC");
 
