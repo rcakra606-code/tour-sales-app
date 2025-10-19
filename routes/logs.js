@@ -1,104 +1,84 @@
 /**
  * ==========================================================
- * routes/logs.js — Travel Dashboard Enterprise v3.4.1
+ * routes/logs.js — Travel Dashboard Enterprise v3.9.2
  * ==========================================================
- * ✅ PostgreSQL (Neon) Ready
- * ✅ Menampilkan audit logs
- * ✅ Filter berdasarkan user, role, dan aksi
- * ✅ Pagination untuk performa tinggi
+ * ✅ Menampilkan activity logs (audit trail)
+ * ✅ Hapus log (khusus super)
+ * ✅ Middleware auth & role
  * ==========================================================
  */
 
 const express = require("express");
-const db = require("../config/database");
-const auth = require("../middleware/auth");
-const { requireRole } = require("../middleware/roleCheck");
-
 const router = express.Router();
+const { verifyToken } = require("../middleware/authMiddleware");
+const roleCheck = require("../middleware/roleCheck");
+const logger = require("../config/logger");
+const db = require("../config/database").getDB();
 
-// Middleware: hanya super/semi yang boleh akses log
-router.use(auth);
-router.use(requireRole("super", "semi"));
-
-/**
- * ==========================================================
- * GET /api/logs
- * Ambil daftar log aktivitas dengan pagination & filter opsional
- * Query params:
- *  - page (default 1)
- *  - limit (default 20)
- *  - username (opsional)
- *  - role (opsional)
- *  - action (opsional)
- * ==========================================================
- */
-router.get("/", async (req, res) => {
+// ============================================================
+// 📘 GET /api/logs
+// Ambil semua log (bisa filter ?user= atau ?role=)
+// ============================================================
+router.get("/", verifyToken, roleCheck(["super", "semi"]), async (req, res) => {
   try {
-    const { page = 1, limit = 20, username, role, action } = req.query;
-    const offset = (page - 1) * limit;
-
-    // Filter dinamis
-    const filters = [];
+    const { user, role } = req.query;
+    let query = "SELECT * FROM logs WHERE 1=1";
     const params = [];
-    let paramIndex = 1;
 
-    if (username) {
-      filters.push(`LOWER(username) LIKE LOWER($${paramIndex++})`);
-      params.push(`%${username}%`);
+    if (user) {
+      query += " AND LOWER(username) LIKE ?";
+      params.push(`%${user.toLowerCase()}%`);
     }
+
     if (role) {
-      filters.push(`LOWER(role) = LOWER($${paramIndex++})`);
-      params.push(role);
-    }
-    if (action) {
-      filters.push(`LOWER(action) LIKE LOWER($${paramIndex++})`);
-      params.push(`%${action}%`);
+      query += " AND LOWER(role) = ?";
+      params.push(role.toLowerCase());
     }
 
-    const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
+    query += " ORDER BY timestamp DESC";
+    const logs = await db.all(query, params);
 
-    // Ambil total count
-    const countQuery = `SELECT COUNT(*) AS total FROM logs ${whereClause}`;
-    const totalResult = await db.query(countQuery, params);
-    const total = Number(totalResult.rows[0].total);
-
-    // Ambil data log dengan pagination
-    const query = `
-      SELECT id, username, role, action, target, timestamp
-      FROM logs
-      ${whereClause}
-      ORDER BY id DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `;
-    const result = await db.query(query, params);
-
-    res.json({
-      success: true,
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      logs: result.rows,
-    });
+    res.json(logs);
   } catch (err) {
-    console.error("❌ Error GET /logs:", err.message);
-    res.status(500).json({ error: "Gagal memuat data log aktivitas" });
+    logger.error("❌ Error mengambil data logs:", err);
+    res.status(500).json({ message: "Gagal mengambil data log aktivitas" });
   }
 });
 
-/**
- * ==========================================================
- * DELETE /api/logs/clear
- * Hapus semua log (super only)
- * ==========================================================
- */
-router.delete("/clear", requireRole("super"), async (req, res) => {
+// ============================================================
+// 🗑️ DELETE /api/logs/:id
+// Hapus 1 log berdasarkan ID (khusus super)
+// ============================================================
+router.delete("/:id", verifyToken, roleCheck(["super"]), async (req, res) => {
   try {
-    await db.query("DELETE FROM logs");
-    await db.query("ALTER SEQUENCE logs_id_seq RESTART WITH 1");
-    res.json({ message: "🧹 Semua log berhasil dihapus" });
+    const { id } = req.params;
+    const existing = await db.get("SELECT id FROM logs WHERE id = ?", [id]);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Log tidak ditemukan" });
+    }
+
+    await db.run("DELETE FROM logs WHERE id = ?", [id]);
+    logger.info(`🗑️ Log ID ${id} dihapus oleh ${req.user.username}`);
+    res.json({ message: "✅ Log berhasil dihapus" });
   } catch (err) {
-    console.error("❌ Error DELETE /logs/clear:", err.message);
-    res.status(500).json({ error: "Gagal menghapus log" });
+    logger.error("❌ Error menghapus log:", err);
+    res.status(500).json({ message: "Gagal menghapus log" });
+  }
+});
+
+// ============================================================
+// 🧹 DELETE /api/logs/clear
+// Hapus semua log (khusus super)
+// ============================================================
+router.delete("/clear/all", verifyToken, roleCheck(["super"]), async (req, res) => {
+  try {
+    await db.run("DELETE FROM logs");
+    logger.warn(`🧹 Semua log aktivitas dihapus oleh ${req.user.username}`);
+    res.json({ message: "🧹 Semua log aktivitas berhasil dihapus" });
+  } catch (err) {
+    logger.error("❌ Error menghapus semua log:", err);
+    res.status(500).json({ message: "Gagal menghapus semua log" });
   }
 });
 
