@@ -1,127 +1,85 @@
 /**
  * ==========================================================
- * controllers/authController.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 controllers/authController.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ Login dengan JWT
- * ✅ Password terenkripsi (bcrypt)
- * ✅ Verifikasi token aktif
- * ✅ Refresh token opsional
- * ✅ Logout user
- * ✅ Kompatibel Neon & SQLite
+ * Controller untuk autentikasi:
+ * - Login user
+ * - Verifikasi token
  * ==========================================================
  */
 
-const db = require("../config/database");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const logger = require("../config/logger");
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import pkg from "pg";
 
-// JWT secret & expiration
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+dotenv.config();
+const { Pool } = pkg;
 
-// ============================================================
-// 🔑 POST /api/auth/login
-// ============================================================
-exports.loginUser = async (req, res) => {
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+/**
+ * 🔐 Login User
+ * Validasi kredensial, buat token JWT
+ */
+export const loginUser = async (req, res) => {
   try {
     const { username, password } = req.body;
-
     if (!username || !password)
-      return res.status(400).json({ message: "Username dan password wajib diisi" });
+      return res.status(400).json({ message: "Username dan password wajib diisi." });
 
-    const user = await db.get("SELECT * FROM users WHERE username = ?", [username]);
-    if (!user) {
-      logger.warn(`🚫 Login gagal: username tidak ditemukan (${username})`);
-      return res.status(401).json({ message: "Username atau password salah" });
-    }
+    const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+    if (result.rows.length === 0)
+      return res.status(401).json({ message: "User tidak ditemukan." });
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      logger.warn(`🚫 Login gagal: password salah (${username})`);
-      return res.status(401).json({ message: "Username atau password salah" });
-    }
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(401).json({ message: "Password salah." });
 
-    const token = jwt.sign({ id: user.id, role: user.role, username }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    });
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
+    );
 
-    const refreshToken = jwt.sign({ id: user.id }, JWT_SECRET, {
-      expiresIn: JWT_REFRESH_EXPIRES_IN,
-    });
-
-    logger.info(`✅ Login berhasil untuk ${username} (${user.role})`);
     res.json({
-      message: "Login berhasil",
+      message: "Login berhasil.",
       token,
-      refreshToken,
-      user: { id: user.id, username: user.username, role: user.role },
+      user: {
+        username: user.username,
+        role: user.role,
+      },
     });
   } catch (err) {
-    logger.error("❌ Error during login:", err);
-    res.status(500).json({ message: "Gagal memproses login" });
+    console.error("❌ Auth login error:", err.message);
+    res.status(500).json({ message: "Gagal login." });
   }
 };
 
-// ============================================================
-// 🧾 GET /api/auth/verify
-// ============================================================
-exports.verifyUser = async (req, res) => {
+/**
+ * 🔎 Verifikasi Token JWT
+ * Mengecek validitas token dan mengembalikan data user
+ */
+export const verifyToken = async (req, res) => {
   try {
-    const user = req.user;
-    if (!user) return res.status(401).json({ message: "Token tidak valid" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader)
+      return res.status(401).json({ message: "Token tidak ditemukan." });
 
-    const dbUser = await db.get("SELECT id, username, role FROM users WHERE id = ?", [user.id]);
-    if (!dbUser) return res.status(404).json({ message: "User tidak ditemukan" });
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     res.json({
-      message: "Token valid",
-      user: dbUser,
+      valid: true,
+      user: decoded,
     });
   } catch (err) {
-    logger.error("❌ Error verifying token:", err);
-    res.status(500).json({ message: "Gagal memverifikasi user" });
-  }
-};
-
-// ============================================================
-// 🔁 POST /api/auth/refresh
-// ============================================================
-exports.refreshToken = async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(400).json({ message: "Refresh token wajib disertakan" });
-
-    jwt.verify(refreshToken, JWT_SECRET, (err, decoded) => {
-      if (err) return res.status(403).json({ message: "Refresh token tidak valid" });
-
-      const newToken = jwt.sign(
-        { id: decoded.id, role: decoded.role },
-        JWT_SECRET,
-        { expiresIn: JWT_EXPIRES_IN }
-      );
-
-      res.json({
-        message: "Token baru berhasil dibuat",
-        token: newToken,
-      });
-    });
-  } catch (err) {
-    logger.error("❌ Error refreshing token:", err);
-    res.status(500).json({ message: "Gagal memperbarui token" });
-  }
-};
-
-// ============================================================
-// 🚪 POST /api/auth/logout
-// ============================================================
-exports.logoutUser = async (req, res) => {
-  try {
-    // Token dikelola di sisi client (hapus dari localStorage)
-    res.json({ message: "Logout berhasil, token dihapus dari sisi client" });
-  } catch (err) {
-    logger.error("❌ Error during logout:", err);
-    res.status(500).json({ message: "Gagal logout user" });
+    console.error("❌ Token verification error:", err.message);
+    res.status(401).json({ valid: false, message: "Token tidak valid." });
   }
 };
