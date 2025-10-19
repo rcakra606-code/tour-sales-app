@@ -1,161 +1,64 @@
 /**
  * ==========================================================
- * config/database.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 config/database.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ Hybrid Database Connection (PostgreSQL + SQLite fallback)
- * ✅ Neon PostgreSQL untuk Production
- * ✅ SQLite (travel.db) untuk Local Dev
- * ✅ Logging dan auto-reconnect
+ * Modul koneksi utama ke NeonDB PostgreSQL:
+ * - Auto reconnect
+ * - SSL aktif (Render & Neon)
+ * - Integrasi logger
  * ==========================================================
  */
 
-const { Pool } = require("pg");
-const sqlite3 = require("sqlite3");
-const { open } = require("sqlite");
-const logger = require("./logger");
-require("dotenv").config();
+import pkg from "pg";
+import dotenv from "dotenv";
+import logger, { logInfo, logError } from "./logger.js";
 
-let db;
-const isUsingPostgres = !!process.env.DATABASE_URL;
+dotenv.config();
+const { Pool } = pkg;
 
-// ============================================================
-// 🔹 PostgreSQL (Neon) Connection
-// ============================================================
-async function connectPostgres() {
+// Pastikan URL database tersedia
+if (!process.env.DATABASE_URL) {
+  logError("❌ DATABASE_URL belum diset di .env");
+  throw new Error("DATABASE_URL tidak ditemukan di environment variable.");
+}
+
+// Konfigurasi koneksi NeonDB
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 10, // jumlah maksimum koneksi pool
+  idleTimeoutMillis: 30000, // tutup koneksi idle setelah 30 detik
+  connectionTimeoutMillis: 10000, // timeout 10 detik untuk koneksi baru
+});
+
+// 🔄 Fungsi cek koneksi awal
+export const verifyConnection = async () => {
   try {
-    logger.info("⏳ Menghubungkan ke PostgreSQL (Neon)...");
-    const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-    });
-
+    logInfo("🔌 Menguji koneksi ke NeonDB...");
     const client = await pool.connect();
-    await client.query("SELECT NOW()");
+    const result = await client.query("SELECT NOW()");
     client.release();
-
-    logger.info("✅ PostgreSQL (Neon) Connected Successfully");
-
-    // Wrapper for pg like sqlite-style API
-    return {
-      run: async (sql, params = []) => {
-        await pool.query(sql, params);
-      },
-      get: async (sql, params = []) => {
-        const res = await pool.query(sql, params);
-        return res.rows[0];
-      },
-      all: async (sql, params = []) => {
-        const res = await pool.query(sql, params);
-        return res.rows;
-      },
-      exec: async (sql) => {
-        await pool.query(sql);
-      },
-      pool,
-    };
+    logInfo(`✅ Koneksi ke NeonDB berhasil (${result.rows[0].now})`);
   } catch (err) {
-    logger.error(`❌ Gagal menghubungkan ke PostgreSQL: ${err.message}`);
+    logError(`❌ Gagal koneksi ke NeonDB: ${err.message}`);
     throw err;
   }
-}
-
-// ============================================================
-// 🔹 SQLite Fallback Connection
-// ============================================================
-async function connectSQLite() {
-  try {
-    logger.warn("⚠️ Neon tidak tersedia — menggunakan SQLite (travel.db)");
-    const sqlite = await open({
-      filename: "./data/travel.db",
-      driver: sqlite3.Database,
-    });
-    logger.info("✅ SQLite connected (local mode)");
-    return sqlite;
-  } catch (err) {
-    logger.error("❌ Gagal menghubungkan SQLite:", err);
-    throw err;
-  }
-}
-
-// ============================================================
-// 🚀 Initialize Connection
-// ============================================================
-async function initDatabase() {
-  try {
-    if (isUsingPostgres && process.env.DATABASE_URL) {
-      db = await connectPostgres();
-    } else {
-      db = await connectSQLite();
-    }
-
-    // Pastikan tabel-tabel utama ada
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT DEFAULT 'basic',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS tours (
-        id SERIAL PRIMARY KEY,
-        registrationDate TEXT,
-        leadPassenger TEXT,
-        allPassengers TEXT,
-        tourCode TEXT,
-        region TEXT,
-        departureDate TEXT,
-        bookingCode TEXT,
-        tourPrice REAL,
-        discountRemarks TEXT,
-        paymentProof TEXT,
-        documentReceived TEXT,
-        visaProcessStart TEXT,
-        visaProcessEnd TEXT,
-        documentRemarks TEXT,
-        staff TEXT,
-        salesAmount REAL,
-        profitAmount REAL,
-        departureStatus TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS sales (
-        id SERIAL PRIMARY KEY,
-        transaction_date TEXT,
-        invoice_number TEXT,
-        staff_name TEXT,
-        sales_amount REAL,
-        profit_amount REAL,
-        discount_amount REAL
-      );
-
-      CREATE TABLE IF NOT EXISTS documents (
-        id SERIAL PRIMARY KEY,
-        receive_date TEXT,
-        guest_name TEXT,
-        booking_code TEXT,
-        tour_code TEXT,
-        document_remarks TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS logs (
-        id SERIAL PRIMARY KEY,
-        action TEXT,
-        username TEXT,
-        role TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    logger.info("✅ Struktur database diverifikasi & siap digunakan");
-  } catch (err) {
-    logger.error("❌ Database initialization error:", err);
-    throw err;
-  }
-}
-
-module.exports = {
-  initDatabase,
-  getDB: () => db,
 };
+
+// 🧩 Helper untuk query global
+export const query = async (text, params) => {
+  try {
+    const start = Date.now();
+    const result = await pool.query(text, params);
+    const duration = Date.now() - start;
+    logInfo(`📦 Query selesai dalam ${duration}ms: ${text}`);
+    return result;
+  } catch (err) {
+    logError(`❌ Query error: ${err.message} | SQL: ${text}`);
+    throw err;
+  }
+};
+
+// 🧱 Export pool utama
+export default pool;
