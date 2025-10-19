@@ -1,63 +1,52 @@
 /**
  * ==========================================================
- * config/logger.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 config/logger.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ Logging multi-level (info, warn, error)
- * ✅ Output ke file & console
- * ✅ Format waktu lokal + warna terminal
- * ✅ Siap untuk Render & Neon PostgreSQL
+ * Logger konfigurasi utama untuk server:
+ * - Menggunakan Winston (dari utils/logger.js)
+ * - Menangani log startup, koneksi DB, dan error global
  * ==========================================================
  */
 
-const { createLogger, format, transports } = require("winston");
-const path = require("path");
-const fs = require("fs");
+import { createLogger, format, transports } from "winston";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 
-// Pastikan folder log ada
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const logDir = path.join(__dirname, "../logs");
-if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+  console.log("📁 Folder logs dibuat:", logDir);
+}
 
-// ============================================================
-// 🧠 Format log
-// ============================================================
+// Format log konsisten untuk file & console
 const logFormat = format.combine(
   format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-  format.printf((info) => {
-    const { timestamp, level, message } = info;
-    return `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+  format.printf(({ level, message, timestamp }) => {
+    return `${timestamp} [${level.toUpperCase()}]: ${message}`;
   })
 );
 
-// ============================================================
-// 🧩 Logger utama
-// ============================================================
+// Konfigurasi logger global
 const logger = createLogger({
   level: "info",
   format: logFormat,
   transports: [
-    // Simpan log harian
-    new transports.File({
-      filename: path.join(logDir, "app.log"),
-      maxsize: 5 * 1024 * 1024, // 5MB
-      maxFiles: 10,
-      tailable: true,
-    }),
-
-    // Tampilkan ke console (untuk debugging & Render logs)
     new transports.Console({
-      format: format.combine(
-        format.colorize(),
-        format.printf(({ level, message }) => `[${level.toUpperCase()}] ${message}`)
-      ),
+      format: format.combine(format.colorize(), format.simple()),
     }),
+    new transports.File({ filename: path.join(logDir, "app.log") }),
+    new transports.File({ filename: path.join(logDir, "error.log"), level: "error" }),
   ],
 });
 
-// ============================================================
-// 🧾 Helper untuk log shortcut
-// ============================================================
-logger.stream = {
-  write: (message) => logger.info(message.trim()),
-};
+// 🧩 Helper export
+export const logInfo = (msg) => logger.info(msg);
+export const logWarn = (msg) => logger.warn(msg);
+export const logError = (msg) => logger.error(msg);
 
-module.exports = logger;
+export default logger;
