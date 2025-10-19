@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard | Travel Dashboard Enterprise</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: "Inter", sans-serif;
@@ -59,7 +60,6 @@
       color: #2563eb;
     }
 
-    /* Progress bar */
     .progress-container {
       background: #f3f4f6;
       height: 18px;
@@ -106,6 +106,10 @@
 
     .logout-btn:hover {
       background: #b91c1c;
+    }
+
+    #chartContainer {
+      margin-top: 20px;
     }
 
   </style>
@@ -164,11 +168,16 @@
           </div>
         </div>
       </div>
+
+      <!-- Bagian Chart Visual -->
+      <div id="chartContainer">
+        <canvas id="targetChart" height="140"></canvas>
+      </div>
     </section>
 
     <section class="card">
-      <h2>🧾 Aktivitas Lain (contoh: laporan, notifikasi, dll)</h2>
-      <p>Bagian ini bisa kamu isi nanti untuk integrasi tambahan seperti report sales, tours, dan documents.</p>
+      <h2>🧾 Aktivitas Lain</h2>
+      <p>Bagian ini dapat digunakan untuk integrasi tambahan seperti laporan sales, tours, dan dokumen.</p>
     </section>
   </div>
 
@@ -183,7 +192,7 @@
     });
   }
 
-  // ============ Dashboard Summary (sales, profit, tours) ============
+  // Dashboard Summary (sales, profit, tours)
   async function loadDashboardSummary() {
     const res = await api("/api/dashboard/summary");
     if (!res.ok) return;
@@ -193,19 +202,17 @@
     document.getElementById("tourValue").innerText = data.totalTours || 0;
   }
 
-  // ============ Target Bulanan ============
+  // Populate selectors
   async function populateTargetSelectors() {
     const staffSel = document.getElementById("dash_staff");
     const monthSel = document.getElementById("dash_month");
     const yearSel = document.getElementById("dash_year");
 
-    // Isi bulan dan tahun
     for (let i=1;i<=12;i++){ monthSel.appendChild(new Option(i,i)); }
     const now = new Date(); const thisYear = now.getFullYear();
     for (let y=thisYear-2; y<=thisYear+1; y++){ yearSel.appendChild(new Option(y,y)); }
     monthSel.value = now.getMonth()+1; yearSel.value = thisYear;
 
-    // Ambil user
     const r = await api("/api/auth/verify");
     if (!r.ok) return;
     const user = await r.json();
@@ -221,6 +228,8 @@
     }
   }
 
+  let chartInstance = null;
+
   async function refreshTargetSummary() {
     const staff = document.getElementById("dash_staff").value;
     const month = document.getElementById("dash_month").value;
@@ -231,15 +240,54 @@
     const data = await res.json();
     const { target, real, percentage } = data;
 
-    // Label
+    // Label update
     document.getElementById("sales_label").innerText = `${real.sales} / ${target.sales} (${percentage.sales}%)`;
     document.getElementById("profit_label").innerText = `${real.profit} / ${target.profit} (${percentage.profit}%)`;
     document.getElementById("tours_label").innerText = `${real.tours} / ${target.tours} (${percentage.tours}%)`;
 
-    // Bar width
     document.getElementById("sales_bar").style.width = (percentage.sales || 0) + "%";
     document.getElementById("profit_bar").style.width = (percentage.profit || 0) + "%";
     document.getElementById("tours_bar").style.width = (percentage.tours || 0) + "%";
+
+    // Chart update
+    const ctx = document.getElementById("targetChart").getContext("2d");
+    const labels = ["Sales", "Profit", "Tours"];
+    const targetValues = [target.sales, target.profit, target.tours];
+    const realValues = [real.sales, real.profit, real.tours];
+
+    const chartData = {
+      labels,
+      datasets: [
+        {
+          label: "Target",
+          data: targetValues,
+          backgroundColor: "rgba(37,99,235,0.5)"
+        },
+        {
+          label: "Realisasi",
+          data: realValues,
+          backgroundColor: "rgba(16,185,129,0.6)"
+        }
+      ]
+    };
+
+    const config = {
+      type: "bar",
+      data: chartData,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: `Perbandingan Target vs Realisasi (${month}/${year})` }
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    };
+
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, config);
   }
 
   document.getElementById("dash_refresh").addEventListener("click", refreshTargetSummary);
@@ -249,8 +297,7 @@
     loadDashboardSummary();
   });
 
-  // ============ Logout ============
-  document.getElementById("logoutBtn").onclick = ()=>{
+  document.getElementById("logoutBtn").onclick = () => {
     localStorage.removeItem("token");
     window.location.href = "/login.html";
   };
