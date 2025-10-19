@@ -1,173 +1,83 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile | Travel Dashboard Enterprise</title>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - Travel Dashboard Enterprise</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
 
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
-  <style>
-    :root {
-      --bg-color: #f9fafb;
-      --card-bg: #ffffff;
-      --text-color: #111827;
-      --header-bg: #1f2937;
-      --shadow-color: rgba(0, 0, 0, 0.05);
-    }
+  <body class="theme-light">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar collapsed">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon">🌓</button>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li><a href="/dashboard.html">Dashboard</a></li>
+          <li><a href="/report_tour.html">Report Tour</a></li>
+          <li><a href="/report_sales.html">Report Sales</a></li>
+          <li><a href="/report_document.html">Report Document</a></li>
+          <li><a href="/user-management.html">User Management</a></li>
+          <li><a href="/executive-dashboard.html">Executive</a></li>
+          <li><a href="/audit_log.html">Audit Log</a></li>
+          <li><a href="/profile.html" class="active">Profile</a></li>
+          <li><a href="/logout.html">Logout</a></li>
+        </ul>
+      </nav>
+    </aside>
 
-    [data-theme="dark"] {
-      --bg-color: #111827;
-      --card-bg: #1f2937;
-      --text-color: #f9fafb;
-      --header-bg: #0f172a;
-      --shadow-color: rgba(255, 255, 255, 0.08);
-    }
+    <!-- MAIN CONTENT -->
+    <div id="main" class="main-content">
+      <header class="topbar">
+        <h2>User Profile</h2>
+        <div id="userBadge" class="user-badge">admin</div>
+      </header>
 
-    body {
-      font-family: "Inter", sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      transition: background 0.3s, color 0.3s;
-    }
+      <main class="container">
+        <section class="panel" id="profilePanel">
+          <h4>Informasi Akun</h4>
+          <div class="profile-info">
+            <div class="info-row"><strong>Username:</strong> <span id="username">—</span></div>
+            <div class="info-row"><strong>Nama Staff:</strong> <span id="staffName">—</span></div>
+            <div class="info-row"><strong>Role:</strong> <span id="role">—</span></div>
+            <div class="info-row"><strong>Dibuat Pada:</strong> <span id="createdAt">—</span></div>
+          </div>
+        </section>
 
-    header {
-      background: var(--header-bg);
-      color: white;
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+        <section class="form-section">
+          <h4>Ubah Password</h4>
+          <form id="passwordForm">
+            <div class="form-group">
+              <label for="oldPassword">Password Lama</label>
+              <input type="password" id="oldPassword" name="oldPassword" required />
+            </div>
 
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 16px;
-    }
+            <div class="form-group">
+              <label for="newPassword">Password Baru</label>
+              <input type="password" id="newPassword" name="newPassword" required />
+            </div>
 
-    .card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px var(--shadow-color);
-      margin-bottom: 20px;
-    }
+            <div class="form-group">
+              <label for="confirmPassword">Konfirmasi Password Baru</label>
+              <input type="password" id="confirmPassword" name="confirmPassword" required />
+            </div>
 
-    input, button {
-      width: 100%;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      font-size: 15px;
-      margin-top: 8px;
-      box-sizing: border-box;
-    }
+            <div class="form-actions">
+              <button type="submit" class="btn">🔒 Ubah Password</button>
+            </div>
+          </form>
+        </section>
+      </main>
 
-    button.primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-top: 14px;
-    }
-
-    button.primary:hover { background: #1d4ed8; }
-
-    .info { font-size: 14px; color: #6b7280; margin-top: 10px; }
-  </style>
-</head>
-
-<body>
-  <header>
-    <h1>User Profile</h1>
-    <div>
-      <button id="toggleThemeBtn" class="primary">🌙</button>
-      <button id="logoutBtn" class="primary" style="background:#dc2626;">Logout</button>
+      <footer class="footer">
+        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
+      </footer>
     </div>
-  </header>
 
-  <div class="main-content">
-    <main class="container">
-      <section class="card">
-        <h2>🙍‍♂️ Informasi Akun</h2>
-        <div>
-          <label>Username</label>
-          <input type="text" id="username" disabled />
-
-          <label>Role</label>
-          <input type="text" id="role" disabled />
-
-          <div class="info">Anda dapat mengganti password di bawah ini.</div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>🔒 Ganti Password</h2>
-        <form id="passwordForm">
-          <label>Password Baru</label>
-          <input type="password" id="newPassword" placeholder="Masukkan password baru" required />
-
-          <label>Konfirmasi Password</label>
-          <input type="password" id="confirmPassword" placeholder="Ulangi password baru" required />
-
-          <button type="submit" class="primary">💾 Simpan Password</button>
-        </form>
-      </section>
-    </main>
-  </div>
-
-  <!-- Scripts -->
-  <script src="/js/sidebar.js"></script>
-  <script src="/js/theme.js" type="module"></script>
-
-  <script>
-  const token = localStorage.getItem("token") || "";
-
-  function api(path, method="GET", body){
-    return fetch(path, {
-      method,
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: body ? JSON.stringify(body) : undefined
-    });
-  }
-
-  async function loadProfile(){
-    const res = await api("/api/profile");
-    if (!res.ok) {
-      alert("Gagal memuat profil. Silakan login ulang.");
-      localStorage.removeItem("token");
-      window.location.href = "/login.html";
-      return;
-    }
-    const user = await res.json();
-    document.getElementById("username").value = user.username;
-    document.getElementById("role").value = user.role;
-  }
-
-  document.getElementById("passwordForm").addEventListener("submit", async e=>{
-    e.preventDefault();
-    const pass1 = document.getElementById("newPassword").value;
-    const pass2 = document.getElementById("confirmPassword").value;
-
-    if (pass1 !== pass2) return alert("Password tidak sama!");
-    if (pass1.length < 6) return alert("Password minimal 6 karakter.");
-
-    const res = await api("/api/profile/password", "PUT", { password: pass1 });
-    if (res.ok) {
-      alert("Password berhasil diperbarui.");
-      document.getElementById("newPassword").value = "";
-      document.getElementById("confirmPassword").value = "";
-    } else alert("Gagal memperbarui password.");
-  });
-
-  document.getElementById("logoutBtn").onclick = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-  };
-
-  document.addEventListener("DOMContentLoaded", loadProfile);
-  </script>
-</body>
+    <script type="module" src="/js/profile.js"></script>
+  </body>
 </html>
