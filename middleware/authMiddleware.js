@@ -3,7 +3,7 @@
  * 📁 middleware/authMiddleware.js (ESM version)
  * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * Middleware untuk autentikasi berbasis JWT.
+ * Middleware untuk autentikasi berbasis JWT:
  * - Mengecek token JWT
  * - Melanjutkan request jika token valid
  * ==========================================================
@@ -14,6 +14,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+/**
+ * 🔐 Middleware Autentikasi
+ * Menolak akses jika token tidak ada atau tidak valid.
+ */
 export const authMiddleware = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
