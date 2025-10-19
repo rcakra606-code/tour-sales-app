@@ -1,233 +1,135 @@
 /**
  * ==========================================================
- * controllers/reportSalesController.js — Travel Dashboard Enterprise v3.9.3
+ * 📁 controllers/reportSalesController.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ CRUD data sales
- * ✅ Filter berdasarkan staff
- * ✅ Summary per staff
- * ✅ Export Excel
- * ✅ Logging + hybrid database
+ * Controller untuk modul Laporan Sales (Analitik):
+ * - Rekap total sales & profit per bulan
+ * - Perbandingan dengan target per staff
+ * - Filter berdasarkan bulan, tahun, dan staff
  * ==========================================================
  */
 
-const db = require("../config/database").getDB();
-const logger = require("../config/logger");
-const ExcelJS = require("exceljs");
+import pkg from "pg";
+import dotenv from "dotenv";
 
-// ============================================================
-// 📘 GET /api/sales
-// Ambil semua data sales (+ optional filter staff_name)
-// ============================================================
-exports.getAllSales = async (req, res) => {
+dotenv.config();
+const { Pool } = pkg;
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+/**
+ * 📊 Ambil ringkasan laporan sales bulanan
+ */
+export const getSalesSummary = async (req, res) => {
   try {
-    const { staff } = req.query;
-    let query = "SELECT * FROM sales";
-    const params = [];
+    const { month, year, staff_name } = req.query;
 
-    if (staff) {
-      query += " WHERE LOWER(staff_name) LIKE ?";
-      params.push(`%${staff.toLowerCase()}%`);
+    const queryParams = [];
+    let filter = "";
+
+    if (month) {
+      queryParams.push(month);
+      filter += ` AND EXTRACT(MONTH FROM s.transaction_date) = $${queryParams.length}`;
     }
 
-    query += " ORDER BY transaction_date DESC";
-
-    const result = await db.all(query, params);
-    res.json(result);
-    logger.info(`📄 Data sales diambil${staff ? ` (filter staff: ${staff})` : ""}`);
-  } catch (err) {
-    logger.error("❌ Error fetching sales data:", err);
-    res.status(500).json({ message: "Gagal mengambil data sales" });
-  }
-};
-
-// ============================================================
-// 📘 GET /api/sales/:id
-// Ambil satu data sales berdasarkan ID
-// ============================================================
-exports.getSaleById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const sale = await db.get("SELECT * FROM sales WHERE id = ?", [id]);
-
-    if (!sale) {
-      return res.status(404).json({ message: "Data sales tidak ditemukan" });
+    if (year) {
+      queryParams.push(year);
+      filter += ` AND EXTRACT(YEAR FROM s.transaction_date) = $${queryParams.length}`;
     }
 
-    res.json(sale);
-    logger.info(`📄 Detail sales ID ${id} diambil`);
-  } catch (err) {
-    logger.error("❌ Error fetching sale by ID:", err);
-    res.status(500).json({ message: "Gagal mengambil data sales" });
-  }
-};
-
-// ============================================================
-// 🟢 POST /api/sales
-// Tambah data sales baru
-// ============================================================
-exports.createSale = async (req, res) => {
-  try {
-    const {
-      transaction_date,
-      invoice_number,
-      staff_name,
-      sales_amount,
-      profit_amount,
-      discount_amount,
-    } = req.body;
-
-    if (!transaction_date || !invoice_number || !staff_name) {
-      return res.status(400).json({ message: "Tanggal, Invoice, dan Staff wajib diisi" });
+    if (staff_name) {
+      queryParams.push(staff_name);
+      filter += ` AND s.staff_name = $${queryParams.length}`;
     }
 
-    await db.run(
-      `
-      INSERT INTO sales (transaction_date, invoice_number, staff_name, sales_amount, profit_amount, discount_amount)
-      VALUES (?, ?, ?, ?, ?, ?)
-      `,
-      [
-        transaction_date,
-        invoice_number,
-        staff_name,
-        sales_amount || 0,
-        profit_amount || 0,
-        discount_amount || 0,
-      ]
-    );
-
-    logger.info(`✅ Sales '${invoice_number}' ditambahkan oleh ${staff_name}`);
-    res.json({ message: "✅ Data sales berhasil ditambahkan" });
-  } catch (err) {
-    logger.error("❌ Error creating sale:", err);
-    res.status(500).json({ message: "Gagal menambahkan data sales" });
-  }
-};
-
-// ============================================================
-// 🟡 PUT /api/sales/:id
-// Update data sales
-// ============================================================
-exports.updateSale = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      transaction_date,
-      invoice_number,
-      staff_name,
-      sales_amount,
-      profit_amount,
-      discount_amount,
-    } = req.body;
-
-    const existing = await db.get("SELECT id FROM sales WHERE id = ?", [id]);
-    if (!existing) {
-      return res.status(404).json({ message: "Data sales tidak ditemukan" });
-    }
-
-    await db.run(
-      `
-      UPDATE sales 
-      SET transaction_date=?, invoice_number=?, staff_name=?, sales_amount=?, profit_amount=?, discount_amount=? 
-      WHERE id=?`,
-      [
-        transaction_date,
-        invoice_number,
-        staff_name,
-        sales_amount || 0,
-        profit_amount || 0,
-        discount_amount || 0,
-        id,
-      ]
-    );
-
-    logger.info(`✏️ Sales ID ${id} diperbarui oleh ${staff_name || "unknown"}`);
-    res.json({ message: "✅ Data sales berhasil diperbarui" });
-  } catch (err) {
-    logger.error("❌ Error updating sale:", err);
-    res.status(500).json({ message: "Gagal memperbarui data sales" });
-  }
-};
-
-// ============================================================
-// 🔴 DELETE /api/sales/:id
-// Hapus data sales
-// ============================================================
-exports.deleteSale = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const existing = await db.get("SELECT id FROM sales WHERE id = ?", [id]);
-    if (!existing) {
-      return res.status(404).json({ message: "Data sales tidak ditemukan" });
-    }
-
-    await db.run("DELETE FROM sales WHERE id = ?", [id]);
-    logger.warn(`🗑️ Sales ID ${id} dihapus oleh ${req.user.username}`);
-    res.json({ message: "✅ Data sales berhasil dihapus" });
-  } catch (err) {
-    logger.error("❌ Error deleting sale:", err);
-    res.status(500).json({ message: "Gagal menghapus data sales" });
-  }
-};
-
-// ============================================================
-// 📊 GET /api/sales/summary/by-staff
-// Ringkasan total transaksi, sales & profit per staff
-// ============================================================
-exports.getSalesSummaryByStaff = async (req, res) => {
-  try {
-    const summary = await db.all(`
+    const query = `
       SELECT 
-        staff_name,
-        COUNT(id) AS total_transactions,
-        SUM(sales_amount) AS total_sales,
-        SUM(profit_amount) AS total_profit
-      FROM sales
-      WHERE staff_name IS NOT NULL AND TRIM(staff_name) != ''
-      GROUP BY staff_name
-      ORDER BY total_sales DESC
-    `);
+        COALESCE(SUM(s.sales_amount), 0) AS total_sales,
+        COALESCE(SUM(s.profit_amount), 0) AS total_profit,
+        COUNT(s.id) AS total_transactions,
+        COALESCE(t.target_sales, 0) AS target_sales,
+        COALESCE(t.target_profit, 0) AS target_profit,
+        (COALESCE(SUM(s.sales_amount), 0) - COALESCE(t.target_sales, 0)) AS variance_sales,
+        (COALESCE(SUM(s.profit_amount), 0) - COALESCE(t.target_profit, 0)) AS variance_profit
+      FROM sales s
+      LEFT JOIN targets t
+        ON t.staff_name = s.staff_name
+       AND EXTRACT(MONTH FROM s.transaction_date) = t.month
+       AND EXTRACT(YEAR FROM s.transaction_date) = t.year
+      WHERE 1=1
+      ${filter};
+    `;
 
-    logger.info("📊 Ringkasan sales per staff berhasil diambil");
-    res.json({ summary });
+    const result = await pool.query(query, queryParams);
+
+    const summary = result.rows[0] || {
+      total_sales: 0,
+      total_profit: 0,
+      total_transactions: 0,
+      target_sales: 0,
+      target_profit: 0,
+      variance_sales: 0,
+      variance_profit: 0,
+    };
+
+    res.json({
+      month: month ? parseInt(month) : null,
+      year: year ? parseInt(year) : null,
+      staff_name: staff_name || "ALL",
+      ...summary,
+    });
   } catch (err) {
-    logger.error("❌ Error fetching sales summary:", err);
-    res.status(500).json({ message: "Gagal mengambil ringkasan penjualan per staff" });
+    console.error("❌ Gagal memuat laporan sales summary:", err.message);
+    res.status(500).json({ message: "Gagal memuat laporan sales summary." });
   }
 };
 
-// ============================================================
-// 📤 GET /api/sales/export
-// Export data sales ke Excel
-// ============================================================
-exports.exportSalesReport = async (req, res) => {
+/**
+ * 📈 Ambil kinerja seluruh staff (perbandingan target vs realisasi)
+ */
+export const getPerformanceByStaff = async (req, res) => {
   try {
-    const filename = `Sales_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Sales Report");
+    const { month, year } = req.query;
+    const queryParams = [];
+    let filter = "";
 
-    const data = await db.all("SELECT * FROM sales ORDER BY transaction_date DESC");
+    if (month) {
+      queryParams.push(month);
+      filter += ` AND EXTRACT(MONTH FROM s.transaction_date) = $${queryParams.length}`;
+    }
+    if (year) {
+      queryParams.push(year);
+      filter += ` AND EXTRACT(YEAR FROM s.transaction_date) = $${queryParams.length}`;
+    }
 
-    worksheet.columns = [
-      { header: "Tanggal Transaksi", key: "transaction_date", width: 18 },
-      { header: "Invoice Number", key: "invoice_number", width: 20 },
-      { header: "Nama Staff", key: "staff_name", width: 20 },
-      { header: "Sales Amount", key: "sales_amount", width: 15 },
-      { header: "Profit Amount", key: "profit_amount", width: 15 },
-      { header: "Discount Amount", key: "discount_amount", width: 15 },
-    ];
+    const query = `
+      SELECT 
+        s.staff_name,
+        COALESCE(SUM(s.sales_amount), 0) AS total_sales,
+        COALESCE(SUM(s.profit_amount), 0) AS total_profit,
+        COALESCE(t.target_sales, 0) AS target_sales,
+        COALESCE(t.target_profit, 0) AS target_profit,
+        (COALESCE(SUM(s.sales_amount), 0) - COALESCE(t.target_sales, 0)) AS variance_sales,
+        (COALESCE(SUM(s.profit_amount), 0) - COALESCE(t.target_profit, 0)) AS variance_profit
+      FROM sales s
+      LEFT JOIN targets t
+        ON t.staff_name = s.staff_name
+       AND EXTRACT(MONTH FROM s.transaction_date) = t.month
+       AND EXTRACT(YEAR FROM s.transaction_date) = t.year
+      WHERE 1=1
+      ${filter}
+      GROUP BY s.staff_name, t.target_sales, t.target_profit
+      ORDER BY total_sales DESC;
+    `;
 
-    data.forEach((row) => worksheet.addRow(row));
-    worksheet.getRow(1).font = { bold: true };
-
-    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
-    await workbook.xlsx.write(res);
-    res.end();
-
-    logger.info(`📁 Exported Sales Report: ${filename}`);
+    const result = await pool.query(query, queryParams);
+    res.json(result.rows);
   } catch (err) {
-    logger.error("❌ Error exporting sales report:", err);
-    res.status(500).json({ message: "Gagal mengekspor data sales" });
+    console.error("❌ Gagal memuat data kinerja staff:", err.message);
+    res.status(500).json({ message: "Gagal memuat data kinerja staff." });
   }
 };
