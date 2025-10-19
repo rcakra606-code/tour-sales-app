@@ -1,54 +1,31 @@
 /**
  * ==========================================================
- * routes/users.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 routes/users.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ CRUD user
- * ✅ Role-based access control
- * ✅ Middleware auth
- * ✅ Integrasi user management frontend
+ * Endpoint untuk modul User Management:
+ * - Ambil semua user
+ * - Tambah / edit user
+ * - Hapus user berdasarkan username
  * ==========================================================
  */
 
-const express = require("express");
+import express from "express";
+import {
+  getUsers,
+  createUser,
+  deleteUser
+} from "../controllers/userController.js";
+
 const router = express.Router();
-const userController = require("../controllers/userController");
-const { verifyToken } = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
 
-// ============================================================
-// 📘 GET /api/users
-// Ambil semua user (hanya super & semi)
-// ============================================================
-router.get("/", verifyToken, roleCheck(["super", "semi"]), userController.getAllUsers);
+// 👥 Ambil semua data user
+router.get("/", getUsers);
 
-// ============================================================
-// 📘 GET /api/users/:id
-// Ambil 1 user berdasarkan ID
-// ============================================================
-router.get("/:id", verifyToken, roleCheck(["super", "semi"]), userController.getUserById);
+// ➕ Tambah atau edit user
+router.post("/", createUser);
 
-// ============================================================
-// 🟢 POST /api/users
-// Tambah user baru (khusus super admin)
-// ============================================================
-router.post("/", verifyToken, roleCheck(["super"]), userController.createUser);
+// ❌ Hapus user berdasarkan username
+router.delete("/:username", deleteUser);
 
-// ============================================================
-// 🟡 PUT /api/users/:id
-// Update data user (nama, email, role, password)
-// ============================================================
-router.put("/:id", verifyToken, roleCheck(["super", "semi"]), userController.updateUser);
-
-// ============================================================
-// 🔴 DELETE /api/users/:id
-// Hapus user (khusus super admin)
-// ============================================================
-router.delete("/:id", verifyToken, roleCheck(["super"]), userController.deleteUser);
-
-// ============================================================
-// 🔄 PATCH /api/users/:id/role
-// Ubah role user (super, semi, basic)
-// ============================================================
-router.patch("/:id/role", verifyToken, roleCheck(["super"]), userController.changeUserRole);
-
-module.exports = router;
+export default router;
