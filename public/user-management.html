@@ -1,214 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Management | Travel Dashboard Enterprise</title>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Management - Travel Dashboard Enterprise</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
 
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
-  <style>
-    :root {
-      --bg-color: #f9fafb;
-      --card-bg: #ffffff;
-      --text-color: #111827;
-      --header-bg: #1f2937;
-      --shadow-color: rgba(0, 0, 0, 0.05);
-    }
+  <body class="theme-light">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar collapsed">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon">🌓</button>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li><a href="/dashboard.html">Dashboard</a></li>
+          <li><a href="/report_tour.html">Report Tour</a></li>
+          <li><a href="/report_sales.html">Report Sales</a></li>
+          <li><a href="/report_document.html">Report Document</a></li>
+          <li><a href="/user-management.html" class="active">User Management</a></li>
+          <li><a href="/executive-dashboard.html">Executive</a></li>
+          <li><a href="/audit_log.html">Audit Log</a></li>
+          <li><a href="/profile.html">Profile</a></li>
+          <li><a href="/logout.html">Logout</a></li>
+        </ul>
+      </nav>
+    </aside>
 
-    [data-theme="dark"] {
-      --bg-color: #111827;
-      --card-bg: #1f2937;
-      --text-color: #f9fafb;
-      --header-bg: #0f172a;
-      --shadow-color: rgba(255, 255, 255, 0.08);
-    }
+    <!-- MAIN CONTENT -->
+    <div id="main" class="main-content">
+      <header class="topbar">
+        <h2>User Management</h2>
+        <div id="userBadge" class="user-badge">admin</div>
+      </header>
 
-    body {
-      font-family: "Inter", sans-serif;
-      background: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    header {
-      background: var(--header-bg);
-      color: white;
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 0 16px;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px var(--shadow-color);
-      margin-bottom: 20px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-
-    tr:hover { background: rgba(37,99,235,0.05); }
-
-    input, select, button {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      font-size: 14px;
-    }
-
-    button.primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button.primary:hover { background: #1d4ed8; }
-  </style>
-</head>
-
-<body>
-  <header>
-    <h1>User Management</h1>
-    <div>
-      <button id="toggleThemeBtn" class="primary">🌙</button>
-      <button id="logoutBtn" class="primary" style="background:#dc2626;">Logout</button>
-    </div>
-  </header>
-
-  <div class="main-content">
-    <main class="container">
-      <section class="card">
-        <h2>➕ Tambah / Edit User</h2>
-        <form id="userForm">
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:12px;">
-            <div>
-              <label>Username</label>
-              <input type="text" id="username" placeholder="username" required>
+      <main class="container">
+        <!-- FORM USER -->
+        <section class="form-section">
+          <h4>Tambah / Edit User</h4>
+          <form id="userForm">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input type="text" id="username" name="username" required />
             </div>
-            <div>
-              <label>Password</label>
-              <input type="password" id="password" placeholder="password">
+
+            <div class="form-group">
+              <label for="staffName">Nama Staff</label>
+              <input type="text" id="staffName" name="staffName" required />
             </div>
-            <div>
-              <label>Role</label>
-              <select id="role">
-                <option value="basic">basic</option>
-                <option value="semi">semi</option>
-                <option value="super">super</option>
+
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+
+            <div class="form-group">
+              <label for="role">Role</label>
+              <select id="role" name="role" required>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+                <option value="super">Super</option>
               </select>
             </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn">💾 Simpan</button>
+              <button type="reset" class="btn" style="background:#999;">↺ Reset</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- TABLE USER -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>Daftar User</h4>
           </div>
-          <button type="submit" class="primary" style="margin-top:12px;">💾 Simpan User</button>
-        </form>
-      </section>
 
-      <section class="card">
-        <h2>📋 Daftar User</h2>
-        <table id="userTable">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Dibuat</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
-    </main>
-  </div>
+          <div class="filter-bar">
+            <input type="text" id="searchUser" placeholder="Cari username / nama staff..." />
+            <button id="btnExportExcel" class="btn">📤 Excel</button>
+            <button id="btnExportCSV" class="btn">📄 CSV</button>
+          </div>
 
-  <!-- Scripts -->
-  <script src="/js/sidebar.js"></script>
-  <script src="/js/theme.js" type="module"></script>
+          <div class="table-container">
+            <table class="data-table" id="userTable">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Nama Staff</th>
+                  <th>Role</th>
+                  <th>Dibuat Pada</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
 
-  <script>
-  const token = localStorage.getItem("token") || "";
+      <footer class="footer">
+        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
+      </footer>
+    </div>
 
-  function api(path, method="GET", body){
-    return fetch(path, {
-      method,
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: body ? JSON.stringify(body) : undefined
-    });
-  }
-
-  async function loadUsers(){
-    const res = await api("/api/users");
-    if (!res.ok) return;
-    const data = await res.json();
-    const tbody = document.querySelector("#userTable tbody");
-    tbody.innerHTML = "";
-    data.forEach(user=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${user.username}</td>
-        <td>${user.role}</td>
-        <td>${user.created_at || "-"}</td>
-        <td>
-          <button onclick="editUser('${user.username}','${user.role}')">✏️ Edit</button>
-          <button onclick="deleteUser('${user.username}')" style="color:#dc2626;">🗑️ Delete</button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  async function deleteUser(username){
-    if (!confirm("Hapus user " + username + "?")) return;
-    const res = await api(`/api/users/${username}`, "DELETE");
-    if (res.ok){
-      alert("User dihapus.");
-      loadUsers();
-    } else alert("Gagal menghapus user.");
-  }
-
-  function editUser(username, role){
-    document.getElementById("username").value = username;
-    document.getElementById("role").value = role;
-  }
-
-  document.getElementById("userForm").addEventListener("submit", async e=>{
-    e.preventDefault();
-    const body = {
-      username: document.getElementById("username").value,
-      password: document.getElementById("password").value,
-      role: document.getElementById("role").value
-    };
-    const res = await api("/api/users", "POST", body);
-    if (res.ok){
-      alert("User disimpan!");
-      loadUsers();
-    } else alert("Gagal menyimpan user.");
-  });
-
-  document.getElementById("logoutBtn").onclick = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-  };
-
-  document.addEventListener("DOMContentLoaded", loadUsers);
-  </script>
-</body>
+    <script type="module" src="/js/users.js"></script>
+  </body>
 </html>
