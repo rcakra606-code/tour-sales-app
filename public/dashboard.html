@@ -1,120 +1,252 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Travel Dashboard Enterprise</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="color-scheme" content="light dark" />
+    <style>
+      /* Animasi sidebar */
+      .sidebar-collapsed {
+        width: 4rem;
+        transition: width 0.3s ease;
+      }
+      .sidebar-expanded {
+        width: 16rem;
+        transition: width 0.3s ease;
+      }
+      .dark {
+        background-color: #0f172a;
+        color: #f8fafc;
+      }
+      .dark .bg-white {
+        background-color: #1e293b !important;
+      }
+      .dark .text-gray-700 {
+        color: #e2e8f0 !important;
+      }
+      .dark .border-gray-100 {
+        border-color: #334155 !important;
+      }
+    </style>
   </head>
 
-  <body class="min-h-screen bg-gray-50 flex flex-col">
-    <!-- Navbar -->
-    <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center">
-      <h1 class="text-lg font-bold text-indigo-700">Travel Dashboard Enterprise</h1>
-      <div class="flex items-center gap-4">
-        <span id="userNameDisplay" class="text-sm text-gray-600 font-medium">Loading...</span>
-        <button
-          data-logout
-          class="text-sm text-red-600 hover:text-red-700 font-semibold transition"
+  <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
+    <!-- Sidebar -->
+    <aside
+      id="sidebar"
+      class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300"
+    >
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h2
+          id="sidebarTitle"
+          class="text-lg font-bold text-indigo-700 whitespace-nowrap overflow-hidden"
         >
-          Logout
+          Dashboard
+        </h2>
+        <button
+          id="toggleSidebar"
+          class="text-gray-500 hover:text-indigo-600 transition"
+          title="Expand/Collapse Menu"
+        >
+          ☰
         </button>
       </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-6">
-      <!-- Health / Backend Banner -->
-      <div
-        id="backendStatusBanner"
-        class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"
-      ></div>
+      <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
+        <a
+          href="/dashboard.html"
+          class="block px-3 py-2 rounded hover:bg-indigo-100 text-gray-700"
+        >
+          🏠 Dashboard
+        </a>
+        <a
+          href="/report_tour.html"
+          class="block px-3 py-2 rounded hover:bg-indigo-100 text-gray-700"
+        >
+          ✈️ Report Tour
+        </a>
+        <a
+          href="/report_sales.html"
+          class="block px-3 py-2 rounded hover:bg-indigo-100 text-gray-700"
+        >
+          💰 Report Sales
+        </a>
+        <a
+          href="/report_document.html"
+          class="block px-3 py-2 rounded hover:bg-indigo-100 text-gray-700"
+        >
+          📄 Report Dokumen
+        </a>
+        <a
+          href="/user-management.html"
+          data-role="super,semi"
+          class="block px-3 py-2 rounded hover:bg-indigo-100 text-gray-700"
+        >
+          👥 User Management
+        </a>
+        <a
+          href="/audit_log.html"
+          data-role="super"
+          class="block px-3 py-2 rounded hover:bg-indigo-100 text-gray-700"
+        >
+          🧾 Audit Log
+        </a>
+      </nav>
 
-      <!-- Summary Cards -->
-      <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
-          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
-          <p id="totalSales" class="text-2xl font-bold text-indigo-600">0</p>
-        </div>
-        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
-          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Profit</h3>
-          <p id="totalProfit" class="text-2xl font-bold text-green-600">0</p>
-        </div>
-        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
-          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Pax</h3>
-          <p id="totalPax" class="text-2xl font-bold text-sky-600">0</p>
-        </div>
-        <div class="bg-white shadow rounded-xl p-5 border border-gray-100">
-          <h3 class="text-sm font-medium text-gray-500 mb-1">Total Registrants</h3>
-          <p id="totalRegistrants" class="text-2xl font-bold text-amber-600">0</p>
-        </div>
+      <div class="p-3 border-t border-gray-200">
+        <button
+          id="themeToggle"
+          class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
+        >
+          🌙 Ganti Mode
+        </button>
       </div>
+    </aside>
 
-      <!-- Charts Section -->
-      <section class="bg-white rounded-xl shadow p-6 border border-gray-100 mb-8">
-        <h2 class="text-lg font-semibold text-gray-700 mb-3">Grafik Sales & Profit</h2>
-        <canvas id="salesChart" height="120"></canvas>
-      </section>
+    <!-- Main -->
+    <div class="flex-1 flex flex-col">
+      <!-- Header -->
+      <header
+        class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100"
+      >
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-bold text-indigo-700">Travel Dashboard</h1>
+          <span
+            id="currentMode"
+            class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded"
+          >
+            Light Mode
+          </span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span
+            id="userNameDisplay"
+            class="text-sm text-gray-600 font-medium"
+          ></span>
+          <button
+            data-logout
+            class="text-sm text-red-600 hover:text-red-700 font-semibold transition"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
 
-      <!-- Recent Activity -->
-      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white shadow rounded-xl p-6 border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-700 mb-3">Tour Terbaru</h3>
-          <table class="w-full text-sm text-left">
-            <thead>
-              <tr class="border-b text-gray-600">
-                <th class="py-2">Tour Code</th>
-                <th>Lead Passenger</th>
-                <th>Region</th>
-                <th>Sales</th>
-              </tr>
-            </thead>
-            <tbody id="recentTours" class="text-gray-700"></tbody>
-          </table>
+      <!-- Main Content -->
+      <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
+        <div
+          id="backendStatusBanner"
+          class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"
+        ></div>
+
+        <!-- Summary Cards -->
+        <div
+          class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8 transition"
+        >
+          <div
+            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700"
+          >
+            <h3 class="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
+            <p id="totalSales" class="text-2xl font-bold text-indigo-600">0</p>
+          </div>
+          <div
+            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700"
+          >
+            <h3 class="text-sm font-medium text-gray-500 mb-1">Total Profit</h3>
+            <p id="totalProfit" class="text-2xl font-bold text-green-600">0</p>
+          </div>
+          <div
+            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700"
+          >
+            <h3 class="text-sm font-medium text-gray-500 mb-1">Total Pax</h3>
+            <p id="totalPax" class="text-2xl font-bold text-sky-600">0</p>
+          </div>
+          <div
+            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700"
+          >
+            <h3 class="text-sm font-medium text-gray-500 mb-1">
+              Total Registrants
+            </h3>
+            <p id="totalRegistrants" class="text-2xl font-bold text-amber-600">
+              0
+            </p>
+          </div>
         </div>
 
-        <div class="bg-white shadow rounded-xl p-6 border border-gray-100">
-          <h3 class="text-lg font-semibold text-gray-700 mb-3">Sales Terbaru</h3>
-          <table class="w-full text-sm text-left">
-            <thead>
-              <tr class="border-b text-gray-600">
-                <th class="py-2">Invoice</th>
-                <th>Tanggal</th>
-                <th>Sales</th>
-                <th>Profit</th>
-              </tr>
-            </thead>
-            <tbody id="recentSales" class="text-gray-700"></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+        <!-- Charts -->
+        <section
+          class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8"
+        >
+          <h2 class="text-lg font-semibold text-gray-700 mb-3">
+            Grafik Sales & Profit
+          </h2>
+          <canvas id="salesChart" height="120"></canvas>
+        </section>
+      </main>
 
-    <footer class="text-center py-3 text-xs text-gray-400 border-t">
-      © 2025 Travel Dashboard Enterprise v3.4.1
-    </footer>
+      <!-- Footer -->
+      <footer
+        class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900"
+      >
+        © 2025 Travel Dashboard Enterprise v3.5
+      </footer>
+    </div>
 
-    <!-- External JS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/app.js"></script>
     <script>
+      // Sidebar toggle
+      const sidebar = document.getElementById("sidebar");
+      const toggleSidebar = document.getElementById("toggleSidebar");
+      const sidebarTitle = document.getElementById("sidebarTitle");
+      toggleSidebar.addEventListener("click", () => {
+        const isCollapsed = sidebar.classList.contains("sidebar-collapsed");
+        sidebar.classList.toggle("sidebar-collapsed", !isCollapsed);
+        sidebar.classList.toggle("sidebar-expanded", isCollapsed);
+        sidebarTitle.textContent = isCollapsed ? "Dashboard" : "";
+      });
+
+      // Dark/Light mode
+      const themeToggle = document.getElementById("themeToggle");
+      const modeLabel = document.getElementById("currentMode");
+      function setMode(dark) {
+        if (dark) {
+          document.documentElement.classList.add("dark");
+          localStorage.setItem("theme", "dark");
+          modeLabel.textContent = "Dark Mode";
+        } else {
+          document.documentElement.classList.remove("dark");
+          localStorage.setItem("theme", "light");
+          modeLabel.textContent = "Light Mode";
+        }
+      }
+      const savedTheme = localStorage.getItem("theme") === "dark";
+      setMode(savedTheme);
+      themeToggle.addEventListener("click", () => {
+        setMode(!document.documentElement.classList.contains("dark"));
+      });
+
+      // Load dashboard summary
       document.addEventListener("DOMContentLoaded", async () => {
-        // Load summary data
         try {
           const data = await apiFetch("/api/dashboard/summary");
           if (data && data.totals) {
-            document.getElementById("totalSales").textContent = formatNumber(data.totals.totalSalesTours);
-            document.getElementById("totalProfit").textContent = formatNumber(data.totals.totalProfitTours);
-            document.getElementById("totalPax").textContent = formatNumber(data.totals.totalPax);
-            document.getElementById("totalRegistrants").textContent = formatNumber(data.totals.totalRegistrants);
+            document.getElementById("totalSales").textContent = formatNumber(
+              data.totals.totalSalesTours
+            );
+            document.getElementById("totalProfit").textContent = formatNumber(
+              data.totals.totalProfitTours
+            );
+            document.getElementById("totalPax").textContent = formatNumber(
+              data.totals.totalPax
+            );
+            document.getElementById("totalRegistrants").textContent =
+              formatNumber(data.totals.totalRegistrants);
           }
-        } catch (err) {
-          showToast("Gagal memuat ringkasan dashboard", { type: "error" });
-        }
 
-        // Load chart data
-        try {
+          // Chart data
           const chartRes = await apiFetch("/api/dashboard/chart-data");
           const ctx = document.getElementById("salesChart");
           const months = chartRes.chart.map((r) => r.month);
@@ -126,8 +258,20 @@
             data: {
               labels: months,
               datasets: [
-                { label: "Sales", data: sales, borderWidth: 2, borderColor: "#4F46E5", tension: 0.2 },
-                { label: "Profit", data: profit, borderWidth: 2, borderColor: "#16A34A", tension: 0.2 },
+                {
+                  label: "Sales",
+                  data: sales,
+                  borderWidth: 2,
+                  borderColor: "#4F46E5",
+                  tension: 0.2,
+                },
+                {
+                  label: "Profit",
+                  data: profit,
+                  borderWidth: 2,
+                  borderColor: "#16A34A",
+                  tension: 0.2,
+                },
               ],
             },
             options: {
@@ -137,40 +281,7 @@
             },
           });
         } catch (err) {
-          console.error("Chart load error:", err);
-        }
-
-        // Load recent data
-        try {
-          const recent = await apiFetch("/api/dashboard/recent");
-          const toursBody = document.getElementById("recentTours");
-          const salesBody = document.getElementById("recentSales");
-
-          toursBody.innerHTML = recent.recentTours
-            .map(
-              (t) => `
-              <tr class="border-b hover:bg-gray-50">
-                <td class="py-1">${t.tourcode || "-"}</td>
-                <td>${t.leadpassenger || "-"}</td>
-                <td>${t.region || "-"}</td>
-                <td>${formatNumber(t.salesamount)}</td>
-              </tr>`
-            )
-            .join("");
-
-          salesBody.innerHTML = recent.recentSales
-            .map(
-              (s) => `
-              <tr class="border-b hover:bg-gray-50">
-                <td class="py-1">${s.invoice_number || "-"}</td>
-                <td>${s.transaction_date || "-"}</td>
-                <td>${formatNumber(s.sales_amount)}</td>
-                <td>${formatNumber(s.profit_amount)}</td>
-              </tr>`
-            )
-            .join("");
-        } catch (err) {
-          showToast("Gagal memuat data terbaru", { type: "error" });
+          showToast("Gagal memuat data dashboard", { type: "error" });
         }
       });
     </script>
