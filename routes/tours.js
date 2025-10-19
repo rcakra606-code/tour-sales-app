@@ -1,53 +1,36 @@
 /**
  * ==========================================================
- * routes/tours.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 routes/tours.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ CRUD data Tour
- * ✅ Export Excel
- * ✅ Middleware auth & role
+ * Endpoint untuk modul Tour:
+ * - Ambil semua data tour
+ * - Tambah data tour baru
+ * - Update data tour
+ * - Hapus data tour
  * ==========================================================
  */
 
-const express = require("express");
+import express from "express";
+import {
+  getTours,
+  createTour,
+  updateTour,
+  deleteTour
+} from "../controllers/tourController.js";
+
 const router = express.Router();
-const tourController = require("../controllers/tourController");
-const { verifyToken } = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
 
-// ============================================================
-// 📘 GET /api/tours
-// Ambil semua data tour
-// ============================================================
-router.get("/", verifyToken, tourController.getAllTours);
+// 📋 Ambil seluruh data tour
+router.get("/", getTours);
 
-// ============================================================
-// 📘 GET /api/tours/:id
-// Ambil 1 data tour berdasarkan ID
-// ============================================================
-router.get("/:id", verifyToken, tourController.getTourById);
+// 💾 Tambah data tour baru
+router.post("/", createTour);
 
-// ============================================================
-// 🟢 POST /api/tours
-// Tambah data tour baru
-// ============================================================
-router.post("/", verifyToken, roleCheck(["super", "semi"]), tourController.createTour);
+// ✏️ Update data tour berdasarkan ID
+router.put("/:id", updateTour);
 
-// ============================================================
-// 🟡 PUT /api/tours/:id
-// Update data tour
-// ============================================================
-router.put("/:id", verifyToken, roleCheck(["super", "semi"]), tourController.updateTour);
+// ❌ Hapus data tour berdasarkan ID
+router.delete("/:id", deleteTour);
 
-// ============================================================
-// 🔴 DELETE /api/tours/:id
-// Hapus data tour
-// ============================================================
-router.delete("/:id", verifyToken, roleCheck(["super"]), tourController.deleteTour);
-
-// ============================================================
-// 📤 GET /api/tours/export
-// Export data tour ke Excel
-// ============================================================
-router.get("/export", verifyToken, roleCheck(["super", "semi", "basic"]), tourController.exportTourReport);
-
-module.exports = router;
+export default router;
