@@ -1,260 +1,245 @@
 <!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Executive Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.2/dist/tailwind.min.css">
-  <style>
-    .kpi-up { color: #16a34a; }     /* Hijau: target tercapai */
-    .kpi-down { color: #dc2626; }   /* Merah: target belum tercapai */
-  </style>
-</head>
-<body class="bg-slate-50 text-slate-800 p-6">
-  <div class="max-w-7xl mx-auto space-y-8">
-    <h1 class="text-3xl font-bold flex items-center gap-2">📊 Executive Dashboard</h1>
+<html lang="id" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Executive Dashboard - Travel Dashboard Enterprise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="color-scheme" content="light dark" />
 
-    <!-- FILTER SECTION -->
-    <div class="bg-white shadow rounded-lg p-4 flex flex-wrap gap-4 items-end">
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">Tanggal Awal</label>
-        <input type="date" id="startDate" class="border rounded p-2 w-40">
-      </div>
-      <div>
-        <label class="block text-sm text-slate-600 mb-1">Tanggal Akhir</label>
-        <input type="date" id="endDate" class="border rounded p-2 w-40">
-      </div>
-      <div id="staffFilterContainer" class="hidden">
-        <label class="block text-sm text-slate-600 mb-1">Staff</label>
-        <select id="staffSelect" class="border rounded p-2 w-48">
-          <option value="">Semua Staff</option>
-        </select>
-      </div>
-      <button id="filterBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-        Terapkan
-      </button>
-      <button id="exportExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-        Export Executive Report
-      </button>
-    </div>
-
-    <!-- KPI CARDS -->
-    <div class="grid md:grid-cols-3 gap-6">
-      <div id="kpiSales" class="bg-white shadow rounded-lg p-4">
-        <h2 class="font-semibold text-slate-600">Total Sales</h2>
-        <p id="totalSales" class="text-3xl font-bold">0</p>
-        <p class="text-xs text-slate-500 mt-1">Target: Rp 50.000.000</p>
-      </div>
-      <div id="kpiProfit" class="bg-white shadow rounded-lg p-4">
-        <h2 class="font-semibold text-slate-600">Total Profit</h2>
-        <p id="totalProfit" class="text-3xl font-bold">0</p>
-        <p class="text-xs text-slate-500 mt-1">Target: Rp 10.000.000</p>
-      </div>
-      <div id="kpiDocs" class="bg-white shadow rounded-lg p-4">
-        <h2 class="font-semibold text-slate-600">Total Documents</h2>
-        <p id="totalDocs" class="text-3xl font-bold text-orange-600">0</p>
-      </div>
-    </div>
-
-    <!-- CHARTS -->
-    <div class="grid md:grid-cols-2 gap-6">
-      <div class="bg-white p-4 rounded-lg shadow">
-        <h3 class="font-semibold mb-2">Profit by Region</h3>
-        <canvas id="tourRegionChart"></canvas>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <h3 class="font-semibold mb-2">Tours by Status</h3>
-        <canvas id="tourStatusChart"></canvas>
-      </div>
-    </div>
-
-    <div class="grid md:grid-cols-2 gap-6">
-      <div class="bg-white p-4 rounded-lg shadow">
-        <h3 class="font-semibold mb-2">Sales by Staff</h3>
-        <canvas id="salesByStaffChart"></canvas>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow">
-        <h3 class="font-semibold mb-2">Document Status Overview</h3>
-        <canvas id="documentStatusChart"></canvas>
-      </div>
-    </div>
-
-    <!-- TREND CHART -->
-    <div class="bg-white p-4 rounded-lg shadow">
-      <h3 class="font-semibold mb-2">Sales vs Profit Trend</h3>
-      <canvas id="salesTrendChart"></canvas>
-    </div>
-  </div>
-
-  <script>
-    const token = localStorage.getItem("travel_token");
-    const userData = JSON.parse(localStorage.getItem("travel_user") || "{}");
-    const role = userData.type || "basic";
-    const KPI_TARGETS = { sales: 50000000, profit: 10000000 };
-
-    async function fetchDashboard() {
-      const startDate = document.getElementById("startDate").value;
-      const endDate = document.getElementById("endDate").value;
-      const staff = document.getElementById("staffSelect").value;
-
-      const url = new URL("/api/dashboard/executive", window.location.origin);
-      if (startDate && endDate) {
-        url.searchParams.append("startDate", startDate);
-        url.searchParams.append("endDate", endDate);
+    <style>
+      .sidebar-collapsed {
+        width: 4rem;
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      if (staff) {
-        url.searchParams.append("staff", staff);
+      .sidebar-expanded {
+        width: 16rem;
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-      const data = await res.json();
-      renderDashboard(data);
-    }
+      .theme-transition {
+        transition: background-color 0.4s ease, color 0.4s ease;
+      }
 
-    function renderDashboard(data) {
-      // KPI
-      const totalSales = data.sales.totalSales || 0;
-      const totalProfit = data.sales.totalProfit || 0;
-      const totalDocs = data.documents.totalFiles || 0;
+      button,
+      a {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s ease;
+      }
 
-      const elSales = document.getElementById("totalSales");
-      const elProfit = document.getElementById("totalProfit");
-      const elDocs = document.getElementById("totalDocs");
+      button:hover,
+      a:hover {
+        transform: scale(1.03);
+      }
 
-      elSales.textContent = formatCurrency(totalSales);
-      elProfit.textContent = formatCurrency(totalProfit);
-      elDocs.textContent = formatNumber(totalDocs);
+      .ripple {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        transform: scale(0);
+        animation: ripple 0.6s linear;
+        pointer-events: none;
+      }
 
-      // KPI Indicator
-      const salesCard = document.getElementById("kpiSales");
-      const profitCard = document.getElementById("kpiProfit");
-      salesCard.classList.remove("kpi-up", "kpi-down");
-      profitCard.classList.remove("kpi-up", "kpi-down");
-
-      salesCard.classList.add(totalSales >= KPI_TARGETS.sales ? "kpi-up" : "kpi-down");
-      profitCard.classList.add(totalProfit >= KPI_TARGETS.profit ? "kpi-up" : "kpi-down");
-
-      // Charts
-      renderBarChart("tourRegionChart", "Profit by Region", data.tourByRegion.map(r => r.region), data.tourByRegion.map(r => r.totalProfit));
-      renderPieChart("tourStatusChart", "Tours by Status", data.tourByStatus.map(s => s.departureStatus), data.tourByStatus.map(s => s.total));
-      renderBarChart("salesByStaffChart", "Sales by Staff", data.salesByStaff.map(s => s.staff), data.salesByStaff.map(s => s.totalSales));
-      renderPieChart("documentStatusChart", "Document Status", ["Completed", "Pending", "Rejected"], [
-        data.documents.completed || 0, data.documents.pending || 0, data.documents.rejected || 0
-      ]);
-      renderLineChart("salesTrendChart", "Sales vs Profit", ["Sales", "Profit"], [totalSales, totalProfit]);
-    }
-
-    function renderBarChart(id, label, labels, values) {
-      const ctx = document.getElementById(id);
-      new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label,
-            data: values,
-            backgroundColor: "#4f46e5",
-          }]
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } }
-      });
-    }
-
-    function renderPieChart(id, label, labels, values) {
-      const ctx = document.getElementById(id);
-      new Chart(ctx, {
-        type: "pie",
-        data: {
-          labels,
-          datasets: [{
-            label,
-            data: values,
-            backgroundColor: ["#10b981", "#f59e0b", "#ef4444"],
-          }]
-        },
-        options: { responsive: true }
-      });
-    }
-
-    function renderLineChart(id, label, labels, values) {
-      const ctx = document.getElementById(id);
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [{
-            label,
-            data: values,
-            borderColor: "#22d3ee",
-            backgroundColor: "rgba(34,211,238,0.2)",
-            fill: true,
-            tension: 0.4,
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
+      @keyframes ripple {
+        to {
+          transform: scale(4);
+          opacity: 0;
         }
+      }
+
+      .card-hover {
+        transition: all 0.3s ease-in-out;
+      }
+
+      .dark {
+        background-color: #0f172a;
+        color: #f8fafc;
+      }
+      .dark .bg-white {
+        background-color: #1e293b !important;
+      }
+      .dark .text-gray-700 {
+        color: #e2e8f0 !important;
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
+    <!-- Sidebar -->
+    <aside
+      id="sidebar"
+      class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300"
+    >
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h2 id="sidebarTitle" class="text-lg font-bold text-indigo-700">Executive</h2>
+        <button id="toggleSidebar" class="text-gray-500 hover:text-indigo-600 transition" title="Expand/Collapse">☰</button>
+      </div>
+
+      <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
+        <a href="/dashboard.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🏠 Dashboard</a>
+        <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">✈️ Report Tour</a>
+        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">💰 Report Sales</a>
+        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
+        <a href="/region_management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🌍 Region Management</a>
+        <a href="/executive-dashboard.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">📊 Executive Dashboard</a>
+        <a href="/user-management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
+        <a href="/audit_log.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🧾 Audit Log</a>
+      </nav>
+
+      <div class="p-3 border-t border-gray-200">
+        <button id="themeToggle" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
+          🌙 Ganti Mode
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex-1 flex flex-col">
+      <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100">
+        <div class="flex items-center gap-3">
+          <h1 class="text-lg font-bold text-indigo-700">Executive Dashboard</h1>
+          <span id="currentMode" class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Light Mode</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="userNameDisplay" class="text-sm text-gray-600 font-medium"></span>
+          <button data-logout class="text-sm text-red-600 hover:text-red-700 font-semibold transition">Logout</button>
+        </div>
+      </header>
+
+      <!-- Main Content -->
+      <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
+        <div id="backendStatusBanner" class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"></div>
+
+        <!-- Filter Periode -->
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700">Filter Periode</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="text-sm font-medium">Bulan</label>
+              <select id="filterMonth" class="w-full border rounded-lg px-3 py-2 mt-1">
+                <option value="">Semua Bulan</option>
+                <option value="01">Januari</option>
+                <option value="02">Februari</option>
+                <option value="03">Maret</option>
+                <option value="04">April</option>
+                <option value="05">Mei</option>
+                <option value="06">Juni</option>
+                <option value="07">Juli</option>
+                <option value="08">Agustus</option>
+                <option value="09">September</option>
+                <option value="10">Oktober</option>
+                <option value="11">November</option>
+                <option value="12">Desember</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Tahun</label>
+              <input type="number" id="filterYear" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="mis. 2025" />
+            </div>
+            <div class="flex items-end">
+              <button id="filterBtn" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700">Terapkan</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Chart -->
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700">Grafik Performa Staff (Sales vs Profit)</h2>
+          <canvas id="staffChart" height="150"></canvas>
+        </section>
+
+        <!-- Tabel Top 10 Staff -->
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
+          <h2 class="text-lg font-semibold mb-4 text-gray-700">Top 10 Staff Berdasarkan Penjualan</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left border">
+              <thead class="bg-gray-100 text-gray-700">
+                <tr>
+                  <th class="py-2 px-2">#</th>
+                  <th>Nama Staff</th>
+                  <th>Total Transaksi</th>
+                  <th>Total Sales</th>
+                  <th>Total Profit</th>
+                </tr>
+              </thead>
+              <tbody id="staffTable" class="text-gray-700"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900">
+        © 2025 Travel Dashboard Enterprise v3.8
+      </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/ui.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const staffTable = document.getElementById("staffTable");
+        const ctx = document.getElementById("staffChart");
+        const filterBtn = document.getElementById("filterBtn");
+        const filterMonth = document.getElementById("filterMonth");
+        const filterYear = document.getElementById("filterYear");
+        let chartInstance;
+
+        async function loadStaffPerformance() {
+          const params = new URLSearchParams();
+          if (filterMonth.value) params.append("month", filterMonth.value);
+          if (filterYear.value) params.append("year", filterYear.value);
+
+          try {
+            const res = await apiFetch(`/api/dashboard/top-staff?${params.toString()}`);
+            const staff = res.topStaff || [];
+
+            staffTable.innerHTML = staff
+              .map(
+                (s, i) => `
+                <tr class="border-b hover:bg-gray-50">
+                  <td class="py-1 px-2">${i + 1}</td>
+                  <td>${s.staff_name}</td>
+                  <td>${s.total_transactions}</td>
+                  <td>${formatNumber(s.total_sales)}</td>
+                  <td>${formatNumber(s.total_profit)}</td>
+                </tr>`
+              )
+              .join("");
+
+            // Update Chart
+            if (chartInstance) chartInstance.destroy();
+            const labels = staff.map((s) => s.staff_name);
+            const sales = staff.map((s) => s.total_sales);
+            const profit = staff.map((s) => s.total_profit);
+
+            chartInstance = new Chart(ctx, {
+              type: "bar",
+              data: {
+                labels,
+                datasets: [
+                  { label: "Total Sales", data: sales, backgroundColor: "#4F46E5" },
+                  { label: "Total Profit", data: profit, backgroundColor: "#16A34A" },
+                ],
+              },
+              options: {
+                responsive: true,
+                plugins: { legend: { position: "bottom" } },
+                scales: { y: { beginAtZero: true } },
+              },
+            });
+          } catch {
+            showToast("❌ Gagal memuat data executive", { type: "error" });
+          }
+        }
+
+        filterBtn.addEventListener("click", loadStaffPerformance);
+        loadStaffPerformance();
       });
-    }
-
-    function formatCurrency(num) {
-      return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(num || 0);
-    }
-    function formatNumber(num) {
-      return new Intl.NumberFormat("id-ID").format(num || 0);
-    }
-
-    // Staff Filter (admin & semi)
-    async function loadStaffList() {
-      if (role === "super" || role === "semi") {
-        document.getElementById("staffFilterContainer").classList.remove("hidden");
-        const res = await fetch("/api/users", { headers: { Authorization: "Bearer " + token } });
-        const users = await res.json();
-        const select = document.getElementById("staffSelect");
-        select.innerHTML = `<option value="">Semua Staff</option>`;
-        users.forEach(u => {
-          const opt = document.createElement("option");
-          opt.value = u.username;
-          opt.textContent = `${u.name || u.username} (${u.type})`;
-          select.appendChild(opt);
-        });
-      }
-    }
-
-    // Export Excel
-    document.getElementById("exportExcelBtn").addEventListener("click", async () => {
-      const startDate = document.getElementById("startDate").value;
-      const endDate = document.getElementById("endDate").value;
-      const staff = document.getElementById("staffSelect").value;
-      const url = new URL("/api/executive/export/excel", window.location.origin);
-      if (startDate && endDate) {
-        url.searchParams.append("startDate", startDate);
-        url.searchParams.append("endDate", endDate);
-      }
-      if (staff) {
-        url.searchParams.append("staff", staff);
-      }
-      const res = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-      if (!res.ok) return alert("Gagal mengekspor laporan.");
-      const blob = await res.blob();
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `executive_report_${new Date().toISOString().split("T")[0]}.xlsx`;
-      link.click();
-    });
-
-    // Event listeners
-    document.getElementById("filterBtn").addEventListener("click", fetchDashboard);
-
-    // Auto Refresh (5 menit)
-    setInterval(fetchDashboard, 5 * 60 * 1000);
-
-    // Init page
-    loadStaffList();
-    fetchDashboard();
-  </script>
-</body>
+    </script>
+  </body>
 </html>
