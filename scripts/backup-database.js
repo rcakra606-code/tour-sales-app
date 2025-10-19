@@ -1,60 +1,67 @@
-// ============================================================
-// scripts/backup-database.js — Travel Dashboard Enterprise v2.2
-// ============================================================
+/**
+ * ==========================================================
+ * 📁 scripts/backup-database.js
+ * Travel Dashboard Enterprise v5.0
+ * ==========================================================
+ * Membuat snapshot backup manual NeonDB (PostgreSQL)
+ * dan menghapus backup yang berumur >30 hari secara otomatis.
+ * ==========================================================
+ */
 
-const fs = require("fs");
-const path = require("path");
-const chalk = require("chalk");
+import fs from "fs";
+import path from "path";
+import { exec } from "child_process";
+import dotenv from "dotenv";
+dotenv.config();
 
-console.log(chalk.cyan("💾 Starting database backup..."));
+const DATABASE_URL = process.env.DATABASE_URL;
+const BACKUP_DIR = path.resolve("./backups");
+const RETENTION_DAYS = 30;
 
-const dbPath = path.join(__dirname, "..", "data", "database.sqlite");
-const backupDir = path.join(__dirname, "..", "backups");
-const RETENTION_DAYS = 7; // berapa hari backup disimpan
-
-// 1️⃣ Pastikan folder backups/ ada
-if (!fs.existsSync(backupDir)) {
-  fs.mkdirSync(backupDir, { recursive: true });
-  console.log(chalk.yellow(`📁 Created backup directory: ${backupDir}`));
+// Pastikan folder backup tersedia
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
+  console.log("📁 Folder backup dibuat:", BACKUP_DIR);
 }
 
-// 2️⃣ Pastikan file database ada
-if (!fs.existsSync(dbPath)) {
-  console.error(chalk.red("❌ Database file not found. Cannot create backup."));
-  process.exit(1);
-}
+function cleanupOldBackups() {
+  const files = fs.readdirSync(BACKUP_DIR);
+  const now = Date.now();
 
-// 3️⃣ Buat nama file backup
-const timestamp = new Date().toISOString().split("T")[0];
-const backupFile = path.join(backupDir, `backup_${timestamp}.sqlite`);
-
-// 4️⃣ Copy database ke folder backup
-try {
-  fs.copyFileSync(dbPath, backupFile);
-  const sizeKB = (fs.statSync(dbPath).size / 1024).toFixed(2);
-  console.log(chalk.green(`✅ Backup created: ${backupFile} (${sizeKB} KB)`));
-} catch (err) {
-  console.error(chalk.red("❌ Backup failed:"), err.message);
-  process.exit(1);
-}
-
-// ============================================================
-// 🧹 AUTO PURGE OLD BACKUPS (>7 days)
-// ============================================================
-const now = Date.now();
-const files = fs.readdirSync(backupDir);
-
-files.forEach(file => {
-  if (file.startsWith("backup_") && file.endsWith(".sqlite")) {
-    const filePath = path.join(backupDir, file);
+  files.forEach((file) => {
+    const filePath = path.join(BACKUP_DIR, file);
     const stats = fs.statSync(filePath);
-    const ageDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
+    const ageInDays = (now - stats.mtimeMs) / (1000 * 60 * 60 * 24);
 
-    if (ageDays > RETENTION_DAYS) {
+    if (ageInDays > RETENTION_DAYS) {
       fs.unlinkSync(filePath);
-      console.log(chalk.yellow(`🧹 Deleted old backup: ${file}`));
+      console.log(`🗑️ Menghapus backup lama: ${file}`);
     }
-  }
-});
+  });
+}
 
-console.log(chalk.cyan("🎉 Database backup & purge completed successfully!\n"));
+async function createBackup() {
+  if (!DATABASE_URL) {
+    console.error("❌ DATABASE_URL tidak ditemukan di .env");
+    return;
+  }
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const fileName = `backup-${timestamp}.sql`;
+  const filePath = path.join(BACKUP_DIR, fileName);
+
+  console.log(`⏳ Membuat backup database: ${fileName}`);
+
+  const command = `pg_dump "${DATABASE_URL}" --no-owner --no-acl > "${filePath}"`;
+
+  exec(command, (err) => {
+    if (err) {
+      console.error("❌ Gagal membuat backup:", err.message);
+    } else {
+      console.log(`✅ Backup selesai: ${fileName}`);
+      cleanupOldBackups();
+    }
+  });
+}
+
+createBackup();
