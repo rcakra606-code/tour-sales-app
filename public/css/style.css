@@ -1,5 +1,5 @@
 /* ==========================================================
-   🎨 STYLE.CSS — Travel Dashboard Enterprise v5.0
+   🎨 STYLE.CSS — Travel Dashboard Enterprise v5.0 (Final)
    ========================================================== */
 
 /* -------------------------------
@@ -39,7 +39,7 @@ body {
 }
 
 /* -------------------------------
-   🧱 LAYOUT — SIDEBAR
+   🧱 SIDEBAR
    ------------------------------- */
 .sidebar {
   position: fixed;
@@ -129,7 +129,7 @@ body {
 }
 
 /* -------------------------------
-   🧭 MAIN CONTENT
+   MAIN CONTENT
    ------------------------------- */
 .main-content {
   margin-left: var(--sidebar-width);
@@ -145,7 +145,7 @@ body {
 }
 
 /* -------------------------------
-   🔝 TOPBAR
+   TOPBAR
    ------------------------------- */
 .topbar {
   height: 56px;
@@ -174,15 +174,7 @@ body {
 }
 
 /* -------------------------------
-   📦 CONTAINER
-   ------------------------------- */
-.container {
-  padding: 18px;
-  flex: 1;
-}
-
-/* -------------------------------
-   💳 SUMMARY CARDS
+   DASHBOARD CARDS
    ------------------------------- */
 .cards-grid {
   display: grid;
@@ -213,7 +205,7 @@ body {
 }
 
 /* -------------------------------
-   📊 PANELS
+   PANELS
    ------------------------------- */
 .panels-grid {
   display: grid;
@@ -237,7 +229,7 @@ body {
 }
 
 /* -------------------------------
-   📋 TABLES
+   TABLES
    ------------------------------- */
 .table-container {
   margin-top: 12px;
@@ -279,12 +271,62 @@ body.theme-dark .data-table th {
   background: rgba(0, 0, 0, 0.03);
 }
 
-body.theme-dark .data-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.05);
+/* -------------------------------
+   🎯 TARGET PERFORMANCE PANEL
+   ------------------------------- */
+.target-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.target-item {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+}
+
+.target-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.target-header h5 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.1);
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.target-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  color: var(--muted);
 }
 
 /* -------------------------------
-   🧾 FILTER BAR (Sales / Reports)
+   FILTER BAR (Sales, Tour, Document)
    ------------------------------- */
 .filter-bar {
   display: flex;
@@ -312,48 +354,7 @@ body.theme-dark .data-table tbody tr:hover {
 }
 
 /* -------------------------------
-   📋 FORM LAYOUT (used in input pages)
-   ------------------------------- */
-.form-section {
-  background: var(--card);
-  padding: 20px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  max-width: 800px;
-  margin: 0 auto 20px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 10px;
-}
-
-.form-group label {
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text);
-  font-size: 0.9rem;
-  box-shadow: var(--shadow);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* -------------------------------
-   ⚓ FOOTER
+   FOOTER
    ------------------------------- */
 .footer {
   padding: 12px 18px;
@@ -366,7 +367,7 @@ body.theme-dark .data-table tbody tr:hover {
 }
 
 /* -------------------------------
-   📱 RESPONSIVE DESIGN
+   RESPONSIVE DESIGN
    ------------------------------- */
 @media (max-width: 900px) {
   .sidebar {
