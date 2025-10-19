@@ -1,16 +1,18 @@
 /**
  * ==========================================================
- * controllers/reportSalesController.js — Travel Dashboard Enterprise v3.7.2
+ * controllers/reportSalesController.js — Travel Dashboard Enterprise v3.9.2
  * ==========================================================
  * ✅ CRUD data sales
- * ✅ Filter berdasarkan nama staff (?staff=nama)
- * ✅ Ringkasan total transaksi, sales & profit per staff
- * ✅ Terintegrasi middleware auth dan logger
+ * ✅ Filter berdasarkan staff_name (?staff=nama)
+ * ✅ Summary penjualan per staff (untuk executive dashboard)
+ * ✅ Export Excel (XLSX)
+ * ✅ Integrasi logger & keamanan
  * ==========================================================
  */
 
 const db = require("../config/database");
 const logger = require("../config/logger");
+const ExcelJS = require("exceljs");
 
 // ============================================================
 // 📘 GET /api/sales
@@ -93,7 +95,7 @@ exports.createSale = async (req, res) => {
     res.json({ message: "✅ Data sales berhasil ditambahkan" });
   } catch (err) {
     logger.error("❌ Error creating sale:", err);
-    res.status(500).json({ message: "Gagal menambahkan data sales" });
+    res.status(500).json({ message: "Gagal menambah data sales" });
   }
 };
 
@@ -126,7 +128,7 @@ exports.updateSale = async (req, res) => {
           staff_name = ?, 
           sales_amount = ?, 
           profit_amount = ?, 
-          discount_amount = ?
+          discount_amount = ? 
       WHERE id = ?
     `,
       [
@@ -140,7 +142,7 @@ exports.updateSale = async (req, res) => {
       ]
     );
 
-    logger.info(`✏️ Sales ID ${id} diperbarui oleh ${staff_name}`);
+    logger.info(`✏️ Sales ID ${id} diperbarui oleh ${staff_name || "unknown"}`);
     res.json({ message: "✅ Data sales berhasil diperbarui" });
   } catch (err) {
     logger.error("❌ Error updating sale:", err);
@@ -192,5 +194,42 @@ exports.getSalesSummaryByStaff = async (req, res) => {
   } catch (err) {
     logger.error("❌ Error fetching sales summary per staff:", err);
     res.status(500).json({ message: "Gagal mengambil ringkasan penjualan per staff" });
+  }
+};
+
+// ============================================================
+// 📤 GET /api/sales/export
+// Export data sales ke Excel
+// ============================================================
+exports.exportSalesReport = async (req, res) => {
+  try {
+    const filename = `Sales_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Sales Data");
+
+    const data = await db.all("SELECT * FROM sales ORDER BY transaction_date DESC");
+
+    worksheet.columns = [
+      { header: "Tanggal Transaksi", key: "transaction_date", width: 18 },
+      { header: "Invoice Number", key: "invoice_number", width: 20 },
+      { header: "Nama Staff", key: "staff_name", width: 20 },
+      { header: "Sales Amount", key: "sales_amount", width: 15 },
+      { header: "Profit Amount", key: "profit_amount", width: 15 },
+      { header: "Discount Amount", key: "discount_amount", width: 15 },
+    ];
+
+    data.forEach((row) => worksheet.addRow(row));
+    worksheet.getRow(1).font = { bold: true };
+
+    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+    logger.info(`📁 Exported Sales Report: ${filename}`);
+  } catch (err) {
+    logger.error("❌ Error exporting sales report:", err);
+    res.status(500).json({ message: "Gagal mengekspor data sales" });
   }
 };
