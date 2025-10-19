@@ -1,39 +1,51 @@
-// ============================================================
-// scripts/check-db.js — Travel Dashboard Enterprise v2.3
-// ============================================================
+/**
+ * ==========================================================
+ * 📁 scripts/check-db.js
+ * Travel Dashboard Enterprise v5.0
+ * ==========================================================
+ * Mengecek koneksi ke NeonDB + status tabel + jumlah record
+ * ==========================================================
+ */
 
-const fs = require("fs");
-const path = require("path");
+import pkg from "pg";
+const { Pool } = pkg;
+import dotenv from "dotenv";
+dotenv.config();
 
-console.log("🔍 Checking Travel Dashboard database status...");
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-const dbPath = path.join(__dirname, "..", "data", "database.sqlite");
-const dbDir = path.dirname(dbPath);
+const tables = [
+  "users",
+  "sales",
+  "tours",
+  "documents",
+  "targets"
+];
 
-// 1️⃣ Pastikan folder data/ ada
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-  console.log(`📁 Created directory: ${dbDir}`);
-}
-
-// 2️⃣ Cek file database
-if (!fs.existsSync(dbPath)) {
-  console.log("⚠️ Database file not found!");
-  console.log("💡 Running initDatabase.js to create a new database...");
-
+async function checkDatabase() {
+  console.log("🔍 Mengecek koneksi database dan tabel...");
   try {
-    // Jalankan inisialisasi database otomatis
-    require("./initDatabase.js");
-    console.log("✅ Database successfully initialized.");
+    const res = await pool.query("SELECT NOW() AS connected_at;");
+    console.log("✅ Tersambung ke NeonDB pada:", res.rows[0].connected_at);
+
+    for (const table of tables) {
+      try {
+        const count = await pool.query(`SELECT COUNT(*) FROM ${table};`);
+        console.log(`📦 Tabel '${table}': ${count.rows[0].count} record`);
+      } catch (err) {
+        console.log(`⚠️  Tabel '${table}' belum tersedia (${err.message})`);
+      }
+    }
+
+    console.log("✅ Pemeriksaan database selesai.\n");
   } catch (err) {
-    console.error("❌ Failed to initialize database:", err.message);
-    process.exit(1);
+    console.error("❌ Tidak dapat terhubung ke database:", err.message);
+  } finally {
+    await pool.end();
   }
-} else {
-  // Jika sudah ada, tampilkan ukuran file database
-  const stats = fs.statSync(dbPath);
-  const sizeKB = (stats.size / 1024).toFixed(2);
-  console.log(`✅ Database found: ${dbPath} (${sizeKB} KB)`);
 }
 
-console.log("🟢 Database check completed successfully!\n");
+checkDatabase();
