@@ -1,100 +1,111 @@
 /**
  * ==========================================================
- * scripts/initDatabase.js
- * Travel Dashboard Enterprise — Inisialisasi Database
+ * 📁 scripts/initDatabase.js
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ Membuat semua tabel utama jika belum ada
- * ✅ Menambahkan tabel baru: targets
+ * Script ini membuat seluruh tabel utama (jika belum ada)
+ * di NeonDB PostgreSQL saat pertama kali dijalankan.
  * ==========================================================
  */
 
-const { getDB } = require("../config/database");
-const logger = require("../config/logger");
+import pkg from "pg";
+const { Pool } = pkg;
+import dotenv from "dotenv";
+dotenv.config();
 
-async function createTables() {
-  const db = getDB();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
+
+async function initDatabase() {
+  console.log("🧱 Inisialisasi struktur database...");
 
   try {
-    logger.info("🧱 Inisialisasi struktur database...");
-
-    // ================================================
-    // 1️⃣ Tabel Users
-    // ================================================
-    await db.run(`
+    // === USERS ===
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        role TEXT DEFAULT 'basic',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'basic',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
-    // ================================================
-    // 2️⃣ Tabel Sales
-    // ================================================
-    await db.run(`
+    // === SALES ===
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        staff_name TEXT,
-        transaction_date TEXT,
-        sales_amount REAL DEFAULT 0,
-        profit_amount REAL DEFAULT 0
-      )
+        id SERIAL PRIMARY KEY,
+        staff_name VARCHAR(100) NOT NULL,
+        transaction_date DATE NOT NULL,
+        sales_amount NUMERIC(15,2) DEFAULT 0,
+        profit_amount NUMERIC(15,2) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
-    // ================================================
-    // 3️⃣ Tabel Tours
-    // ================================================
-    await db.run(`
+    // === TOURS ===
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS tours (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        staff TEXT,
-        registrationDate TEXT,
-        tourCode TEXT,
-        region TEXT,
-        departureDate TEXT,
-        bookingCode TEXT,
-        tourPrice REAL DEFAULT 0,
-        discountRemarks TEXT,
-        paymentProof TEXT,
-        documentReceived TEXT,
-        visaProcessStart TEXT,
-        visaProcessEnd TEXT,
-        documentRemarks TEXT,
-        salesAmount REAL DEFAULT 0,
-        profitAmount REAL DEFAULT 0,
-        departureStatus TEXT DEFAULT 'PENDING'
-      )
+        id SERIAL PRIMARY KEY,
+        registration_date DATE NOT NULL,
+        lead_passenger VARCHAR(255),
+        all_passengers TEXT,
+        tour_code VARCHAR(100),
+        region VARCHAR(100),
+        departure_date DATE,
+        booking_code VARCHAR(100),
+        tour_price NUMERIC(15,2) DEFAULT 0,
+        discount_remarks TEXT,
+        payment_proof TEXT,
+        document_received DATE,
+        visa_process_start DATE,
+        visa_process_end DATE,
+        document_remarks TEXT,
+        staff VARCHAR(100),
+        sales_amount NUMERIC(15,2) DEFAULT 0,
+        profit_amount NUMERIC(15,2) DEFAULT 0,
+        departure_status VARCHAR(50) DEFAULT 'PENDING',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
-    // ================================================
-    // 4️⃣ Tabel Targets (baru)
-    // ================================================
-    await db.run(`
+    // === DOCUMENTS ===
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS documents (
+        id SERIAL PRIMARY KEY,
+        received_date DATE NOT NULL,
+        guest_name VARCHAR(255) NOT NULL,
+        booking_code VARCHAR(100),
+        tour_code VARCHAR(100),
+        remarks TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    // === TARGETS ===
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS targets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        staff_name TEXT NOT NULL,
-        month INTEGER NOT NULL,
-        year INTEGER NOT NULL,
-        target_sales REAL DEFAULT 0,
-        target_profit REAL DEFAULT 0,
-        target_tour INTEGER DEFAULT 0,
-        created_by TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        id SERIAL PRIMARY KEY,
+        staff_name VARCHAR(100) NOT NULL,
+        month INT NOT NULL,
+        year INT NOT NULL,
+        target_sales NUMERIC(15,2) DEFAULT 0,
+        target_profit NUMERIC(15,2) DEFAULT 0,
+        target_tours INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(staff_name, month, year)
-      )
+      );
     `);
 
-    logger.info("✅ Semua tabel sudah siap digunakan.");
+    console.log("✅ Semua tabel sudah siap digunakan!");
+
   } catch (err) {
-    logger.error("❌ Gagal inisialisasi database:", err);
-    throw err;
+    console.error("❌ Gagal menginisialisasi database:", err.message);
+  } finally {
+    await pool.end();
   }
 }
 
-async function initDatabase() {
-  await createTables();
-}
-
-module.exports = { initDatabase };
+initDatabase();
