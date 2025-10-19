@@ -1,61 +1,63 @@
 /**
  * ==========================================================
- * config/logger.js — Travel Dashboard Enterprise v3.4.1
+ * config/logger.js — Travel Dashboard Enterprise v3.9.2
  * ==========================================================
- * ✅ Simpan log aktivitas ke Neon PostgreSQL
- * ✅ Auto-create table "logs" bila belum ada
- * ✅ Digunakan oleh middleware/log.js dan controllers
- * ✅ Aman dari SQL injection (parameterized queries)
+ * ✅ Logging multi-level (info, warn, error)
+ * ✅ Output ke file & console
+ * ✅ Format waktu lokal + warna terminal
+ * ✅ Siap untuk Render & Neon PostgreSQL
  * ==========================================================
  */
 
-const { Pool } = require("pg");
+const { createLogger, format, transports } = require("winston");
+const path = require("path");
+const fs = require("fs");
 
-// Neon PostgreSQL connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+// Pastikan folder log ada
+const logDir = path.join(__dirname, "../logs");
+if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+
+// ============================================================
+// 🧠 Format log
+// ============================================================
+const logFormat = format.combine(
+  format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+  format.printf((info) => {
+    const { timestamp, level, message } = info;
+    return `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+  })
+);
+
+// ============================================================
+// 🧩 Logger utama
+// ============================================================
+const logger = createLogger({
+  level: "info",
+  format: logFormat,
+  transports: [
+    // Simpan log harian
+    new transports.File({
+      filename: path.join(logDir, "app.log"),
+      maxsize: 5 * 1024 * 1024, // 5MB
+      maxFiles: 10,
+      tailable: true,
+    }),
+
+    // Tampilkan ke console (untuk debugging & Render logs)
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.printf(({ level, message }) => `[${level.toUpperCase()}] ${message}`)
+      ),
+    }),
+  ],
 });
 
-// Auto-check log table
-(async () => {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS logs (
-        id SERIAL PRIMARY KEY,
-        username TEXT,
-        role TEXT,
-        action TEXT,
-        target TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    console.log("🧾 Logger initialized — PostgreSQL table 'logs' ready");
-  } catch (err) {
-    console.error("❌ Failed to initialize logs table:", err.message);
-  }
-})();
+// ============================================================
+// 🧾 Helper untuk log shortcut
+// ============================================================
+logger.stream = {
+  write: (message) => logger.info(message.trim()),
+};
 
-/**
- * ==========================================================
- * logEvent()
- * Mencatat aktivitas user ke tabel logs
- * ==========================================================
- * @param {string} username - nama user
- * @param {string} role - tipe user (super/semi/basic)
- * @param {string} action - aksi yang dilakukan
- * @param {string} target - target atau objek aksi
- * ==========================================================
- */
-async function logEvent(username, role, action, target) {
-  try {
-    await pool.query(
-      "INSERT INTO logs (username, role, action, target) VALUES ($1, $2, $3, $4)",
-      [username, role, action, target]
-    );
-  } catch (err) {
-    console.error("❌ Gagal mencatat log:", err.message);
-  }
-}
-
-module.exports = { logEvent, pool };
+module.exports = logger;
