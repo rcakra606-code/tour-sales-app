@@ -1,34 +1,67 @@
 #!/bin/bash
-set -e
-echo "🚀 Setup Tour Sales Management (full-stack)..."
+# ==========================================================
+# 🚀 setup.sh — Travel Dashboard Enterprise v5.0
+# ==========================================================
+# Script otomatis setup seluruh sistem di Render atau lokal:
+# - Inisialisasi database NeonDB
+# - Membuat akun super admin
+# - Menjalankan backup pertama
+# - (Opsional) Test email notifikasi
+# ==========================================================
 
-if [ ! -f package.json ]; then
-  echo "package.json missing - abort"
-  exit 1
+echo "==============================================="
+echo "🚀 Travel Dashboard Enterprise — Setup Script"
+echo "==============================================="
+
+# Pastikan Node.js tersedia
+if ! command -v node &> /dev/null
+then
+    echo "❌ Node.js tidak ditemukan. Pastikan sudah terinstal."
+    exit 1
 fi
 
-echo "📦 npm install..."
-npm install
-
-echo "📁 Ensure directories"
-mkdir -p logs uploads temp backups ssl public
-
-echo "🔐 Generate SSL (node-forge)"
-npm run generate-ssl || true
-
-# fallback: openssl if missing
-if [ ! -f ssl/private-key.pem ] || [ ! -f ssl/certificate.pem ]; then
-  echo "⚠️ SSL not present - attempting openssl script"
-  chmod +x scripts/setup-ssl.sh || true
-  ./scripts/setup-ssl.sh || true
+# Cek environment
+if [ ! -f ".env" ]; then
+  echo "⚠️  File .env tidak ditemukan, membuat template .env..."
+  cat <<EOT >> .env
+NODE_ENV=production
+PORT=5000
+DATABASE_URL=
+JWT_SECRET=changeme
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+FRONTEND_URL=https://travel-dashboard.onrender.com
+EOT
+  echo "✅ Template .env dibuat. Lengkapi variabel DATABASE_URL sebelum lanjut."
+  exit 0
 fi
 
-echo "🗄 Run migrations (if any)"
-npm run migrate || true
+echo "📦 Memeriksa koneksi database..."
+node scripts/check-db.js
 
-echo "🔒 Fix permissions"
-chmod 600 ssl/private-key.pem || true
-chmod 644 ssl/certificate.pem || true
-chmod 755 logs uploads temp backups ssl || true
+echo "🧱 Menginisialisasi tabel database..."
+node scripts/initDatabase.js
 
-echo "✅ Setup complete. Edit .env.production then run: npm start"
+echo "👤 Membuat akun Super Admin (jika belum ada)..."
+node scripts/setup-admin.js
+
+echo "💾 Membuat backup pertama..."
+node scripts/backup-database.js
+
+# Optional test email
+read -p "📧 Ingin melakukan test email notifikasi? (y/n): " testEmail
+if [ "$testEmail" = "y" ] || [ "$testEmail" = "Y" ]; then
+  node scripts/test-email.js
+else
+  echo "📨 Test email dilewati."
+fi
+
+echo "✅ Setup selesai! Sistem siap dijalankan."
+echo "-----------------------------------------------"
+echo "🌐 Jalankan aplikasi dengan:"
+echo "   npm start"
+echo ""
+echo "🔑 Login dengan akun admin default:"
+echo "   Username: admin"
+echo "   Password: Admin123!"
+echo "-----------------------------------------------"
