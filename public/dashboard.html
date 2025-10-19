@@ -1,317 +1,91 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard | Travel Dashboard Enterprise</title>
-
-  <!-- Styles -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — Travel Dashboard Enterprise</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <style>
-    :root {
-      --bg-color: #f9fafb;
-      --card-bg: #ffffff;
-      --text-color: #111827;
-      --header-bg: #1f2937;
-      --progress-bg: #f3f4f6;
-      --shadow-color: rgba(0, 0, 0, 0.05);
-    }
-
-    [data-theme="dark"] {
-      --bg-color: #111827;
-      --card-bg: #1f2937;
-      --text-color: #f9fafb;
-      --header-bg: #0f172a;
-      --progress-bg: #374151;
-      --shadow-color: rgba(255, 255, 255, 0.08);
-    }
-
-    body {
-      font-family: "Inter", sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 0;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    header {
-      background: var(--header-bg);
-      color: white;
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 900;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 0 16px;
-    }
-
-    h2 {
-      font-size: 20px;
-      margin-bottom: 10px;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px var(--shadow-color);
-      margin-bottom: 20px;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
-    }
-
-    .value {
-      font-size: 24px;
-      font-weight: 700;
-      color: #2563eb;
-    }
-
-    .progress-container {
-      background: var(--progress-bg);
-      height: 18px;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-top: 4px;
-      margin-bottom: 12px;
-    }
-
-    .progress-bar {
-      height: 100%;
-      transition: width 0.6s ease;
-    }
-
-    .blue { background: #3b82f6; }
-    .green { background: #10b981; }
-    .yellow { background: #f59e0b; }
-
-    select, button {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      font-size: 14px;
-      background: var(--card-bg);
-      color: var(--text-color);
-      transition: background 0.3s, color 0.3s;
-    }
-
-    button.primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button.primary:hover { background: #1d4ed8; }
-
-    #chartContainer { margin-top: 20px; }
-
-    main {
-      margin-left: 240px;
-      transition: margin-left 0.3s ease;
-    }
-
-    body.sidebar-collapsed main {
-      margin-left: 70px;
-    }
-
-  </style>
 </head>
-
-<body>
-  <!-- Header -->
-  <header>
-    <h1>Travel Dashboard Enterprise</h1>
-    <div>
-      <button id="toggleThemeBtn" class="primary">🌙</button>
-      <button class="primary" id="logoutBtn" style="background:#dc2626;">Logout</button>
+<body class="theme-light">
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <div class="sidebar-top">
+      <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">
+        ☰
+      </button>
+      <h1 class="brand">TravelDash</h1>
+      <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
     </div>
-  </header>
 
-  <!-- Sidebar Auto-loaded via sidebar.js -->
-  <div class="main-content">
+    <nav class="sidebar-nav" role="navigation">
+      <ul>
+        <li><a href="/dashboard.html" class="active">Dashboard</a></li>
+        <li><a href="/report_tour.html">Report Tour</a></li>
+        <li><a href="/report_sales.html">Report Sales</a></li>
+        <li><a href="/report_document.html">Report Document</a></li>
+        <li><a href="/user-management.html">User Management</a></li>
+        <li><a href="/executive-dashboard.html">Executive</a></li>
+        <li><a href="/audit_log.html">Audit Log</a></li>
+        <li><a href="/profile.html">Profile</a></li>
+        <li><a href="/logout.html">Logout</a></li>
+      </ul>
+    </nav>
+
+    <div class="sidebar-footer">
+      <small>v5.0 • Travel Dashboard</small>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div id="main" class="main-content">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h2>Dashboard</h2>
+      </div>
+      <div class="topbar-right">
+        <div id="userBadge" class="user-badge">admin</div>
+      </div>
+    </header>
+
     <main class="container">
-      <section class="card">
-        <h2>📈 Ringkasan Bulanan</h2>
-        <div class="grid" id="summaryGrid">
-          <div><p>Total Sales</p><div class="value" id="salesValue">Rp 0</div></div>
-          <div><p>Total Profit</p><div class="value" id="profitValue">Rp 0</div></div>
-          <div><p>Total Tours</p><div class="value" id="tourValue">0</div></div>
+      <!-- summary cards -->
+      <section class="cards-grid" id="summaryCards">
+        <div class="card">
+          <h3>Total Sales</h3>
+          <p id="totalSales">—</p>
+        </div>
+        <div class="card">
+          <h3>Total Profit</h3>
+          <p id="totalProfit">—</p>
+        </div>
+        <div class="card">
+          <h3>Total Tours</h3>
+          <p id="totalTours">—</p>
+        </div>
+        <div class="card">
+          <h3>Targets Active</h3>
+          <p id="totalTargets">—</p>
         </div>
       </section>
 
-      <section class="card" id="targetsSummary">
-        <h2>🎯 Target Bulanan</h2>
-        <div style="margin-bottom:12px;">
-          <label>Staff:
-            <select id="dash_staff"></select>
-          </label>
-          <label style="margin-left:12px;">Bulan:
-            <select id="dash_month"></select>
-          </label>
-          <label style="margin-left:12px;">Tahun:
-            <select id="dash_year"></select>
-          </label>
-          <button class="primary" id="dash_refresh">Refresh</button>
+      <!-- placeholder chart / lists -->
+      <section class="panels-grid">
+        <div class="panel">
+          <h4>Tour Summary</h4>
+          <div id="tourSummary">Loading...</div>
         </div>
-
-        <div>
-          <div>
-            <div><strong>Sales</strong> <span id="sales_label"></span></div>
-            <div class="progress-container">
-              <div id="sales_bar" class="progress-bar blue" style="width:0%;"></div>
-            </div>
-          </div>
-
-          <div>
-            <div><strong>Profit</strong> <span id="profit_label"></span></div>
-            <div class="progress-container">
-              <div id="profit_bar" class="progress-bar green" style="width:0%;"></div>
-            </div>
-          </div>
-
-          <div>
-            <div><strong>Tours</strong> <span id="tours_label"></span></div>
-            <div class="progress-container">
-              <div id="tours_bar" class="progress-bar yellow" style="width:0%;"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="chartContainer">
-          <canvas id="targetChart" height="140"></canvas>
+        <div class="panel">
+          <h4>Sales Performance</h4>
+          <div id="salesSummary">Loading...</div>
         </div>
       </section>
     </main>
+
+    <footer class="footer">
+      <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
+    </footer>
   </div>
 
-  <!-- Scripts -->
-  <script src="/js/sidebar.js"></script>
-  <script src="/js/theme.js" type="module"></script>
-
-  <script>
-  const token = localStorage.getItem("token") || "";
-
-  function api(path, method="GET", body){
-    return fetch(path, {
-      method,
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: body ? JSON.stringify(body) : undefined
-    });
-  }
-
-  // Dashboard Summary
-  async function loadDashboardSummary() {
-    const res = await api("/api/dashboard/summary");
-    if (!res.ok) return;
-    const data = await res.json();
-    document.getElementById("salesValue").innerText = data.totalSales || 0;
-    document.getElementById("profitValue").innerText = data.totalProfit || 0;
-    document.getElementById("tourValue").innerText = data.totalTours || 0;
-  }
-
-  // Populate selectors
-  async function populateSelectors() {
-    const staffSel = document.getElementById("dash_staff");
-    const monthSel = document.getElementById("dash_month");
-    const yearSel = document.getElementById("dash_year");
-
-    for (let i=1;i<=12;i++){ monthSel.appendChild(new Option(i,i)); }
-    const now = new Date(); const thisYear = now.getFullYear();
-    for (let y=thisYear-2; y<=thisYear+1; y++){ yearSel.appendChild(new Option(y,y)); }
-    monthSel.value = now.getMonth()+1; yearSel.value = thisYear;
-
-    const r = await api("/api/auth/verify");
-    if (!r.ok) return;
-    const user = await r.json();
-    if (user.role === "super") {
-      const ru = await api("/api/users");
-      if (ru.ok) {
-        const users = await ru.json();
-        users.forEach(u => staffSel.appendChild(new Option(u.username, u.username)));
-      }
-    } else {
-      staffSel.appendChild(new Option(user.username, user.username));
-      staffSel.disabled = true;
-    }
-  }
-
-  let chartInstance = null;
-
-  async function refreshTargetSummary() {
-    const staff = document.getElementById("dash_staff").value;
-    const month = document.getElementById("dash_month").value;
-    const year = document.getElementById("dash_year").value;
-
-    const res = await api(`/api/targets/summary?staff=${encodeURIComponent(staff)}&month=${month}&year=${year}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    const { target, real, percentage } = data;
-
-    document.getElementById("sales_label").innerText = `${real.sales} / ${target.sales} (${percentage.sales}%)`;
-    document.getElementById("profit_label").innerText = `${real.profit} / ${target.profit} (${percentage.profit}%)`;
-    document.getElementById("tours_label").innerText = `${real.tours} / ${target.tours} (${percentage.tours}%)`;
-
-    document.getElementById("sales_bar").style.width = (percentage.sales || 0) + "%";
-    document.getElementById("profit_bar").style.width = (percentage.profit || 0) + "%";
-    document.getElementById("tours_bar").style.width = (percentage.tours || 0) + "%";
-
-    const ctx = document.getElementById("targetChart").getContext("2d");
-    const labels = ["Sales", "Profit", "Tours"];
-    const targetValues = [target.sales, target.profit, target.tours];
-    const realValues = [real.sales, real.profit, real.tours];
-
-    const chartData = {
-      labels,
-      datasets: [
-        { label: "Target", data: targetValues, backgroundColor: "rgba(37,99,235,0.5)" },
-        { label: "Realisasi", data: realValues, backgroundColor: "rgba(16,185,129,0.6)" }
-      ]
-    };
-
-    const config = {
-      type: "bar",
-      data: chartData,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: "top" },
-          title: { display: true, text: `Target vs Realisasi (${month}/${year})` }
-        },
-        scales: { y: { beginAtZero: true } }
-      }
-    };
-
-    if (chartInstance) chartInstance.destroy();
-    chartInstance = new Chart(ctx, config);
-  }
-
-  document.getElementById("dash_refresh").addEventListener("click", refreshTargetSummary);
-
-  document.addEventListener("DOMContentLoaded", () => {
-    populateSelectors().then(refreshTargetSummary);
-    loadDashboardSummary();
-  });
-
-  document.getElementById("logoutBtn").onclick = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-  };
-  </script>
+  <script src="/js/dashboard.js" type="module"></script>
 </body>
 </html>
