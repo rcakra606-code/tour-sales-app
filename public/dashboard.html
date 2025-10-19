@@ -4,8 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard | Travel Dashboard Enterprise</title>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     :root {
       --bg-color: #f9fafb;
@@ -41,6 +45,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 900;
     }
 
     .container {
@@ -49,7 +56,10 @@
       padding: 0 16px;
     }
 
-    h2 { font-size: 20px; margin-bottom: 10px; }
+    h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
 
     .card {
       background: var(--card-bg);
@@ -81,7 +91,11 @@
       margin-bottom: 12px;
     }
 
-    .progress-bar { height: 100%; transition: width 0.6s ease; }
+    .progress-bar {
+      height: 100%;
+      transition: width 0.6s ease;
+    }
+
     .blue { background: #3b82f6; }
     .green { background: #10b981; }
     .yellow { background: #f59e0b; }
@@ -105,94 +119,90 @@
 
     button.primary:hover { background: #1d4ed8; }
 
-    .logout-btn {
-      background: #dc2626;
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .logout-btn:hover { background: #b91c1c; }
-
-    .toggle-btn {
-      background: #10b981;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      color: white;
-      cursor: pointer;
-      margin-right: 10px;
-    }
-
-    .toggle-btn:hover { background: #059669; }
-
     #chartContainer { margin-top: 20px; }
+
+    main {
+      margin-left: 240px;
+      transition: margin-left 0.3s ease;
+    }
+
+    body.sidebar-collapsed main {
+      margin-left: 70px;
+    }
+
   </style>
 </head>
+
 <body>
+  <!-- Header -->
   <header>
     <h1>Travel Dashboard Enterprise</h1>
     <div>
-      <button class="toggle-btn" id="toggleThemeBtn">🌙</button>
-      <button class="logout-btn" id="logoutBtn">Logout</button>
+      <button id="toggleThemeBtn" class="primary">🌙</button>
+      <button class="primary" id="logoutBtn" style="background:#dc2626;">Logout</button>
     </div>
   </header>
 
-  <div class="container">
-    <section class="card">
-      <h2>📈 Ringkasan Bulanan</h2>
-      <div class="grid" id="summaryGrid">
-        <div><p>Total Sales</p><div class="value" id="salesValue">Rp 0</div></div>
-        <div><p>Total Profit</p><div class="value" id="profitValue">Rp 0</div></div>
-        <div><p>Total Tours</p><div class="value" id="tourValue">0</div></div>
-      </div>
-    </section>
+  <!-- Sidebar Auto-loaded via sidebar.js -->
+  <div class="main-content">
+    <main class="container">
+      <section class="card">
+        <h2>📈 Ringkasan Bulanan</h2>
+        <div class="grid" id="summaryGrid">
+          <div><p>Total Sales</p><div class="value" id="salesValue">Rp 0</div></div>
+          <div><p>Total Profit</p><div class="value" id="profitValue">Rp 0</div></div>
+          <div><p>Total Tours</p><div class="value" id="tourValue">0</div></div>
+        </div>
+      </section>
 
-    <section class="card" id="targetsSummary">
-      <h2>🎯 Target Bulanan</h2>
-      <div style="margin-bottom:12px;">
-        <label>Staff:
-          <select id="dash_staff"></select>
-        </label>
-        <label style="margin-left:12px;">Bulan:
-          <select id="dash_month"></select>
-        </label>
-        <label style="margin-left:12px;">Tahun:
-          <select id="dash_year"></select>
-        </label>
-        <button class="primary" id="dash_refresh">Refresh</button>
-      </div>
-
-      <div>
-        <div>
-          <div><strong>Sales</strong> <span id="sales_label"></span></div>
-          <div class="progress-container">
-            <div id="sales_bar" class="progress-bar blue" style="width:0%;"></div>
-          </div>
+      <section class="card" id="targetsSummary">
+        <h2>🎯 Target Bulanan</h2>
+        <div style="margin-bottom:12px;">
+          <label>Staff:
+            <select id="dash_staff"></select>
+          </label>
+          <label style="margin-left:12px;">Bulan:
+            <select id="dash_month"></select>
+          </label>
+          <label style="margin-left:12px;">Tahun:
+            <select id="dash_year"></select>
+          </label>
+          <button class="primary" id="dash_refresh">Refresh</button>
         </div>
 
         <div>
-          <div><strong>Profit</strong> <span id="profit_label"></span></div>
-          <div class="progress-container">
-            <div id="profit_bar" class="progress-bar green" style="width:0%;"></div>
+          <div>
+            <div><strong>Sales</strong> <span id="sales_label"></span></div>
+            <div class="progress-container">
+              <div id="sales_bar" class="progress-bar blue" style="width:0%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div><strong>Profit</strong> <span id="profit_label"></span></div>
+            <div class="progress-container">
+              <div id="profit_bar" class="progress-bar green" style="width:0%;"></div>
+            </div>
+          </div>
+
+          <div>
+            <div><strong>Tours</strong> <span id="tours_label"></span></div>
+            <div class="progress-container">
+              <div id="tours_bar" class="progress-bar yellow" style="width:0%;"></div>
+            </div>
           </div>
         </div>
 
-        <div>
-          <div><strong>Tours</strong> <span id="tours_label"></span></div>
-          <div class="progress-container">
-            <div id="tours_bar" class="progress-bar yellow" style="width:0%;"></div>
-          </div>
+        <div id="chartContainer">
+          <canvas id="targetChart" height="140"></canvas>
         </div>
-      </div>
-
-      <div id="chartContainer">
-        <canvas id="targetChart" height="140"></canvas>
-      </div>
-    </section>
+      </section>
+    </main>
   </div>
+
+  <!-- Scripts -->
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/theme.js" type="module"></script>
 
   <script>
   const token = localStorage.getItem("token") || "";
@@ -296,30 +306,12 @@
   document.addEventListener("DOMContentLoaded", () => {
     populateSelectors().then(refreshTargetSummary);
     loadDashboardSummary();
-    applySavedTheme();
   });
 
-  // Logout
   document.getElementById("logoutBtn").onclick = () => {
     localStorage.removeItem("token");
     window.location.href = "/login.html";
   };
-
-  // Theme toggle
-  const toggleBtn = document.getElementById("toggleThemeBtn");
-  toggleBtn.onclick = () => {
-    const current = document.body.getAttribute("data-theme");
-    const newTheme = current === "dark" ? "light" : "dark";
-    document.body.setAttribute("data-theme", newTheme);
-    localStorage.setItem("theme", newTheme);
-    toggleBtn.innerText = newTheme === "dark" ? "☀️" : "🌙";
-  };
-
-  function applySavedTheme() {
-    const saved = localStorage.getItem("theme") || "light";
-    document.body.setAttribute("data-theme", saved);
-    toggleBtn.innerText = saved === "dark" ? "☀️" : "🌙";
-  }
   </script>
 </body>
 </html>
