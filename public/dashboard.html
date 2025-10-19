@@ -80,42 +80,19 @@
     >
       <div class="flex items-center justify-between p-4 border-b border-gray-200">
         <h2 id="sidebarTitle" class="text-lg font-bold text-indigo-700">Dashboard</h2>
-        <button
-          id="toggleSidebar"
-          class="text-gray-500 hover:text-indigo-600 transition"
-          title="Expand/Collapse"
-        >
+        <button id="toggleSidebar" class="text-gray-500 hover:text-indigo-600 transition" title="Expand/Collapse">
           ☰
         </button>
       </div>
 
       <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
-        <a href="/dashboard.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">
-          🏠 Dashboard
-        </a>
-        <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">
-          ✈️ Report Tour
-        </a>
-        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">
-          💰 Report Sales
-        </a>
-        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">
-          📄 Report Dokumen
-        </a>
-        <a
-          href="/user-management.html"
-          data-role="super,semi"
-          class="block px-3 py-2 rounded hover:bg-indigo-100"
-        >
-          👥 User Management
-        </a>
-        <a
-          href="/audit_log.html"
-          data-role="super"
-          class="block px-3 py-2 rounded hover:bg-indigo-100"
-        >
-          🧾 Audit Log
-        </a>
+        <a href="/dashboard.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">🏠 Dashboard</a>
+        <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">✈️ Report Tour</a>
+        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">💰 Report Sales</a>
+        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
+        <a href="/region_management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🌍 Region Management</a>
+        <a href="/user-management.html" data-role="super,semi" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
+        <a href="/audit_log.html" data-role="super" class="block px-3 py-2 rounded hover:bg-indigo-100">🧾 Audit Log</a>
       </nav>
 
       <div class="p-3 border-t border-gray-200">
@@ -128,81 +105,58 @@
       </div>
     </aside>
 
-    <!-- Main Content Area -->
+    <!-- Main Content -->
     <div class="flex-1 flex flex-col">
       <!-- Header -->
-      <header
-        class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100"
-      >
+      <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100">
         <div class="flex items-center gap-3">
           <h1 class="text-lg font-bold text-indigo-700">Travel Dashboard</h1>
-          <span
-            id="currentMode"
-            class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded"
-          >
-            Light Mode
-          </span>
+          <span id="currentMode" class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Light Mode</span>
         </div>
         <div class="flex items-center gap-4">
           <span id="userNameDisplay" class="text-sm text-gray-600 font-medium"></span>
-          <button
-            data-logout
-            class="text-sm text-red-600 hover:text-red-700 font-semibold transition"
-          >
-            Logout
-          </button>
+          <button data-logout class="text-sm text-red-600 hover:text-red-700 font-semibold transition">Logout</button>
         </div>
       </header>
 
-      <!-- Dashboard Content -->
       <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
-        <div
-          id="backendStatusBanner"
-          class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"
-        ></div>
+        <div id="backendStatusBanner" class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"></div>
 
         <!-- Summary Cards -->
         <div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8 transition">
-          <div
-            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover"
-          >
+          <div class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover">
             <h3 class="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
             <p id="totalSales" class="text-2xl font-bold text-indigo-600">0</p>
           </div>
-          <div
-            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover"
-          >
+          <div class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover">
             <h3 class="text-sm font-medium text-gray-500 mb-1">Total Profit</h3>
             <p id="totalProfit" class="text-2xl font-bold text-green-600">0</p>
           </div>
-          <div
-            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover"
-          >
+          <div class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover">
             <h3 class="text-sm font-medium text-gray-500 mb-1">Total Pax</h3>
             <p id="totalPax" class="text-2xl font-bold text-sky-600">0</p>
           </div>
-          <div
-            class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover"
-          >
-            <h3 class="text-sm font-medium text-gray-500 mb-1">Total Registrants</h3>
-            <p id="totalRegistrants" class="text-2xl font-bold text-amber-600">0</p>
+          <div class="bg-white shadow rounded-xl p-5 border border-gray-100 dark:bg-slate-700 card-hover">
+            <h3 class="text-sm font-medium text-gray-500 mb-1">Total Regions</h3>
+            <p id="totalRegions" class="text-2xl font-bold text-amber-600">0</p>
           </div>
         </div>
 
-        <!-- Charts -->
-        <section
-          class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover"
-        >
-          <h2 class="text-lg font-semibold text-gray-700 mb-3">Grafik Sales & Profit</h2>
+        <!-- Chart Section -->
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
+          <h2 class="text-lg font-semibold text-gray-700 mb-3">Grafik Sales & Profit Bulanan</h2>
           <canvas id="salesChart" height="120"></canvas>
+        </section>
+
+        <!-- Top 3 Staff Section -->
+        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
+          <h2 class="text-lg font-semibold text-gray-700 mb-3">Top 3 Staff Terbaik</h2>
+          <div id="topStaffContainer" class="space-y-2 text-sm"></div>
         </section>
       </main>
 
-      <!-- Footer -->
-      <footer
-        class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900"
-      >
-        © 2025 Travel Dashboard Enterprise v3.7
+      <footer class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900">
+        © 2025 Travel Dashboard Enterprise v3.7.3
       </footer>
     </div>
 
@@ -210,17 +164,36 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/app.js"></script>
     <script src="/js/ui.js"></script>
+
     <script>
       document.addEventListener("DOMContentLoaded", async () => {
         try {
+          // Ambil data ringkasan dari API
           const data = await apiFetch("/api/dashboard/summary");
+
+          // Update summary cards
           if (data && data.totals) {
             document.getElementById("totalSales").textContent = formatNumber(data.totals.totalSalesTours);
             document.getElementById("totalProfit").textContent = formatNumber(data.totals.totalProfitTours);
             document.getElementById("totalPax").textContent = formatNumber(data.totals.totalPax);
-            document.getElementById("totalRegistrants").textContent = formatNumber(data.totals.totalRegistrants);
+            document.getElementById("totalRegions").textContent = data.totals.totalRegions;
           }
 
+          // Tampilkan Top 3 Staff
+          if (data.topStaff && data.topStaff.length > 0) {
+            const container = document.getElementById("topStaffContainer");
+            container.innerHTML = data.topStaff
+              .map(
+                (s, i) => `
+                <div class="flex justify-between border-b py-1">
+                  <span>${i + 1}. ${s.staff_name}</span>
+                  <span class="font-semibold text-indigo-600">${formatNumber(s.total_sales)}</span>
+                </div>`
+              )
+              .join("");
+          }
+
+          // Load grafik sales bulanan
           const chartRes = await apiFetch("/api/dashboard/chart-data");
           const ctx = document.getElementById("salesChart");
           const months = chartRes.chart.map((r) => r.month);
