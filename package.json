@@ -1,16 +1,17 @@
 {
   "name": "travel-dashboard-enterprise",
-  "version": "3.9.5",
-  "description": "Travel Dashboard Enterprise — Hybrid Neon PostgreSQL + SQLite, Secure Auth, CSP, and Excel Reporting System.",
+  "version": "3.9.9",
+  "description": "Travel Dashboard Enterprise — Auto-healing Express API with Render + Neon PostgreSQL + SQLite fallback, JWT Auth, and Excel Export.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "prestart": "node scripts/verify-routes.js",
-    "start": "node server.js",
+    "start": "bash scripts/auto-repair-deploy.sh",
     "dev": "nodemon server.js",
     "test-db": "node scripts/check-db.js",
     "init-db": "node scripts/initDatabase.js",
-    "verify-routes": "node scripts/verify-routes.js"
+    "verify-routes": "node scripts/verify-routes.js",
+    "repair": "bash scripts/auto-repair-deploy.sh"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -36,13 +37,14 @@
   },
   "keywords": [
     "travel-dashboard",
-    "neon-postgres",
     "express",
+    "neon-postgres",
     "sqlite3",
     "jwt",
     "excel-export",
-    "enterprise",
-    "render"
+    "auto-healing",
+    "render",
+    "enterprise"
   ],
   "author": "Travel Dashboard Enterprise Team",
   "license": "MIT"
