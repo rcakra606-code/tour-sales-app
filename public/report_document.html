@@ -1,198 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Report Document | Travel Dashboard Enterprise</title>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report Document - Travel Dashboard Enterprise</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
 
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
-  <style>
-    :root {
-      --bg-color: #f9fafb;
-      --card-bg: #ffffff;
-      --text-color: #111827;
-      --header-bg: #1f2937;
-      --shadow-color: rgba(0, 0, 0, 0.05);
-    }
-    [data-theme="dark"] {
-      --bg-color: #111827;
-      --card-bg: #1f2937;
-      --text-color: #f9fafb;
-      --header-bg: #0f172a;
-      --shadow-color: rgba(255,255,255,0.08);
-    }
-    body {
-      font-family: "Inter", sans-serif;
-      background: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      transition: background 0.3s, color 0.3s;
-    }
-    header {
-      background: var(--header-bg);
-      color: white;
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 0 16px;
-    }
-    .card {
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px var(--shadow-color);
-      margin-bottom: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-    tr:hover { background: rgba(37,99,235,0.05); }
-    input, select, button {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      font-size: 14px;
-    }
-    button.primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button.primary:hover { background: #1d4ed8; }
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-    }
-  </style>
-</head>
+  <body class="theme-light">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar collapsed">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon">🌓</button>
+      </div>
+      <nav class="sidebar-nav">
+        <ul>
+          <li><a href="/dashboard.html">Dashboard</a></li>
+          <li><a href="/report_tour.html">Report Tour</a></li>
+          <li><a href="/report_sales.html">Report Sales</a></li>
+          <li><a href="/report_document.html" class="active">Report Document</a></li>
+          <li><a href="/user-management.html">User Management</a></li>
+          <li><a href="/executive-dashboard.html">Executive</a></li>
+          <li><a href="/audit_log.html">Audit Log</a></li>
+          <li><a href="/profile.html">Profile</a></li>
+          <li><a href="/logout.html">Logout</a></li>
+        </ul>
+      </nav>
+    </aside>
 
-<body>
-  <header>
-    <h1>Report Document</h1>
-    <div>
-      <button id="toggleThemeBtn" class="primary">🌙</button>
-      <button id="logoutBtn" class="primary" style="background:#dc2626;">Logout</button>
-    </div>
-  </header>
+    <!-- MAIN CONTENT -->
+    <div id="main" class="main-content">
+      <header class="topbar">
+        <h2>Report Document</h2>
+        <div id="userBadge" class="user-badge">admin</div>
+      </header>
 
-  <div class="main-content">
-    <main class="container">
-      <section class="card">
-        <h2>📥 Input Dokumen</h2>
-        <form id="documentForm">
-          <div class="grid-2">
-            <div>
-              <label>Tanggal Terima Dokumen</label>
-              <input type="date" id="receivedDate" required>
+      <main class="container">
+        <!-- FORM INPUT -->
+        <section class="form-section">
+          <h4>Input Data Dokumen</h4>
+          <form id="documentForm">
+            <div class="form-group">
+              <label for="receiveDate">Tanggal Terima Dokumen</label>
+              <input type="date" id="receiveDate" name="receiveDate" required />
             </div>
-            <div>
-              <label>Nama Tamu</label>
-              <input type="text" id="guestName" placeholder="Nama tamu" required>
+
+            <div class="form-group">
+              <label for="guestName">Nama Tamu</label>
+              <input type="text" id="guestName" name="guestName" required />
             </div>
-            <div>
-              <label>Kode Booking DMS</label>
-              <input type="text" id="bookingCode" placeholder="Kode booking DMS">
+
+            <div class="form-group">
+              <label for="bookingCodeDMS">Kode Booking DMS</label>
+              <input type="text" id="bookingCodeDMS" name="bookingCodeDMS" required />
             </div>
-            <div>
-              <label>Tour Code (opsional)</label>
-              <input type="text" id="tourCode" placeholder="Kode tour">
+
+            <div class="form-group">
+              <label for="tourCode">Tour Code (Jika Ada)</label>
+              <input type="text" id="tourCode" name="tourCode" />
             </div>
-            <div style="grid-column: span 2;">
-              <label>Dokumen Remarks</label>
-              <input type="text" id="remarks" placeholder="Keterangan dokumen">
+
+            <div class="form-group">
+              <label for="remarks">Dokumen Remarks</label>
+              <textarea id="remarks" name="remarks" rows="2"></textarea>
             </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn">💾 Simpan</button>
+              <button type="reset" class="btn" style="background:#999;">↺ Reset</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- TABLE SECTION -->
+        <section class="panel">
+          <h4>Daftar Dokumen</h4>
+
+          <div class="filter-bar">
+            <input type="text" id="searchDocument" placeholder="Cari nama tamu / kode booking..." />
+            <input type="month" id="filterMonth" />
+            <button id="btnExportExcel" class="btn">📤 Excel</button>
+            <button id="btnExportCSV" class="btn">📄 CSV</button>
           </div>
-          <button type="submit" class="primary" style="margin-top:12px;">💾 Simpan Dokumen</button>
-        </form>
-      </section>
 
-      <section class="card">
-        <h2>📋 Data Dokumen</h2>
-        <table id="documentTable">
-          <thead>
-            <tr>
-              <th>Tanggal Terima</th>
-              <th>Nama Tamu</th>
-              <th>Kode Booking</th>
-              <th>Tour Code</th>
-              <th>Remarks</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
-    </main>
-  </div>
+          <div class="table-container">
+            <table class="data-table" id="documentTable">
+              <thead>
+                <tr>
+                  <th>Tanggal Terima</th>
+                  <th>Nama Tamu</th>
+                  <th>Kode Booking DMS</th>
+                  <th>Tour Code</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
 
-  <!-- Scripts -->
-  <script src="/js/sidebar.js"></script>
-  <script src="/js/theme.js" type="module"></script>
+      <footer class="footer">
+        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
+      </footer>
+    </div>
 
-  <script>
-  const token = localStorage.getItem("token") || "";
-  function api(path, method="GET", body){
-    return fetch(path, {
-      method,
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: body ? JSON.stringify(body) : undefined
-    });
-  }
-
-  async function loadDocuments(){
-    const res = await api("/api/report/document");
-    if (!res.ok) return;
-    const data = await res.json();
-    const tbody = document.querySelector("#documentTable tbody");
-    tbody.innerHTML = "";
-    data.forEach(row=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.receivedDate}</td>
-        <td>${row.guestName}</td>
-        <td>${row.bookingCode}</td>
-        <td>${row.tourCode || "-"}</td>
-        <td>${row.remarks}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  document.getElementById("documentForm").addEventListener("submit", async e=>{
-    e.preventDefault();
-    const body = {
-      receivedDate: document.getElementById("receivedDate").value,
-      guestName: document.getElementById("guestName").value,
-      bookingCode: document.getElementById("bookingCode").value,
-      tourCode: document.getElementById("tourCode").value,
-      remarks: document.getElementById("remarks").value
-    };
-    const res = await api("/api/report/document", "POST", body);
-    if (res.ok){
-      alert("Data dokumen berhasil disimpan!");
-      loadDocuments();
-    } else alert("Gagal menyimpan data dokumen.");
-  });
-
-  document.getElementById("logoutBtn").onclick = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-  };
-
-  document.addEventListener("DOMContentLoaded", loadDocuments);
-  </script>
-</body>
+    <script src="/js/report_document.js" type="module"></script>
+  </body>
 </html>
