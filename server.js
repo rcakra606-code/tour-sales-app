@@ -1,151 +1,88 @@
 /**
  * ==========================================================
- * server.js — Travel Dashboard Enterprise v3.9.8
+ * 📁 server.js (ESM Fixed)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * 🧩 Build diagnostik untuk mendeteksi route non-middleware
- * ✅ Menampilkan tipe ekspor tiap route di log
- * ✅ Melanjutkan startup meskipun 1 route error
+ * Server utama Express.js — sekarang full ESM
  * ==========================================================
  */
 
-require("dotenv").config();
-const express = require("express");
-const path = require("path");
-const helmet = require("helmet");
-const cors = require("cors");
-const morgan = require("morgan");
-const fs = require("fs");
-const logger = require("./config/logger");
-const { initDatabase, getDB } = require("./config/database");
-const { errorHandler } = require("./middleware/errorHandler");
-const { verifyRoutes } = require("./scripts/verify-routes");
+import express from "express";
+import dotenv from "dotenv";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import { Pool } from "pg";
 
+import authRoutes from "./routes/auth.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import salesRoutes from "./routes/sales.js";
+import toursRoutes from "./routes/tours.js";
+import documentsRoutes from "./routes/documents.js";
+import usersRoutes from "./routes/users.js";
+import regionsRoutes from "./routes/regions.js";
+import logsRoutes from "./routes/logs.js";
+
+dotenv.config();
+
+// Konversi __dirname untuk ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// App
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ============================================================
-// 🧠 1️⃣ Verifikasi route sebelum start
-// ============================================================
-try {
-  verifyRoutes();
-} catch (err) {
-  logger.error("❌ Route verification failed:", err);
-  process.exit(1);
-}
-
-// ============================================================
-// ⚙️ 2️⃣ Middleware dasar
-// ============================================================
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: process.env.FRONTEND_URL || "*", credentials: true }));
-app.use(morgan("tiny", { stream: logger.stream }));
-
-// Helmet CSP
+// Middleware dasar
+app.use(express.json());
+app.use(cors());
 app.use(
   helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false, // CSP akan diatur manual nanti
   })
 );
+app.use(morgan("dev"));
 
-// ============================================================
-// 🧩 3️⃣ Fungsi debug route
-// ============================================================
-function loadRouteSafely(routePath) {
-  const absolute = path.join(__dirname, routePath);
-  try {
-    const mod = require(absolute);
-    const isValid =
-      mod && (typeof mod === "function" || typeof mod.use === "function");
-    const isESM =
-      mod &&
-      mod.default &&
-      (typeof mod.default === "function" ||
-        typeof mod.default.use === "function");
+// Public folder
+app.use(express.static(path.join(__dirname, "public")));
 
-    console.log(
-      "🔍 Route check:",
-      routePath,
-      {
-        exists: fs.existsSync(absolute),
-        type: typeof mod,
-        keys: Object.keys(mod || {}),
-        hasUse: typeof mod?.use,
-        hasDefault: !!mod?.default,
-        defaultType: typeof mod?.default,
-      }
-    );
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/report/sales", salesRoutes);
+app.use("/api/report/tour", toursRoutes);
+app.use("/api/report/document", documentsRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/regions", regionsRoutes);
+app.use("/api/logs", logsRoutes);
 
-    if (isValid) return mod;
-    if (isESM) return mod.default;
+// Root
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
 
-    console.warn(
-      `⚠️ Route ${routePath} tidak valid (skip sementara agar server bisa start).`
-    );
-    return (req, res) =>
-      res.status(500).json({
-        message: `Route ${routePath} invalid, lihat log startup untuk detail.`,
-      });
-  } catch (err) {
-    console.error(`💥 Gagal memuat route ${routePath}:`, err.message);
-    return (req, res) =>
-      res.status(500).json({ message: `Gagal load ${routePath}` });
-  }
-}
-
-// ============================================================
-// 🌐 4️⃣ Register semua routes
-// ============================================================
-app.use("/api/auth", loadRouteSafely("./routes/auth"));
-app.use("/api/dashboard", loadRouteSafely("./routes/dashboard"));
-app.use("/api/tours", loadRouteSafely("./routes/tours"));
-app.use("/api/sales", loadRouteSafely("./routes/sales"));
-app.use("/api/documents", loadRouteSafely("./routes/documents"));
-app.use("/api/executive", loadRouteSafely("./routes/executiveReport"));
-app.use("/api/users", loadRouteSafely("./routes/users"));
-app.use("/api/regions", loadRouteSafely("./routes/regions"));
-app.use("/api/logs", loadRouteSafely("./routes/logs"));
-
-// ============================================================
-// ❤️ Health check
-// ============================================================
+// Health check endpoint
 app.get("/api/health", async (req, res) => {
   try {
-    const db = getDB();
-    await db.get("SELECT 1");
-    res.json({ status: "ok", db: "connected", port: PORT });
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    });
+    const result = await pool.query("SELECT NOW()");
+    res.status(200).json({
+      status: "ok",
+      time: result.rows[0].now,
+    });
+    await pool.end();
   } catch (err) {
-    res.status(500).json({ status: "error", db: "disconnected" });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ============================================================
-// ⚠️ 404 dan Error handler
-// ============================================================
-app.use((req, res) => res.status(404).json({ message: "Endpoint tidak ditemukan" }));
-app.use(errorHandler);
-
-// ============================================================
-// 🚀 Jalankan server
-// ============================================================
-(async () => {
-  try {
-    await initDatabase();
-    app.listen(PORT, () => {
-      logger.info(`🚀 Server berjalan di port ${PORT}`);
-      logger.info(`🌍 Mode: ${process.env.NODE_ENV || "development"}`);
-      logger.info(
-        `📦 Database: ${
-          process.env.DATABASE_URL ? "PostgreSQL (Neon)" : "SQLite fallback"
-        }`
-      );
-      console.log("===========================================");
-      console.log("📂 Routes terdaftar:", fs.readdirSync(path.join(__dirname, "routes")));
-      console.log("===========================================");
-    });
-  } catch (err) {
-    logger.error("❌ Startup error:", err);
-    process.exit(1);
-  }
-})();
+// Jalankan server
+app.listen(PORT, () => {
+  console.log(`🚀 Server berjalan di port ${PORT}`);
+});
