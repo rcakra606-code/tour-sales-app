@@ -1,44 +1,36 @@
 /**
  * ==========================================================
- * middleware/roleCheck.js — Travel Dashboard Enterprise v3.9.2
+ * 📁 middleware/roleCheck.js (ESM version)
+ * Travel Dashboard Enterprise v5.0
  * ==========================================================
- * ✅ Role-Based Access Control (RBAC)
- * ✅ Cegah akses tanpa hak
- * ✅ Integrasi dengan verifyToken
+ * Middleware untuk membatasi akses berdasarkan role user:
+ * - super → akses penuh
+ * - semi → akses terbatas
+ * - basic → hanya bisa view
  * ==========================================================
  */
-
-const logger = require("../config/logger");
 
 /**
- * @param {string[]} allowedRoles — daftar role yang diizinkan untuk route ini
- * @returns middleware function
+ * 🧩 Middleware Role Check
+ * @param {Array} allowedRoles - daftar role yang diizinkan mengakses route
  */
-module.exports = function roleCheck(allowedRoles = []) {
+export const roleCheck = (allowedRoles = []) => {
   return (req, res, next) => {
     try {
-      if (!req.user) {
-        logger.warn("🚫 Akses ditolak: user belum terautentikasi");
-        return res.status(401).json({ message: "User belum login atau token tidak valid" });
+      if (!req.user || !req.user.role) {
+        return res.status(403).json({ message: "Akses ditolak. User tidak terautentikasi." });
       }
 
-      const userRole = req.user.role;
-
-      if (!allowedRoles.includes(userRole)) {
-        logger.warn(
-          `🚫 Akses ditolak untuk user ${req.user.username} (role: ${userRole}), membutuhkan salah satu dari: ${allowedRoles.join(
-            ", "
-          )}`
-        );
+      if (!allowedRoles.includes(req.user.role)) {
         return res.status(403).json({
-          message: `Akses ditolak: role '${userRole}' tidak diizinkan untuk operasi ini`,
+          message: `Anda tidak memiliki hak akses (${req.user.role}).`,
         });
       }
 
       next();
     } catch (err) {
-      logger.error("❌ Error dalam roleCheck middleware:", err);
-      res.status(500).json({ message: "Gagal memverifikasi role user" });
+      console.error("❌ Role check error:", err.message);
+      res.status(500).json({ message: "Terjadi kesalahan otorisasi." });
     }
   };
 };
