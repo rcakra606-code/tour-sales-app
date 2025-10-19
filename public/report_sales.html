@@ -1,232 +1,204 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Report Sales - Travel Dashboard Enterprise</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="color-scheme" content="light dark" />
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Sales | Travel Dashboard Enterprise</title>
 
-    <style>
-      /* Sidebar transition */
-      .sidebar-collapsed { width: 4rem; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-      .sidebar-expanded { width: 16rem; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-      .theme-transition { transition: background-color 0.4s ease, color 0.4s ease; }
-      button, a { position: relative; overflow: hidden; transition: all 0.25s ease; }
-      button:hover, a:hover { transform: scale(1.03); }
-      .ripple { position: absolute; background: rgba(255,255,255,0.5); border-radius: 50%; transform: scale(0); animation: ripple 0.6s linear; pointer-events: none; }
-      @keyframes ripple { to { transform: scale(4); opacity: 0; } }
-      .card-hover { transition: all 0.3s ease-in-out; }
-      .dark { background-color: #0f172a; color: #f8fafc; }
-      .dark .bg-white { background-color: #1e293b !important; }
-      .dark .text-gray-700 { color: #e2e8f0 !important; }
-    </style>
-  </head>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
-    <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300">
-      <div class="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 id="sidebarTitle" class="text-lg font-bold text-indigo-700">Menu</h2>
-        <button id="toggleSidebar" class="text-gray-500 hover:text-indigo-600 transition" title="Expand/Collapse">☰</button>
-      </div>
+  <style>
+    :root {
+      --bg-color: #f9fafb;
+      --card-bg: #ffffff;
+      --text-color: #111827;
+      --header-bg: #1f2937;
+      --shadow-color: rgba(0, 0, 0, 0.05);
+    }
 
-      <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
-        <a href="/dashboard.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🏠 Dashboard</a>
-        <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">✈️ Report Tour</a>
-        <a href="/report_sales.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">💰 Report Sales</a>
-        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
-        <a href="/region_management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🌍 Region Management</a>
-        <a href="/user-management.html" data-role="super,semi" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
-        <a href="/audit_log.html" data-role="super" class="block px-3 py-2 rounded hover:bg-indigo-100">🧾 Audit Log</a>
-      </nav>
+    [data-theme="dark"] {
+      --bg-color: #111827;
+      --card-bg: #1f2937;
+      --text-color: #f9fafb;
+      --header-bg: #0f172a;
+      --shadow-color: rgba(255, 255, 255, 0.08);
+    }
 
-      <div class="p-3 border-t border-gray-200">
-        <button id="themeToggle" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
-          🌙 Ganti Mode
-        </button>
-      </div>
-    </aside>
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      transition: background 0.3s, color 0.3s;
+    }
 
-    <!-- Main -->
-    <div class="flex-1 flex flex-col">
-      <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100">
-        <div class="flex items-center gap-3">
-          <h1 class="text-lg font-bold text-indigo-700">Report Sales</h1>
-          <span id="currentMode" class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Light Mode</span>
-        </div>
-        <div class="flex items-center gap-4">
-          <span id="userNameDisplay" class="text-sm text-gray-600 font-medium"></span>
-          <button data-logout class="text-sm text-red-600 hover:text-red-700 font-semibold transition">Logout</button>
-        </div>
-      </header>
+    header {
+      background: var(--header-bg);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-      <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
-        <!-- Form Tambah/Edit Sales -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">Tambah / Edit Data Sales</h2>
-          <form id="salesForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium">Tanggal Transaksi</label>
-              <input type="date" id="transaction_date" class="w-full border rounded-lg px-3 py-2 mt-1" required />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Nomor Invoice</label>
-              <input type="text" id="invoice_number" class="w-full border rounded-lg px-3 py-2 mt-1" required />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Nama Staff</label>
-              <input type="text" id="staff_name" class="w-full border rounded-lg px-3 py-2 mt-1" required />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Sales Amount</label>
-              <input type="number" id="sales_amount" class="w-full border rounded-lg px-3 py-2 mt-1" required />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Profit Amount</label>
-              <input type="number" id="profit_amount" class="w-full border rounded-lg px-3 py-2 mt-1" required />
-            </div>
-            <div>
-              <label class="text-sm font-medium">Discount Amount</label>
-              <input type="number" id="discount_amount" class="w-full border rounded-lg px-3 py-2 mt-1" />
-            </div>
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
 
-            <div class="col-span-1 md:col-span-2 flex gap-3 mt-4">
-              <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Simpan</button>
-              <button type="button" id="resetBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Reset</button>
-              <button type="button" id="exportSales" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-auto">
-                ⬇️ Export ke Excel
-              </button>
-            </div>
-          </form>
-        </section>
+    .card {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px var(--shadow-color);
+      margin-bottom: 20px;
+    }
 
-        <!-- Data Table -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold text-gray-700">Daftar Sales</h2>
-            <button id="refreshBtn" class="text-sm bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">Refresh</button>
-          </div>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left border">
-              <thead class="bg-gray-100 text-gray-700">
-                <tr>
-                  <th class="py-2 px-2">#</th>
-                  <th>Invoice</th>
-                  <th>Tanggal</th>
-                  <th>Staff</th>
-                  <th>Sales</th>
-                  <th>Profit</th>
-                  <th>Discount</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="salesTable" class="text-gray-700"></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
 
-      <footer class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900">
-        © 2025 Travel Dashboard Enterprise v3.9.1
-      </footer>
+    tr:hover {
+      background: rgba(37,99,235,0.05);
+    }
+
+    input, select, button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+    }
+
+    button.primary {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button.primary:hover { background: #1d4ed8; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Sales Report</h1>
+    <div>
+      <button id="toggleThemeBtn" class="primary">🌙</button>
+      <button id="logoutBtn" class="primary" style="background:#dc2626;">Logout</button>
     </div>
+  </header>
 
-    <!-- Scripts -->
-    <script src="/js/app.js"></script>
-    <script src="/js/ui.js"></script>
+  <div class="main-content">
+    <main class="container">
+      <section class="card">
+        <h2>🧾 Input Sales</h2>
+        <form id="salesForm">
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:12px;">
+            <div>
+              <label>Staff</label>
+              <input type="text" id="staff_name" placeholder="Nama staff">
+            </div>
+            <div>
+              <label>Tanggal Transaksi</label>
+              <input type="date" id="transaction_date">
+            </div>
+            <div>
+              <label>Sales Amount</label>
+              <input type="number" id="sales_amount" placeholder="0">
+            </div>
+            <div>
+              <label>Profit Amount</label>
+              <input type="number" id="profit_amount" placeholder="0">
+            </div>
+          </div>
+          <button type="submit" class="primary" style="margin-top:12px;">💾 Simpan</button>
+        </form>
+      </section>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const form = document.getElementById("salesForm");
-        const resetBtn = document.getElementById("resetBtn");
-        const tableBody = document.getElementById("salesTable");
-        const refreshBtn = document.getElementById("refreshBtn");
-        const exportBtn = document.getElementById("exportSales");
-        let editId = null;
+      <section class="card">
+        <h2>📊 Data Sales</h2>
+        <table id="salesTable">
+          <thead>
+            <tr>
+              <th>Staff</th>
+              <th>Tanggal</th>
+              <th>Sales</th>
+              <th>Profit</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
 
-        async function loadSales() {
-          try {
-            const data = await apiFetch("/api/sales");
-            tableBody.innerHTML = data
-              .map((s, i) => `
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-1 px-2">${i + 1}</td>
-                  <td>${s.invoice_number || "-"}</td>
-                  <td>${s.transaction_date || "-"}</td>
-                  <td>${s.staff_name || "-"}</td>
-                  <td>${formatNumber(s.sales_amount)}</td>
-                  <td>${formatNumber(s.profit_amount)}</td>
-                  <td>${formatNumber(s.discount_amount)}</td>
-                  <td class="flex gap-2">
-                    <button class="text-blue-600 hover:underline" data-edit="${s.id}">Edit</button>
-                    <button class="text-red-600 hover:underline" data-delete="${s.id}">Hapus</button>
-                  </td>
-                </tr>`
-              )
-              .join("");
-          } catch {
-            showToast("Gagal memuat data sales", { type: "error" });
-          }
-        }
+  <!-- Scripts -->
+  <script src="/js/sidebar.js"></script>
+  <script src="/js/theme.js" type="module"></script>
 
-        loadSales();
+  <script>
+  const token = localStorage.getItem("token") || "";
 
-        form.addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const payload = {
-            transaction_date: form.transaction_date.value,
-            invoice_number: form.invoice_number.value,
-            staff_name: form.staff_name.value,
-            sales_amount: form.sales_amount.value,
-            profit_amount: form.profit_amount.value,
-            discount_amount: form.discount_amount.value,
-          };
+  function api(path, method="GET", body){
+    return fetch(path, {
+      method,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  }
 
-          try {
-            if (editId) {
-              await apiFetch(`/api/sales/${editId}`, { method: "PUT", body: JSON.stringify(payload) });
-              showToast("✅ Data sales diperbarui", { type: "success" });
-            } else {
-              await apiFetch("/api/sales", { method: "POST", body: JSON.stringify(payload) });
-              showToast("✅ Data sales ditambahkan", { type: "success" });
-            }
-            editId = null;
-            form.reset();
-            loadSales();
-          } catch {
-            showToast("❌ Gagal menyimpan data", { type: "error" });
-          }
-        });
+  // Load sales data
+  async function loadSales(){
+    const res = await api("/api/report/sales");
+    if (!res.ok) return;
+    const data = await res.json();
+    const tbody = document.querySelector("#salesTable tbody");
+    tbody.innerHTML = "";
+    data.forEach(row=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${row.staff_name}</td>
+        <td>${row.transaction_date}</td>
+        <td>${row.sales_amount}</td>
+        <td>${row.profit_amount}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
 
-        resetBtn.addEventListener("click", () => {
-          form.reset();
-          editId = null;
-        });
+  // Submit form
+  document.getElementById("salesForm").addEventListener("submit", async e=>{
+    e.preventDefault();
+    const body = {
+      staff_name: document.getElementById("staff_name").value,
+      transaction_date: document.getElementById("transaction_date").value,
+      sales_amount: parseFloat(document.getElementById("sales_amount").value || 0),
+      profit_amount: parseFloat(document.getElementById("profit_amount").value || 0)
+    };
+    const res = await api("/api/report/sales", "POST", body);
+    if (res.ok){
+      alert("Sales berhasil disimpan!");
+      loadSales();
+    } else alert("Gagal menyimpan sales.");
+  });
 
-        refreshBtn.addEventListener("click", loadSales);
+  document.getElementById("logoutBtn").onclick = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login.html";
+  };
 
-        // 🔹 Export ke Excel
-        exportBtn.addEventListener("click", async () => {
-          const token = localStorage.getItem("token");
-          const url = "/api/sales/export";
-          try {
-            const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-            if (!res.ok) throw new Error();
-            const blob = await res.blob();
-            const a = document.createElement("a");
-            const fileURL = URL.createObjectURL(blob);
-            a.href = fileURL;
-            a.download = `Sales_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-            a.click();
-            URL.revokeObjectURL(fileURL);
-            showToast("✅ Laporan sales berhasil diunduh", { type: "success" });
-          } catch {
-            showToast("❌ Gagal mengekspor laporan sales", { type: "error" });
-          }
-        });
-      });
-    </script>
-  </body>
+  document.addEventListener("DOMContentLoaded", loadSales);
+  </script>
+</body>
 </html>
