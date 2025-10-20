@@ -1,100 +1,83 @@
-// ==========================================================
-// 🧩 Travel Dashboard Enterprise v5.1
-// Universal UI Script - Sidebar, Theme, Expand Menus
-// ==========================================================
+/* ==========================================================
+   🧭 Travel Dashboard Enterprise v5.2
+   Universal UI Controller (Sidebar + Theme + Active State)
+   ========================================================== */
 
-(function () {
-  // Helper untuk menunggu DOM siap
-  function ready(fn) {
-    if (document.readyState !== "loading") fn();
-    else document.addEventListener("DOMContentLoaded", fn);
+document.addEventListener("DOMContentLoaded", () => {
+  const body = document.body;
+  const sidebar = document.getElementById("sidebar");
+  const sidebarToggle = document.getElementById("sidebarToggle");
+  const themeToggle = document.getElementById("themeToggle");
+  const expandables = document.querySelectorAll(".expandable");
+  const currentPath = window.location.pathname.split("/").pop();
+
+  /* ------------------------------
+     1️⃣ SIDEBAR TOGGLE (Collapse)
+  ------------------------------ */
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed");
+      localStorage.setItem("sidebarCollapsed", sidebar.classList.contains("collapsed"));
+    });
+
+    // Restore sidebar state
+    const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    if (isCollapsed) sidebar.classList.add("collapsed");
   }
 
-  ready(() => {
-    try {
-      const body = document.body;
-      const sidebar = document.getElementById("sidebar");
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      const themeToggle = document.getElementById("themeToggle");
-      const expandToggles = Array.from(document.querySelectorAll(".expand-toggle"));
+  /* ------------------------------
+     2️⃣ EXPANDABLE MENUS
+  ------------------------------ */
+  expandables.forEach((item) => {
+    const button = item.querySelector(".expand-toggle");
+    const submenu = item.querySelector(".submenu");
 
-      // Sidebar State Persistence
-      const savedSidebar = localStorage.getItem("td_sidebar_state");
-      if (savedSidebar === "collapsed") sidebar?.classList.add("collapsed");
-
-      // Theme Persistence
-      const savedTheme = localStorage.getItem("td_theme");
-      if (savedTheme === "dark") body.classList.add("theme-dark");
-
-      // Sidebar Toggle
-      if (sidebar && sidebarToggle) {
-        sidebarToggle.addEventListener("click", () => {
-          sidebar.classList.toggle("collapsed");
-          localStorage.setItem(
-            "td_sidebar_state",
-            sidebar.classList.contains("collapsed") ? "collapsed" : "expanded"
-          );
-        });
-      }
-
-      // Theme Toggle
-      if (themeToggle) {
-        themeToggle.addEventListener("click", () => {
-          body.classList.toggle("theme-dark");
-          localStorage.setItem(
-            "td_theme",
-            body.classList.contains("theme-dark") ? "dark" : "light"
-          );
-        });
-      }
-
-      // Expandable Menus
-      expandToggles.forEach((btn, index) => {
-        const submenu = btn.nextElementSibling;
-        if (!submenu) return;
-
-        // Restore saved state
-        const saved = localStorage.getItem(`td_submenu_${index}`);
-        if (saved === "open") submenu.classList.add("open");
-
-        // Toggle submenu
-        btn.addEventListener("click", () => {
-          submenu.classList.toggle("open");
-          const state = submenu.classList.contains("open") ? "open" : "closed";
-          localStorage.setItem(`td_submenu_${index}`, state);
-        });
+    if (button) {
+      button.addEventListener("click", () => {
+        const isOpen = item.classList.contains("open");
+        document.querySelectorAll(".expandable").forEach((e) => e.classList.remove("open"));
+        if (!isOpen) item.classList.add("open");
+        submenu.classList.toggle("open");
       });
-
-      // Keyboard accessibility
-      [sidebarToggle, themeToggle].forEach((el) => {
-        if (!el) return;
-        el.setAttribute("tabindex", "0");
-        el.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            el.click();
-          }
-        });
-      });
-
-      // Click outside to close all submenus (optional)
-      document.addEventListener("click", (ev) => {
-        const clicked = ev.target.closest(".expand-toggle, .submenu, .sidebar");
-        if (!clicked) {
-          document.querySelectorAll(".submenu.open").forEach((menu) => {
-            menu.classList.remove("open");
-          });
-        }
-      });
-
-      // Smooth transitions for UI
-      body.style.transition = "background-color 0.3s ease, color 0.3s ease";
-      const main = document.getElementById("main");
-      if (main) main.style.transition = "margin-left 0.25s ease";
-
-      console.log("✅ UI initialized (sidebar & theme toggle active)");
-    } catch (err) {
-      console.error("⚠️ UI initialization error:", err);
     }
   });
-})();
+
+  /* ------------------------------
+     3️⃣ THEME TOGGLE (Dark/Light)
+  ------------------------------ */
+  if (themeToggle) {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    if (savedTheme === "dark") body.classList.add("theme-dark");
+
+    themeToggle.addEventListener("click", () => {
+      body.classList.toggle("theme-dark");
+      const currentTheme = body.classList.contains("theme-dark") ? "dark" : "light";
+      localStorage.setItem("theme", currentTheme);
+    });
+  }
+
+  /* ------------------------------
+     4️⃣ ACTIVE LINK HIGHLIGHT
+  ------------------------------ */
+  document.querySelectorAll(".sidebar-nav a").forEach((link) => {
+    const linkPath = link.getAttribute("href").split("/").pop();
+    if (linkPath === currentPath) {
+      link.classList.add("active");
+      const expandable = link.closest(".expandable");
+      if (expandable) expandable.classList.add("open");
+    }
+  });
+
+  /* ------------------------------
+     5️⃣ AUTO CLOSE SIDEBAR ON MOBILE
+  ------------------------------ */
+  if (window.innerWidth < 768) {
+    sidebar.classList.add("collapsed");
+  }
+
+  /* ------------------------------
+     6️⃣ SMOOTH TRANSITION
+  ------------------------------ */
+  sidebar.style.transition = "width 0.3s ease, background-color 0.3s";
+  body.style.transition = "background-color 0.3s, color 0.3s";
+});
