@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Report Tour - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
   </head>
@@ -18,16 +18,29 @@
 
       <nav class="sidebar-nav" role="navigation">
         <ul>
-          <li><a href="/dashboard.html">Dashboard</a></li>
-          <li><a href="/report_tour.html" class="active">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-          <li><a href="/executive-dashboard.html">Executive</a></li>
-          <li><a href="/audit_log.html">Audit Log</a></li>
-          <li><a href="/profile.html">Profile</a></li>
-          <li><a href="/logout.html">Logout</a></li>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+
+          <li class="expandable open">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu open">
+              <li><a href="/report_tour.html" class="active">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
       </nav>
 
@@ -36,28 +49,22 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <div id="main" class="main-content">
-      <!-- TOPBAR -->
       <header class="topbar">
-        <div class="topbar-left">
-          <h2>Report Tour</h2>
-        </div>
-        <div class="topbar-right">
-          <div id="userBadge" class="user-badge">admin</div>
-        </div>
+        <h2>Report Tour</h2>
+        <div id="userBadge" class="user-badge">admin</div>
       </header>
 
       <main class="container">
-        <!-- FORM INPUT (left column on wide, full width on mobile) -->
-        <section class="form-section" id="tour-form-section">
+        <!-- FORM INPUT -->
+        <section class="form-section">
           <h4>Input / Edit Data Tour</h4>
-
           <form id="tourForm">
-            <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+            <div class="form-grid">
               <div class="form-group">
                 <label for="registrationDate">Tanggal Registrasi</label>
-                <input type="date" id="registrationDate" name="registrationDate" />
+                <input type="date" id="registrationDate" name="registrationDate" required />
               </div>
 
               <div class="form-group">
@@ -65,20 +72,21 @@
                 <input type="text" id="leadPassenger" name="leadPassenger" required />
               </div>
 
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label for="allPassengers">Nama Semua Penumpang (pisahkan koma)</label>
-                <textarea id="allPassengers" name="allPassengers" rows="2"></textarea>
+              <div class="form-group">
+                <label for="allPassengers">Nama Semua Penumpang</label>
+                <textarea id="allPassengers" name="allPassengers" rows="2" placeholder="Pisahkan dengan koma"></textarea>
               </div>
 
               <div class="form-group">
                 <label for="tourCode">Tour Code</label>
-                <input type="text" id="tourCode" name="tourCode" />
+                <input type="text" id="tourCode" name="tourCode" required />
               </div>
 
               <div class="form-group">
                 <label for="region">Region</label>
-                <input type="search" id="region" name="region" list="regionList" placeholder="Cari atau pilih region" autocomplete="off" />
-                <datalist id="regionList"></datalist>
+                <select id="region" name="region" required>
+                  <option value="">Loading...</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -87,48 +95,48 @@
               </div>
 
               <div class="form-group">
-                <label for="bookingCode">Booking Code</label>
+                <label for="bookingCode">Kode Booking</label>
                 <input type="text" id="bookingCode" name="bookingCode" />
               </div>
 
               <div class="form-group">
-                <label for="tourPrice">Tour Price (Rp)</label>
+                <label for="tourPrice">Harga Tour (Rp)</label>
                 <input type="number" id="tourPrice" name="tourPrice" min="0" />
               </div>
 
               <div class="form-group">
-                <label for="discountRemarks">Discount Remarks</label>
+                <label for="discountRemarks">Keterangan Diskon</label>
                 <input type="text" id="discountRemarks" name="discountRemarks" />
               </div>
 
               <div class="form-group">
-                <label for="paymentProof">Payment Proof (link/file ref)</label>
+                <label for="paymentProof">Bukti Pembayaran</label>
                 <input type="text" id="paymentProof" name="paymentProof" />
               </div>
 
               <div class="form-group">
-                <label for="documentReceived">Document Received (tanggal)</label>
+                <label for="documentReceived">Tanggal Dokumen Diterima</label>
                 <input type="date" id="documentReceived" name="documentReceived" />
               </div>
 
               <div class="form-group">
-                <label for="visaProcessStart">Visa Process Start</label>
+                <label for="visaProcessStart">Mulai Proses Visa</label>
                 <input type="date" id="visaProcessStart" name="visaProcessStart" />
               </div>
 
               <div class="form-group">
-                <label for="visaProcessEnd">Visa Process End</label>
+                <label for="visaProcessEnd">Selesai Proses Visa</label>
                 <input type="date" id="visaProcessEnd" name="visaProcessEnd" />
               </div>
 
-              <div class="form-group" style="grid-column: 1 / -1;">
-                <label for="documentRemarks">Document Remarks</label>
+              <div class="form-group">
+                <label for="documentRemarks">Catatan Dokumen</label>
                 <textarea id="documentRemarks" name="documentRemarks" rows="2"></textarea>
               </div>
 
               <div class="form-group">
-                <label for="staff">Staff</label>
-                <input type="text" id="staff" name="staff" required />
+                <label for="staff">Nama Staff</label>
+                <input type="text" id="staff" name="staff" />
               </div>
 
               <div class="form-group">
@@ -142,57 +150,50 @@
               </div>
 
               <div class="form-group">
-                <label for="departureStatus">Departure Status</label>
+                <label for="departureStatus">Status Keberangkatan</label>
                 <select id="departureStatus" name="departureStatus">
                   <option value="PENDING">PENDING</option>
                   <option value="CONFIRMED">CONFIRMED</option>
-                  <option value="COMPLETED">COMPLETED</option>
+                  <option value="CANCELLED">CANCELLED</option>
                 </select>
               </div>
-
-              <!-- hidden id for edit -->
-              <input type="hidden" id="tourId" name="id" />
-
             </div>
 
-            <div class="form-actions" style="margin-top:12px;">
+            <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="button" id="btnResetForm" class="btn" style="background:#999;">↺ Reset</button>
-              <button type="button" id="btnDelete" class="btn" style="background:#d9534f; display:none;">🗑️ Hapus</button>
+              <button type="reset" id="btnResetForm" class="btn gray">↺ Reset</button>
+              <button type="button" id="btnDelete" class="btn danger" style="display:none;">🗑️ Hapus</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE + FILTERS -->
+        <!-- TABLE -->
         <section class="panel" style="margin-top:18px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="panel-header">
             <h4>Daftar Tour</h4>
             <div class="filter-bar">
-              <input type="text" id="searchTour" placeholder="Cari nama / tour code / booking..." />
+              <input type="text" id="searchInput" placeholder="Cari nama / kode tour / staff..." />
               <input type="month" id="filterMonth" />
-              <select id="filterRegion"><option value="">Semua Region</option></select>
               <button id="btnExportExcel" class="btn">📤 Excel</button>
               <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
           </div>
 
-          <div class="table-container" style="margin-top:10px;">
+          <div class="table-container">
             <table class="data-table" id="tourTable">
               <thead>
                 <tr>
-                  <th>Tgl Reg</th>
-                  <th>Lead Passenger</th>
-                  <th>Tour Code</th>
+                  <th>Nama Lead</th>
                   <th>Region</th>
-                  <th>Departure</th>
-                  <th>Staff</th>
-                  <th>Sales</th>
-                  <th>Profit</th>
+                  <th>Tanggal Berangkat</th>
+                  <th>Harga (Rp)</th>
+                  <th>Sales (Rp)</th>
+                  <th>Profit (Rp)</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="9" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
