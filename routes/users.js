@@ -4,7 +4,7 @@
 // ==========================================================
 
 import express from "express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import pkg from "pg";
 import dotenv from "dotenv";
 dotenv.config();
