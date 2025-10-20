@@ -49,15 +49,24 @@
       </div>
     </aside>
 
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Audit Log</h2>
+        <div id="userBadge" class="user-badge">admin</div>
       </header>
 
       <main class="container">
+        <!-- TABLE AUDIT LOG -->
         <section class="panel">
           <h4>Riwayat Aktivitas Sistem</h4>
+
+          <div class="filter-bar">
+            <input type="text" id="searchLog" placeholder="Cari pengguna / aksi..." />
+            <button id="btnExportExcel" class="btn">📤 Excel</button>
+            <button id="btnExportCSV" class="btn">📄 CSV</button>
+          </div>
+
           <div class="table-container">
             <table class="data-table" id="logTable">
               <thead>
@@ -65,10 +74,11 @@
                   <th>Tanggal</th>
                   <th>Pengguna</th>
                   <th>Aksi</th>
+                  <th>Detail</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="3" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -80,19 +90,88 @@
       </footer>
     </div>
 
-    <!-- Sidebar & Theme script -->
+    <!-- UNIVERSAL SIDEBAR SCRIPT -->
     <script>
-      const yearSpan = document.getElementById("year");
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-
       const sidebar = document.getElementById("sidebar");
       const sidebarToggle = document.getElementById("sidebarToggle");
       sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
+
       const themeToggle = document.getElementById("themeToggle");
       themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
+
       document.querySelectorAll(".expand-toggle").forEach((btn) =>
         btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
       );
+
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    </script>
+
+    <!-- AUDIT LOG SCRIPT -->
+    <script type="module">
+      import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
+
+      const tableBody = document.querySelector("#logTable tbody");
+      const searchInput = document.getElementById("searchLog");
+      const btnExcel = document.getElementById("btnExportExcel");
+      const btnCSV = document.getElementById("btnExportCSV");
+      let logs = [];
+
+      async function loadLogs() {
+        try {
+          const res = await fetch("/api/logs");
+          if (!res.ok) throw new Error("Gagal memuat log");
+          logs = await res.json();
+          renderTable(logs);
+        } catch (err) {
+          console.error(err);
+          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Gagal memuat data</td></tr>`;
+        }
+      }
+
+      function renderTable(data) {
+        if (!data.length) {
+          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = data
+          .map(
+            (log) => `
+            <tr>
+              <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
+              <td>${log.user || "-"}</td>
+              <td>${log.action}</td>
+              <td>${log.details || "-"}</td>
+            </tr>`
+          )
+          .join("");
+      }
+
+      searchInput.addEventListener("input", () => {
+        const q = searchInput.value.toLowerCase();
+        const filtered = logs.filter(
+          (log) =>
+            log.user.toLowerCase().includes(q) ||
+            log.action.toLowerCase().includes(q) ||
+            (log.details && log.details.toLowerCase().includes(q))
+        );
+        renderTable(filtered);
+      });
+
+      function exportFile(type) {
+        if (!logs.length) return alert("Tidak ada data untuk diekspor");
+        const ws = XLSX.utils.json_to_sheet(logs);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Logs");
+        const filename = `AuditLogs_${new Date().toISOString().slice(0, 10)}.${type}`;
+        XLSX.writeFile(wb, filename, { bookType: type });
+      }
+
+      btnExcel.addEventListener("click", () => exportFile("xlsx"));
+      btnCSV.addEventListener("click", () => exportFile("csv"));
+
+      loadLogs();
     </script>
   </body>
 </html>
