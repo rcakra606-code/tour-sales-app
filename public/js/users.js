@@ -1,20 +1,11 @@
-/**
- * ==========================================================
- * 📁 public/js/users.js
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Fitur:
- * - Tambah user baru
- * - Tampilkan daftar user
- * - Search & Export
- * ==========================================================
- */
-
 import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
 
 const userForm = document.getElementById("userForm");
+const btnReset = document.getElementById("btnReset");
+const btnDelete = document.getElementById("btnDelete");
 const tableBody = document.querySelector("#userTable tbody");
-const searchInput = document.getElementById("searchUser");
+const searchInput = document.getElementById("searchInput");
+const filterRole = document.getElementById("filterRole");
 const btnExcel = document.getElementById("btnExportExcel");
 const btnCSV = document.getElementById("btnExportCSV");
 const yearSpan = document.getElementById("year");
@@ -22,53 +13,93 @@ if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 
 let users = [];
 
-// ====== LOAD USERS ======
+// ===== UTIL =====
+const fmtDate = (d) =>
+  d ? new Date(d).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+const escapeHtml = (str) =>
+  String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+
+// ===== LOAD USERS =====
 async function loadUsers() {
   try {
     const res = await fetch("/api/users");
-    if (!res.ok) throw new Error("Gagal mengambil data user");
+    if (!res.ok) throw new Error("Gagal memuat data user");
     users = await res.json();
     renderTable(users);
   } catch (err) {
-    console.error("❌", err.message);
+    console.error(err);
+    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Gagal memuat data</td></tr>`;
   }
 }
 
-// ====== RENDER TABLE ======
+// ===== RENDER TABLE =====
 function renderTable(data) {
   if (!data || data.length === 0) {
-    tableBody.innerHTML =
-      "<tr><td colspan='4' style='text-align:center;'>Tidak ada data user</td></tr>";
+    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`;
     return;
   }
 
   tableBody.innerHTML = data
     .map(
       (u) => `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.staff_name || "-"}</td>
-        <td>${capitalize(u.role)}</td>
-        <td>${formatDate(u.created_at)}</td>
+      <tr data-id="${u.id}">
+        <td><button class="btn-link view-user" data-id="${u.id}">${escapeHtml(u.username)}</button></td>
+        <td>${escapeHtml(u.staff_name)}</td>
+        <td>${escapeHtml(u.role)}</td>
+        <td>${fmtDate(u.created_at)}</td>
       </tr>`
     )
     .join("");
+
+  document.querySelectorAll(".view-user").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const item = users.find((x) => String(x.id) === String(btn.dataset.id));
+      if (item) populateForm(item);
+    })
+  );
 }
 
-// ====== FORM SUBMIT ======
+// ===== POPULATE FORM =====
+function populateForm(u) {
+  document.getElementById("userId").value = u.id;
+  document.getElementById("username").value = u.username;
+  document.getElementById("staffName").value = u.staff_name || "";
+  document.getElementById("password").value = "";
+  document.getElementById("role").value = u.role;
+  btnDelete.style.display = "inline-block";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ===== RESET FORM =====
+btnReset.addEventListener("click", () => {
+  userForm.reset();
+  document.getElementById("userId").value = "";
+  btnDelete.style.display = "none";
+});
+
+// ===== SUBMIT =====
 userForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const formData = Object.fromEntries(new FormData(userForm).entries());
+  const id = document.getElementById("userId").value;
+  const data = Object.fromEntries(new FormData(userForm).entries());
+  const method = id ? "PUT" : "POST";
+  const url = id ? `/api/users/${id}` : `/api/users`;
 
   try {
-    const res = await fetch("/api/users", {
-      method: "POST",
+    const res = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error("Gagal menyimpan user");
-    alert("✅ User berhasil disimpan!");
+    alert("✅ Data user tersimpan!");
     userForm.reset();
+    btnDelete.style.display = "none";
     loadUsers();
   } catch (err) {
     console.error(err);
@@ -76,23 +107,54 @@ userForm.addEventListener("submit", async (e) => {
   }
 });
 
-// ====== SEARCH FILTER ======
-searchInput.addEventListener("input", () => {
-  const q = searchInput.value.trim().toLowerCase();
-  const filtered = users.filter(
-    (u) =>
-      u.username.toLowerCase().includes(q) ||
-      (u.staff_name && u.staff_name.toLowerCase().includes(q))
-  );
-  renderTable(filtered);
+// ===== DELETE =====
+btnDelete.addEventListener("click", async () => {
+  const id = document.getElementById("userId").value;
+  if (!id) return;
+  if (!confirm("Yakin ingin menghapus user ini?")) return;
+  try {
+    const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Gagal menghapus");
+    alert("✅ User dihapus");
+    userForm.reset();
+    btnDelete.style.display = "none";
+    loadUsers();
+  } catch (err) {
+    console.error(err);
+    alert("❌ Gagal menghapus user");
+  }
 });
 
-// ====== EXPORT ======
+// ===== FILTER & SEARCH =====
+searchInput.addEventListener("input", applyFilters);
+filterRole.addEventListener("change", applyFilters);
+
+function applyFilters() {
+  const q = searchInput.value.trim().toLowerCase();
+  const role = filterRole.value;
+  let filtered = users.slice();
+
+  if (q) {
+    filtered = filtered.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        (u.staff_name && u.staff_name.toLowerCase().includes(q))
+    );
+  }
+
+  if (role) {
+    filtered = filtered.filter((u) => u.role === role);
+  }
+
+  renderTable(filtered);
+}
+
+// ===== EXPORT =====
 btnExcel.addEventListener("click", () => exportFile("xlsx"));
 btnCSV.addEventListener("click", () => exportFile("csv"));
 
 function exportFile(type) {
-  if (users.length === 0) return alert("Tidak ada data untuk diekspor.");
+  if (!users.length) return alert("Tidak ada data untuk diekspor");
   const ws = XLSX.utils.json_to_sheet(users);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Users");
@@ -100,20 +162,5 @@ function exportFile(type) {
   XLSX.writeFile(wb, filename, { bookType: type });
 }
 
-// ====== HELPERS ======
-function formatDate(d) {
-  if (!d) return "-";
-  return new Date(d).toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function capitalize(str) {
-  if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
-
-// ====== INIT ======
+// INIT
 loadUsers();
