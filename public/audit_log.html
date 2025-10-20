@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <small>v5.0 • Travel Dashboard</small>
+        <small>v5.1 • Travel Dashboard</small>
       </div>
     </aside>
 
@@ -57,28 +57,48 @@
       </header>
 
       <main class="container">
-        <!-- TABLE AUDIT LOG -->
-        <section class="panel">
-          <h4>Riwayat Aktivitas Sistem</h4>
+        <!-- FILTER PANEL -->
+        <section class="filter-section">
+          <div class="filter-grid">
+            <div class="form-group">
+              <label for="filterUser">Filter Berdasarkan User</label>
+              <input type="text" id="filterUser" placeholder="Masukkan nama user..." />
+            </div>
 
-          <div class="filter-bar">
-            <input type="text" id="searchLog" placeholder="Cari pengguna / aksi..." />
-            <button id="btnExportExcel" class="btn">📤 Excel</button>
-            <button id="btnExportCSV" class="btn">📄 CSV</button>
+            <div class="form-group">
+              <label for="filterDate">Tanggal Aktivitas</label>
+              <input type="date" id="filterDate" />
+            </div>
+
+            <button id="btnFilter" class="btn">🔍 Filter</button>
+            <button id="btnResetFilter" class="btn gray">↺ Reset</button>
+          </div>
+        </section>
+
+        <!-- TABLE LOG -->
+        <section class="panel" style="margin-top:18px;">
+          <div class="panel-header">
+            <h4>Daftar Aktivitas Sistem</h4>
+            <div class="filter-bar">
+              <input type="text" id="searchInput" placeholder="Cari aktivitas / user..." />
+              <button id="btnExportExcel" class="btn">📤 Excel</button>
+              <button id="btnExportCSV" class="btn">📄 CSV</button>
+            </div>
           </div>
 
           <div class="table-container">
             <table class="data-table" id="logTable">
               <thead>
                 <tr>
-                  <th>Tanggal</th>
-                  <th>Pengguna</th>
+                  <th>Tanggal & Waktu</th>
+                  <th>Username</th>
                   <th>Aksi</th>
-                  <th>Detail</th>
+                  <th>Deskripsi</th>
+                  <th>IP / Lokasi</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -90,86 +110,66 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL SIDEBAR SCRIPT -->
-    <script>
-      const sidebar = document.getElementById("sidebar");
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
+    <!-- UNIVERSAL UI SCRIPT -->
+    <script src="/js/ui.js"></script>
 
-      const themeToggle = document.getElementById("themeToggle");
-      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
-
-      document.querySelectorAll(".expand-toggle").forEach((btn) =>
-        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
-      );
-
-      const yearSpan = document.getElementById("year");
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    </script>
-
-    <!-- AUDIT LOG SCRIPT -->
+    <!-- AUDIT LOG LOGIC -->
     <script type="module">
-      import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
-
-      const tableBody = document.querySelector("#logTable tbody");
-      const searchInput = document.getElementById("searchLog");
-      const btnExcel = document.getElementById("btnExportExcel");
-      const btnCSV = document.getElementById("btnExportCSV");
-      let logs = [];
-
       async function loadLogs() {
-        try {
-          const res = await fetch("/api/logs");
-          if (!res.ok) throw new Error("Gagal memuat log");
-          logs = await res.json();
-          renderTable(logs);
-        } catch (err) {
-          console.error(err);
-          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Gagal memuat data</td></tr>`;
-        }
-      }
+        const res = await fetch("/api/logs");
+        const data = await res.json();
+        const tbody = document.querySelector("#logTable tbody");
+        tbody.innerHTML = "";
 
-      function renderTable(data) {
         if (!data.length) {
-          tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data log</td></tr>`;
           return;
         }
 
-        tableBody.innerHTML = data
-          .map(
-            (log) => `
-            <tr>
-              <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
-              <td>${log.user || "-"}</td>
-              <td>${log.action}</td>
-              <td>${log.details || "-"}</td>
-            </tr>`
-          )
-          .join("");
+        data.forEach((log) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
+            <td>${log.username || "-"}</td>
+            <td>${log.action || "-"}</td>
+            <td>${log.description || "-"}</td>
+            <td>${log.ip || "-"}</td>
+          `;
+          tbody.appendChild(row);
+        });
       }
 
-      searchInput.addEventListener("input", () => {
-        const q = searchInput.value.toLowerCase();
-        const filtered = logs.filter(
-          (log) =>
-            log.user.toLowerCase().includes(q) ||
-            log.action.toLowerCase().includes(q) ||
-            (log.details && log.details.toLowerCase().includes(q))
-        );
-        renderTable(filtered);
+      document.getElementById("btnFilter").addEventListener("click", async () => {
+        const user = document.getElementById("filterUser").value.trim();
+        const date = document.getElementById("filterDate").value;
+        const res = await fetch(`/api/logs?user=${user}&date=${date}`);
+        const data = await res.json();
+        const tbody = document.querySelector("#logTable tbody");
+        tbody.innerHTML = "";
+
+        if (!data.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data sesuai filter</td></tr>`;
+          return;
+        }
+
+        data.forEach((log) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
+            <td>${log.username || "-"}</td>
+            <td>${log.action || "-"}</td>
+            <td>${log.description || "-"}</td>
+            <td>${log.ip || "-"}</td>
+          `;
+          tbody.appendChild(row);
+        });
       });
 
-      function exportFile(type) {
-        if (!logs.length) return alert("Tidak ada data untuk diekspor");
-        const ws = XLSX.utils.json_to_sheet(logs);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Logs");
-        const filename = `AuditLogs_${new Date().toISOString().slice(0, 10)}.${type}`;
-        XLSX.writeFile(wb, filename, { bookType: type });
-      }
-
-      btnExcel.addEventListener("click", () => exportFile("xlsx"));
-      btnCSV.addEventListener("click", () => exportFile("csv"));
+      document.getElementById("btnResetFilter").addEventListener("click", () => {
+        document.getElementById("filterUser").value = "";
+        document.getElementById("filterDate").value = "";
+        loadLogs();
+      });
 
       loadLogs();
     </script>
