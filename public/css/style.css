@@ -178,6 +178,32 @@ textarea {
   position: sticky;
   top: 0;
 }
+/* === Sidebar Expand Animation === */
+.submenu {
+  display: none;
+  transition: all 0.25s ease;
+}
+.submenu.open {
+  display: block;
+}
+.expandable button.expand-toggle {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-weight: 600;
+  padding: 10px 16px;
+  color: var(--text);
+  cursor: pointer;
+}
+.expandable button.expand-toggle:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.expandable ul.submenu a {
+  padding-left: 34px;
+  font-size: 14px;
+}
 
 /* ====== FOOTER ====== */
 .footer {
