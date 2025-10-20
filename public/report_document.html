@@ -9,25 +9,39 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
+    <!-- Gunakan versi expandable -->
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon">☰</button>
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon">🌓</button>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" role="navigation">
         <ul>
-          <li><a href="/dashboard.html">Dashboard</a></li>
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html" class="active">Report Document</a></li>
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-          <li><a href="/executive-dashboard.html">Executive</a></li>
-          <li><a href="/audit_log.html">Audit Log</a></li>
-          <li><a href="/profile.html">Profile</a></li>
-          <li><a href="/logout.html">Logout</a></li>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+
+          <li class="expandable open">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu open">
+              <li><a href="/report_tour.html">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html" class="active">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
       </nav>
 
@@ -47,11 +61,17 @@
         <!-- FORM INPUT -->
         <section class="form-section">
           <h4>Input / Edit Data Dokumen</h4>
+
           <form id="documentForm">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div class="form-grid">
               <div class="form-group">
-                <label for="receiveDate">Tanggal Terima Dokumen</label>
+                <label for="receiveDate">Tanggal Terima</label>
                 <input type="date" id="receiveDate" name="receiveDate" required />
+              </div>
+
+              <div class="form-group">
+                <label for="sendDate">Tanggal Pengiriman</label>
+                <input type="date" id="sendDate" name="sendDate" />
               </div>
 
               <div class="form-group">
@@ -60,56 +80,86 @@
               </div>
 
               <div class="form-group">
-                <label for="bookingCodeDMS">Kode Booking DMS</label>
+                <label for="passportVisa">Paspor / Visa (Negara)</label>
+                <input type="text" id="passportVisa" name="passportVisa" />
+              </div>
+
+              <div class="form-group">
+                <label for="processType">Jenis Proses</label>
+                <select id="processType" name="processType">
+                  <option value="Biasa">Biasa</option>
+                  <option value="Kilat">Kilat</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="bookingCodeDMS">Booking Code DMS</label>
                 <input type="text" id="bookingCodeDMS" name="bookingCodeDMS" />
+              </div>
+
+              <div class="form-group">
+                <label for="invoiceNumber">Nomor Invoice</label>
+                <input type="text" id="invoiceNumber" name="invoiceNumber" />
+              </div>
+
+              <div class="form-group">
+                <label for="guestPhone">Nomor Telepon Tamu</label>
+                <input type="text" id="guestPhone" name="guestPhone" />
+              </div>
+
+              <div class="form-group">
+                <label for="estimateFinish">Estimasi Selesai</label>
+                <input type="date" id="estimateFinish" name="estimateFinish" />
+              </div>
+
+              <div class="form-group">
+                <label for="staffName">Nama Staff</label>
+                <input type="text" id="staffName" name="staffName" required />
               </div>
 
               <div class="form-group">
                 <label for="tourCode">Tour Code (opsional)</label>
                 <input type="text" id="tourCode" name="tourCode" />
               </div>
-
-              <div class="form-group" style="grid-column:1/-1;">
-                <label for="remarks">Dokumen Remarks</label>
-                <textarea id="remarks" name="remarks" rows="2"></textarea>
-              </div>
-
-              <input type="hidden" id="docId" name="id" />
             </div>
 
-            <div class="form-actions" style="margin-top:12px;">
+            <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" id="btnResetForm" class="btn" style="background:#999;">↺ Reset</button>
-              <button type="button" id="btnDelete" class="btn" style="background:#d9534f;display:none;">🗑️ Hapus</button>
+              <button type="reset" id="btnResetForm" class="btn gray">↺ Reset</button>
+              <button type="button" id="btnDelete" class="btn danger" style="display:none;">🗑️ Hapus</button>
             </div>
           </form>
         </section>
 
         <!-- TABLE -->
         <section class="panel" style="margin-top:18px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="panel-header">
             <h4>Daftar Dokumen</h4>
             <div class="filter-bar">
-              <input type="text" id="searchInput" placeholder="Cari nama tamu / booking..." />
+              <input type="text" id="searchInput" placeholder="Cari nama tamu / DMS / invoice..." />
               <input type="month" id="filterMonth" />
               <button id="btnExportExcel" class="btn">📤 Excel</button>
               <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
           </div>
 
-          <div class="table-container" style="margin-top:10px;">
+          <div class="table-container">
             <table class="data-table" id="documentTable">
               <thead>
                 <tr>
                   <th>Tanggal Terima</th>
                   <th>Nama Tamu</th>
-                  <th>Kode Booking DMS</th>
-                  <th>Tour Code</th>
-                  <th>Remarks</th>
+                  <th>Negara</th>
+                  <th>Jenis</th>
+                  <th>DMS Code</th>
+                  <th>Invoice</th>
+                  <th>Telepon</th>
+                  <th>Estimasi</th>
+                  <th>Staff</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="9" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
