@@ -45,21 +45,22 @@
       </nav>
 
       <div class="sidebar-footer">
-        <small>v5.0 • Travel Dashboard</small>
+        <small>v5.1 • Travel Dashboard</small>
       </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>User Profile</h2>
-        <div id="userBadge" class="user-badge">staff</div>
+        <h2>Profil Pengguna</h2>
+        <div id="userBadge" class="user-badge">user</div>
       </header>
 
       <main class="container">
+        <!-- USER INFO -->
         <section class="form-section">
           <h4>Informasi Akun</h4>
-          <div id="profileInfo" class="form-grid">
+          <div class="form-grid">
             <div class="form-group">
               <label>Username</label>
               <input type="text" id="profileUsername" readonly />
@@ -77,23 +78,24 @@
           </div>
         </section>
 
+        <!-- PASSWORD UPDATE -->
         <section class="form-section">
           <h4>Ubah Password</h4>
           <form id="passwordForm">
             <div class="form-grid">
               <div class="form-group">
                 <label for="oldPassword">Password Lama</label>
-                <input type="password" id="oldPassword" name="oldPassword" required />
+                <input type="password" id="oldPassword" required />
               </div>
 
               <div class="form-group">
                 <label for="newPassword">Password Baru</label>
-                <input type="password" id="newPassword" name="newPassword" required />
+                <input type="password" id="newPassword" required />
               </div>
 
               <div class="form-group">
                 <label for="confirmPassword">Konfirmasi Password Baru</label>
-                <input type="password" id="confirmPassword" name="confirmPassword" required />
+                <input type="password" id="confirmPassword" required />
               </div>
             </div>
 
@@ -110,22 +112,8 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL SIDEBAR SCRIPT -->
-    <script>
-      const sidebar = document.getElementById("sidebar");
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
-
-      const themeToggle = document.getElementById("themeToggle");
-      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
-
-      document.querySelectorAll(".expand-toggle").forEach((btn) =>
-        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
-      );
-
-      const yearSpan = document.getElementById("year");
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    </script>
+    <!-- UNIVERSAL UI SCRIPT -->
+    <script src="/js/ui.js"></script>
 
     <!-- PROFILE LOGIC -->
     <script type="module">
@@ -133,6 +121,7 @@
         try {
           const res = await fetch("/api/profile");
           const data = await res.json();
+
           document.getElementById("profileUsername").value = data.username || "-";
           document.getElementById("profileName").value = data.staff_name || "-";
           document.getElementById("profileRole").value = data.role || "-";
@@ -145,9 +134,10 @@
       const form = document.getElementById("passwordForm");
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const oldPass = document.getElementById("oldPassword").value;
-        const newPass = document.getElementById("newPassword").value;
-        const confirm = document.getElementById("confirmPassword").value;
+
+        const oldPass = document.getElementById("oldPassword").value.trim();
+        const newPass = document.getElementById("newPassword").value.trim();
+        const confirm = document.getElementById("confirmPassword").value.trim();
 
         if (newPass !== confirm) {
           alert("❌ Konfirmasi password tidak cocok!");
@@ -166,10 +156,11 @@
           form.reset();
         } catch (err) {
           console.error(err);
-          alert("❌ Gagal mengubah password");
+          alert("❌ Terjadi kesalahan saat memperbarui password");
         }
       });
 
+      document.getElementById("year").textContent = new Date().getFullYear();
       loadProfile();
     </script>
   </body>
