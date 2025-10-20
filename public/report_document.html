@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <small>v5.0 • Travel Dashboard</small>
+        <small>v5.1 • Travel Dashboard</small>
       </div>
     </aside>
 
@@ -169,24 +169,10 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL SIDEBAR SCRIPT -->
-    <script>
-      const sidebar = document.getElementById("sidebar");
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
+    <!-- UNIVERSAL UI SCRIPT -->
+    <script src="/js/ui.js"></script>
 
-      const themeToggle = document.getElementById("themeToggle");
-      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
-
-      document.querySelectorAll(".expand-toggle").forEach((btn) =>
-        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
-      );
-
-      const yearSpan = document.getElementById("year");
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    </script>
-
-    <!-- DOCUMENT JS -->
+    <!-- DOCUMENT LOGIC -->
     <script type="module" src="/js/report_document.js"></script>
   </body>
 </html>
