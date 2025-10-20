@@ -44,9 +44,7 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer">
-        <small>v5.1 • Travel Dashboard</small>
-      </div>
+      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
@@ -57,44 +55,35 @@
       </header>
 
       <main class="container">
-        <!-- FILTER PANEL -->
-        <section class="filter-section">
-          <div class="filter-grid">
-            <div class="form-group">
-              <label for="filterUser">Filter Berdasarkan User</label>
-              <input type="text" id="filterUser" placeholder="Masukkan nama user..." />
-            </div>
-
-            <div class="form-group">
-              <label for="filterDate">Tanggal Aktivitas</label>
+        <!-- FILTER -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>Filter Log Aktivitas</h4>
+            <div class="filter-bar">
+              <input type="text" id="filterUser" placeholder="Cari username..." />
               <input type="date" id="filterDate" />
+              <button id="btnFilter" class="btn">🔍 Filter</button>
+              <button id="btnReset" class="btn gray">↺ Reset</button>
             </div>
-
-            <button id="btnFilter" class="btn">🔍 Filter</button>
-            <button id="btnResetFilter" class="btn gray">↺ Reset</button>
           </div>
         </section>
 
-        <!-- TABLE LOG -->
-        <section class="panel" style="margin-top:18px;">
+        <!-- TABLE -->
+        <section class="panel" style="margin-top:10px;">
           <div class="panel-header">
-            <h4>Daftar Aktivitas Sistem</h4>
-            <div class="filter-bar">
-              <input type="text" id="searchInput" placeholder="Cari aktivitas / user..." />
-              <button id="btnExportExcel" class="btn">📤 Excel</button>
-              <button id="btnExportCSV" class="btn">📄 CSV</button>
-            </div>
+            <h4>Log Aktivitas Sistem</h4>
+            <button id="btnExportCSV" class="btn">📄 Export CSV</button>
           </div>
 
           <div class="table-container">
             <table class="data-table" id="logTable">
               <thead>
                 <tr>
-                  <th>Tanggal & Waktu</th>
+                  <th>Waktu</th>
                   <th>Username</th>
                   <th>Aksi</th>
                   <th>Deskripsi</th>
-                  <th>IP / Lokasi</th>
+                  <th>IP Address</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,62 +102,61 @@
     <!-- UNIVERSAL UI SCRIPT -->
     <script src="/js/ui.js"></script>
 
-    <!-- AUDIT LOG LOGIC -->
+    <!-- LOGIC -->
     <script type="module">
-      async function loadLogs() {
-        const res = await fetch("/api/logs");
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      async function loadLogs(params = "") {
+        const res = await fetch("/api/logs" + params);
         const data = await res.json();
         const tbody = document.querySelector("#logTable tbody");
         tbody.innerHTML = "";
-
-        if (!data.length) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data log</td></tr>`;
-          return;
-        }
+        if (!data.length)
+          return (tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data</td></tr>`);
 
         data.forEach((log) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
+          const row = `<tr>
             <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
             <td>${log.username || "-"}</td>
-            <td>${log.action || "-"}</td>
+            <td>${log.action}</td>
             <td>${log.description || "-"}</td>
             <td>${log.ip || "-"}</td>
-          `;
-          tbody.appendChild(row);
+          </tr>`;
+          tbody.innerHTML += row;
         });
       }
 
-      document.getElementById("btnFilter").addEventListener("click", async () => {
+      document.getElementById("btnFilter").addEventListener("click", () => {
         const user = document.getElementById("filterUser").value.trim();
         const date = document.getElementById("filterDate").value;
-        const res = await fetch(`/api/logs?user=${user}&date=${date}`);
-        const data = await res.json();
-        const tbody = document.querySelector("#logTable tbody");
-        tbody.innerHTML = "";
-
-        if (!data.length) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data sesuai filter</td></tr>`;
-          return;
-        }
-
-        data.forEach((log) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
-            <td>${log.username || "-"}</td>
-            <td>${log.action || "-"}</td>
-            <td>${log.description || "-"}</td>
-            <td>${log.ip || "-"}</td>
-          `;
-          tbody.appendChild(row);
-        });
+        let params = "?";
+        if (user) params += `user=${encodeURIComponent(user)}&`;
+        if (date) params += `date=${encodeURIComponent(date)}&`;
+        loadLogs(params);
       });
 
-      document.getElementById("btnResetFilter").addEventListener("click", () => {
+      document.getElementById("btnReset").addEventListener("click", () => {
         document.getElementById("filterUser").value = "";
         document.getElementById("filterDate").value = "";
         loadLogs();
+      });
+
+      // Export CSV
+      document.getElementById("btnExportCSV").addEventListener("click", () => {
+        const rows = Array.from(document.querySelectorAll("#logTable tr"));
+        const csv = rows
+          .map((r) =>
+            Array.from(r.children)
+              .map((td) => `"${td.innerText.replace(/"/g, '""')}"`)
+              .join(",")
+          )
+          .join("\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "audit_log.csv";
+        a.click();
       });
 
       loadLogs();
