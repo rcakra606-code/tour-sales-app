@@ -1,285 +1,125 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Executive Dashboard - Travel Dashboard Enterprise</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="color-scheme" content="light dark" />
-
-    <style>
-      .sidebar-collapsed {
-        width: 4rem;
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .sidebar-expanded {
-        width: 16rem;
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      .theme-transition {
-        transition: background-color 0.4s ease, color 0.4s ease;
-      }
-
-      button,
-      a {
-        position: relative;
-        overflow: hidden;
-        transition: all 0.25s ease;
-      }
-
-      button:hover,
-      a:hover {
-        transform: scale(1.03);
-      }
-
-      .ripple {
-        position: absolute;
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 50%;
-        transform: scale(0);
-        animation: ripple 0.6s linear;
-        pointer-events: none;
-      }
-
-      @keyframes ripple {
-        to {
-          transform: scale(4);
-          opacity: 0;
-        }
-      }
-
-      .card-hover {
-        transition: all 0.3s ease-in-out;
-      }
-
-      .dark {
-        background-color: #0f172a;
-        color: #f8fafc;
-      }
-      .dark .bg-white {
-        background-color: #1e293b !important;
-      }
-      .dark .text-gray-700 {
-        color: #e2e8f0 !important;
-      }
-    </style>
+    <link rel="stylesheet" href="/css/style.css" />
   </head>
 
-  <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
-    <!-- Sidebar -->
-    <aside
-      id="sidebar"
-      class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300"
-    >
-      <div class="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 id="sidebarTitle" class="text-lg font-bold text-indigo-700">Executive</h2>
-        <button id="toggleSidebar" class="text-gray-500 hover:text-indigo-600 transition" title="Expand/Collapse">☰</button>
+  <body class="theme-light">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
       </div>
 
-      <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
-        <a href="/dashboard.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🏠 Dashboard</a>
-        <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">✈️ Report Tour</a>
-        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">💰 Report Sales</a>
-        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
-        <a href="/region_management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🌍 Region Management</a>
-        <a href="/executive-dashboard.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">📊 Executive Dashboard</a>
-        <a href="/user-management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
-        <a href="/audit_log.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🧾 Audit Log</a>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">Dashboard</a></li>
+          <li><a href="/report_tour.html">Report Tour</a></li>
+          <li><a href="/report_sales.html">Report Sales</a></li>
+          <li><a href="/report_document.html">Report Document</a></li>
+          <li><a href="/region_management.html">Region Management</a></li>
+          <li><a href="/user-management.html">User Management</a></li>
+          <li><a href="/executive-dashboard.html" class="active">Executive</a></li>
+          <li><a href="/audit_log.html">Audit Log</a></li>
+          <li><a href="/profile.html">Profile</a></li>
+          <li><a href="/logout.html">Logout</a></li>
+        </ul>
       </nav>
 
-      <div class="p-3 border-t border-gray-200">
-        <button id="themeToggle" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition">
-          🌙 Ganti Mode
-        </button>
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
       </div>
     </aside>
 
-    <!-- Main -->
-    <div class="flex-1 flex flex-col">
-      <header class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100">
-        <div class="flex items-center gap-3">
-          <h1 class="text-lg font-bold text-indigo-700">Executive Dashboard</h1>
-          <span id="currentMode" class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded">Light Mode</span>
-        </div>
-        <div class="flex items-center gap-4">
-          <span id="userNameDisplay" class="text-sm text-gray-600 font-medium"></span>
-          <button data-logout class="text-sm text-red-600 hover:text-red-700 font-semibold transition">Logout</button>
-        </div>
+    <!-- MAIN -->
+    <div id="main" class="main-content">
+      <header class="topbar">
+        <h2>Executive Dashboard</h2>
+        <div id="userBadge" class="user-badge">admin</div>
       </header>
 
-      <!-- Main Content -->
-      <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
-        <div id="backendStatusBanner" class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"></div>
-
-        <!-- Filter Periode -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">Filter Periode</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div>
-              <label class="text-sm font-medium">Bulan</label>
-              <select id="filterMonth" class="w-full border rounded-lg px-3 py-2 mt-1">
-                <option value="">Semua Bulan</option>
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Tahun</label>
-              <input type="number" id="filterYear" class="w-full border rounded-lg px-3 py-2 mt-1" placeholder="mis. 2025" />
-            </div>
-            <div class="flex items-end">
-              <button id="filterBtn" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700">Terapkan</button>
-            </div>
-            <div class="flex items-end">
-              <button id="exportBtn" class="w-full bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700">
-                ⬇️ Export ke Excel
-              </button>
-            </div>
+      <main class="container">
+        <!-- KPI Cards -->
+        <section class="cards-grid" id="kpiCards">
+          <div class="card">
+            <h3>Total Sales (Selected)</h3>
+            <p id="kpiSales">—</p>
+          </div>
+          <div class="card">
+            <h3>Total Profit (Selected)</h3>
+            <p id="kpiProfit">—</p>
+          </div>
+          <div class="card">
+            <h3>Jumlah Tours</h3>
+            <p id="kpiTours">—</p>
+          </div>
+          <div class="card">
+            <h3>Total Pax</h3>
+            <p id="kpiPax">—</p>
           </div>
         </section>
 
-        <!-- Chart -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">Grafik Performa Staff (Sales vs Profit)</h2>
-          <canvas id="staffChart" height="150"></canvas>
+        <!-- Controls -->
+        <section class="panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label for="rangeFrom">From</label>
+            <input type="date" id="rangeFrom" />
+            <label for="rangeTo">To</label>
+            <input type="date" id="rangeTo" />
+            <select id="groupBy">
+              <option value="month">Group: Month</option>
+              <option value="week">Group: Week</option>
+            </select>
+            <button id="btnApply" class="btn">Apply</button>
+          </div>
+
+          <div class="filter-bar">
+            <button id="btnExportCSV" class="btn">📄 Export CSV</button>
+            <button id="btnExportExcel" class="btn">📤 Export Excel</button>
+          </div>
         </section>
 
-        <!-- Tabel Top 10 Staff -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">Top 10 Staff Berdasarkan Penjualan</h2>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left border">
-              <thead class="bg-gray-100 text-gray-700">
-                <tr>
-                  <th class="py-2 px-2">#</th>
-                  <th>Nama Staff</th>
-                  <th>Total Transaksi</th>
-                  <th>Total Sales</th>
-                  <th>Total Profit</th>
-                </tr>
-              </thead>
-              <tbody id="staffTable" class="text-gray-700"></tbody>
-            </table>
+        <!-- Charts -->
+        <section class="panels-grid" style="margin-top:12px;">
+          <div class="panel" style="min-height:320px;">
+            <h4>Sales & Profit (Trend)</h4>
+            <canvas id="chartSalesProfit" width="600" height="320"></canvas>
+          </div>
+
+          <div class="panel" style="min-height:320px;">
+            <h4>Tours by Region (Pax)</h4>
+            <canvas id="chartRegionPax" width="600" height="320"></canvas>
+          </div>
+        </section>
+
+        <section class="panels-grid" style="margin-top:12px;">
+          <div class="panel" style="min-height:320px;">
+            <h4>Top Staff (Sales)</h4>
+            <canvas id="chartTopStaff" width="600" height="320"></canvas>
+          </div>
+
+          <div class="panel" style="min-height:320px;">
+            <h4>Targets vs Realisasi</h4>
+            <canvas id="chartTargets" width="600" height="320"></canvas>
           </div>
         </section>
       </main>
 
-      <footer class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900">
-        © 2025 Travel Dashboard Enterprise v3.9
+      <footer class="footer">
+        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
       </footer>
     </div>
 
-    <!-- Scripts -->
+    <!-- Chart.js UMD -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/js/app.js"></script>
-    <script src="/js/ui.js"></script>
+    <!-- XLSX for export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const staffTable = document.getElementById("staffTable");
-        const ctx = document.getElementById("staffChart");
-        const filterBtn = document.getElementById("filterBtn");
-        const exportBtn = document.getElementById("exportBtn");
-        const filterMonth = document.getElementById("filterMonth");
-        const filterYear = document.getElementById("filterYear");
-        let chartInstance;
-
-        async function loadStaffPerformance() {
-          const params = new URLSearchParams();
-          if (filterMonth.value) params.append("month", filterMonth.value);
-          if (filterYear.value) params.append("year", filterYear.value);
-
-          try {
-            const res = await apiFetch(`/api/dashboard/top-staff?${params.toString()}`);
-            const staff = res.topStaff || [];
-
-            staffTable.innerHTML = staff
-              .map(
-                (s, i) => `
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-1 px-2">${i + 1}</td>
-                  <td>${s.staff_name}</td>
-                  <td>${s.total_transactions}</td>
-                  <td>${formatNumber(s.total_sales)}</td>
-                  <td>${formatNumber(s.total_profit)}</td>
-                </tr>`
-              )
-              .join("");
-
-            // Update Chart
-            if (chartInstance) chartInstance.destroy();
-            const labels = staff.map((s) => s.staff_name);
-            const sales = staff.map((s) => s.total_sales);
-            const profit = staff.map((s) => s.total_profit);
-
-            chartInstance = new Chart(ctx, {
-              type: "bar",
-              data: {
-                labels,
-                datasets: [
-                  { label: "Total Sales", data: sales, backgroundColor: "#4F46E5" },
-                  { label: "Total Profit", data: profit, backgroundColor: "#16A34A" },
-                ],
-              },
-              options: {
-                responsive: true,
-                plugins: { legend: { position: "bottom" } },
-                scales: { y: { beginAtZero: true } },
-              },
-            });
-          } catch {
-            showToast("❌ Gagal memuat data executive", { type: "error" });
-          }
-        }
-
-        // 🔹 Export ke Excel
-        exportBtn.addEventListener("click", () => {
-          const month = filterMonth.value;
-          const year = filterYear.value;
-          const token = localStorage.getItem("token");
-
-          const url = `/api/executive/export?${month ? `month=${month}&` : ""}${year ? `year=${year}` : ""}`;
-          const link = document.createElement("a");
-          link.href = url;
-          link.target = "_blank";
-          link.download = "";
-          link.rel = "noopener noreferrer";
-
-          // Tambahkan token auth ke header
-          fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-            .then((res) => {
-              if (!res.ok) throw new Error("Gagal mengunduh laporan");
-              return res.blob();
-            })
-            .then((blob) => {
-              const urlBlob = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = urlBlob;
-              a.download = `Executive_Report_${year || "All"}_${month || "All"}.xlsx`;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              URL.revokeObjectURL(urlBlob);
-            })
-            .catch(() => showToast("❌ Gagal mengekspor laporan", { type: "error" }));
-        });
-
-        filterBtn.addEventListener("click", loadStaffPerformance);
-        loadStaffPerformance();
-      });
-    </script>
+    <script type="module" src="/js/executive-dashboard.js"></script>
   </body>
 </html>
