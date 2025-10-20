@@ -19,7 +19,6 @@
       <nav class="sidebar-nav" role="navigation">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
           <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
             <ul class="submenu open">
@@ -28,7 +27,6 @@
               <li><a href="/report_document.html" class="active">Report Document</a></li>
             </ul>
           </li>
-
           <li class="expandable">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu">
@@ -36,7 +34,6 @@
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
-
           <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -44,120 +41,106 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer">
-        <small>v5.1 • Travel Dashboard</small>
-      </div>
+      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Report Document</h2>
-        <div id="userBadge" class="user-badge">admin</div>
+        <div id="userBadge" class="user-badge">staff</div>
       </header>
 
       <main class="container">
-        <!-- FORM INPUT DOCUMENT -->
+        <!-- FORM INPUT -->
         <section class="form-section">
-          <h4>Input / Edit Data Dokumen</h4>
-          <form id="documentForm">
+          <h4>Tambah / Edit Data Dokumen</h4>
+          <form id="docForm">
             <div class="form-grid">
               <div class="form-group">
-                <label for="receiveDate">Tanggal Terima Dokumen</label>
-                <input type="date" id="receiveDate" name="receiveDate" required />
+                <label>Tanggal Terima Dokumen</label>
+                <input type="date" id="receiveDate" required />
               </div>
-
               <div class="form-group">
-                <label for="sendDate">Tanggal Pengiriman</label>
-                <input type="date" id="sendDate" name="sendDate" />
+                <label>Tanggal Pengiriman</label>
+                <input type="date" id="sendDate" />
               </div>
-
               <div class="form-group">
-                <label for="guestName">Nama Tamu</label>
-                <input type="text" id="guestName" name="guestName" required />
+                <label>Nama Tamu</label>
+                <input type="text" id="guestName" required />
               </div>
-
               <div class="form-group">
-                <label for="passportVisa">Paspor / Visa (Negara)</label>
-                <input type="text" id="passportVisa" name="passportVisa" />
+                <label>Paspor / Visa (Negara)</label>
+                <input type="text" id="passportVisa" />
               </div>
-
               <div class="form-group">
-                <label for="processType">Jenis Proses</label>
-                <select id="processType" name="processType">
+                <label>Jenis Proses</label>
+                <select id="processType">
                   <option value="Biasa">Biasa</option>
                   <option value="Kilat">Kilat</option>
                 </select>
               </div>
-
               <div class="form-group">
-                <label for="bookingCodeDMS">Kode Booking DMS</label>
-                <input type="text" id="bookingCodeDMS" name="bookingCodeDMS" />
+                <label>Booking Code DMS</label>
+                <input type="text" id="bookingCodeDMS" />
               </div>
-
               <div class="form-group">
-                <label for="invoiceNumber">Nomor Invoice</label>
-                <input type="text" id="invoiceNumber" name="invoiceNumber" />
+                <label>Nomor Invoice</label>
+                <input type="text" id="invoiceNumber" />
               </div>
-
               <div class="form-group">
-                <label for="guestPhone">Nomor Telepon Tamu</label>
-                <input type="text" id="guestPhone" name="guestPhone" />
+                <label>Nomor Telepon Tamu</label>
+                <input type="text" id="guestPhone" />
               </div>
-
               <div class="form-group">
-                <label for="estimateFinish">Estimasi Selesai</label>
-                <input type="date" id="estimateFinish" name="estimateFinish" />
+                <label>Estimasi Selesai</label>
+                <input type="date" id="estimateFinish" />
               </div>
-
               <div class="form-group">
-                <label for="staffName">Nama Staff</label>
-                <input type="text" id="staffName" name="staffName" />
+                <label>Nama Staff</label>
+                <input type="text" id="staffName" />
               </div>
-
               <div class="form-group">
-                <label for="tourCode">Tour Code (Opsional)</label>
-                <input type="text" id="tourCode" name="tourCode" />
+                <label>Tour Code (Opsional)</label>
+                <input type="text" id="tourCode" />
               </div>
             </div>
 
             <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" id="btnResetForm" class="btn gray">↺ Reset</button>
-              <button type="button" id="btnDelete" class="btn danger" style="display:none;">🗑️ Hapus</button>
+              <button type="reset" class="btn gray">↺ Reset</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE DATA DOCUMENT -->
-        <section class="panel" style="margin-top:18px;">
+        <!-- FILTER + TABLE -->
+        <section class="panel" style="margin-top:20px;">
           <div class="panel-header">
-            <h4>Daftar Dokumen</h4>
+            <h4>Data Dokumen</h4>
             <div class="filter-bar">
-              <input type="text" id="searchInput" placeholder="Cari nama / invoice / DMS..." />
               <input type="month" id="filterMonth" />
+              <input type="text" id="searchDoc" placeholder="Cari nama / staff..." />
+              <button id="btnFilter" class="btn">🔍 Filter</button>
               <button id="btnExportExcel" class="btn">📤 Excel</button>
               <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
           </div>
 
           <div class="table-container">
-            <table class="data-table" id="documentTable">
+            <table class="data-table" id="docTable">
               <thead>
                 <tr>
                   <th>Tanggal Terima</th>
                   <th>Nama Tamu</th>
-                  <th>Negara</th>
-                  <th>Jenis Proses</th>
-                  <th>Kode DMS</th>
-                  <th>Invoice</th>
-                  <th>Telepon</th>
-                  <th>Estimasi Selesai</th>
+                  <th>Visa</th>
+                  <th>Proses</th>
                   <th>Staff</th>
+                  <th>Invoice</th>
+                  <th>Tour</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="9" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -173,6 +156,59 @@
     <script src="/js/ui.js"></script>
 
     <!-- DOCUMENT LOGIC -->
-    <script type="module" src="/js/report_document.js"></script>
+    <script type="module">
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      async function loadDocuments() {
+        const res = await fetch("/api/documents");
+        const data = await res.json();
+        const tbody = document.querySelector("#docTable tbody");
+        tbody.innerHTML = "";
+        if (!data.length)
+          return (tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Tidak ada data</td></tr>`);
+        data.forEach((d) => {
+          const row = `<tr>
+            <td>${d.receive_date ? new Date(d.receive_date).toLocaleDateString("id-ID") : "-"}</td>
+            <td>${d.guest_name}</td>
+            <td>${d.passport_visa}</td>
+            <td>${d.process_type}</td>
+            <td>${d.staff_name}</td>
+            <td>${d.invoice_number}</td>
+            <td>${d.tour_code || "-"}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+
+      document.getElementById("docForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const f = e.target;
+        const data = {
+          receiveDate: f.receiveDate.value,
+          sendDate: f.sendDate.value,
+          guestName: f.guestName.value,
+          passportVisa: f.passportVisa.value,
+          processType: f.processType.value,
+          bookingCodeDMS: f.bookingCodeDMS.value,
+          invoiceNumber: f.invoiceNumber.value,
+          guestPhone: f.guestPhone.value,
+          estimateFinish: f.estimateFinish.value,
+          staffName: f.staffName.value,
+          tourCode: f.tourCode.value,
+        };
+        const res = await fetch("/api/documents", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        if (res.ok) {
+          alert("✅ Data dokumen berhasil disimpan!");
+          f.reset();
+          loadDocuments();
+        } else alert("❌ Gagal menyimpan data dokumen");
+      });
+
+      loadDocuments();
+    </script>
   </body>
 </html>
