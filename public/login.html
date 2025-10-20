@@ -127,6 +127,9 @@
       </div>
     </div>
 
+    <!-- UI Script -->
+    <script src="/js/ui.js"></script>
+
     <script>
       const form = document.getElementById("loginForm");
       const errorMsg = document.getElementById("errorMsg");
@@ -150,7 +153,7 @@
           const data = await res.json();
 
           if (!res.ok) {
-            errorMsg.textContent = data.message || "❌ Login gagal, periksa kembali username dan password Anda.";
+            errorMsg.textContent = data.message || "❌ Login gagal, periksa username dan password Anda.";
             return;
           }
 
