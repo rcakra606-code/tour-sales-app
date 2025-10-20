@@ -1,262 +1,98 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Audit Log - Travel Dashboard Enterprise</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="color-scheme" content="light dark" />
-
-    <style>
-      /* Sidebar transition */
-      .sidebar-collapsed {
-        width: 4rem;
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-      .sidebar-expanded {
-        width: 16rem;
-        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      }
-
-      /* Smooth theme transition */
-      .theme-transition {
-        transition: background-color 0.4s ease, color 0.4s ease;
-      }
-
-      /* Button & Link Animations */
-      button,
-      a {
-        position: relative;
-        overflow: hidden;
-        transition: all 0.25s ease;
-      }
-
-      button:hover,
-      a:hover {
-        transform: scale(1.03);
-      }
-
-      /* Ripple animation */
-      .ripple {
-        position: absolute;
-        background: rgba(255, 255, 255, 0.5);
-        border-radius: 50%;
-        transform: scale(0);
-        animation: ripple 0.6s linear;
-        pointer-events: none;
-      }
-
-      @keyframes ripple {
-        to {
-          transform: scale(4);
-          opacity: 0;
-        }
-      }
-
-      /* Card Hover */
-      .card-hover {
-        transition: all 0.3s ease-in-out;
-      }
-
-      /* Dark mode adjustments */
-      .dark {
-        background-color: #0f172a;
-        color: #f8fafc;
-      }
-      .dark .bg-white {
-        background-color: #1e293b !important;
-      }
-      .dark .text-gray-700 {
-        color: #e2e8f0 !important;
-      }
-    </style>
+    <link rel="stylesheet" href="/css/style.css" />
   </head>
 
-  <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
-    <!-- Sidebar -->
-    <!-- SIDEBAR (Standardized Template) -->
-<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-  <div class="sidebar-top">
-    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
-    <h1 class="brand">TravelDash</h1>
-    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
-  </div>
+  <body class="theme-light">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+      </div>
 
-  <nav class="sidebar-nav" role="navigation">
-    <ul>
-      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <li class="expandable">
-        <button class="expand-toggle">📊 Reports</button>
-        <ul class="submenu">
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
+          <li class="expandable">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu">
+              <li><a href="/report_tour.html">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html" class="active">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
-      </li>
+      </nav>
 
-      <li class="expandable">
-        <button class="expand-toggle">⚙️ Management</button>
-        <ul class="submenu">
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-        </ul>
-      </li>
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
 
-      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-      <li><a href="/profile.html">👤 Profile</a></li>
-      <li><a href="/logout.html">🚪 Logout</a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <small>v5.0 • Travel Dashboard</small>
-  </div>
-</aside>
-
-    <!-- Main -->
-    <div class="flex-1 flex flex-col">
-      <header
-        class="bg-white shadow-md py-3 px-6 flex justify-between items-center border-b border-gray-100"
-      >
-        <div class="flex items-center gap-3">
-          <h1 class="text-lg font-bold text-indigo-700">Audit Log</h1>
-          <span
-            id="currentMode"
-            class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded"
-          >
-            Light Mode
-          </span>
-        </div>
-        <div class="flex items-center gap-4">
-          <span id="userNameDisplay" class="text-sm text-gray-600 font-medium"></span>
-          <button
-            data-logout
-            class="text-sm text-red-600 hover:text-red-700 font-semibold transition"
-          >
-            Logout
-          </button>
-        </div>
+    <!-- MAIN -->
+    <div id="main" class="main-content">
+      <header class="topbar">
+        <h2>Audit Log</h2>
       </header>
 
-      <!-- Main Content -->
-      <main class="flex-1 p-6 bg-gray-50 dark:bg-slate-800 transition-colors">
-        <div
-          id="backendStatusBanner"
-          class="hidden bg-yellow-100 text-yellow-800 p-2 text-sm rounded mb-4"
-        ></div>
-
-        <!-- Filter Section -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 mb-8 card-hover">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">Filter Log</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input id="filterUser" type="text" placeholder="Cari username..." class="border rounded px-3 py-2 text-sm" />
-            <input id="filterAction" type="text" placeholder="Cari aksi..." class="border rounded px-3 py-2 text-sm" />
-            <div class="flex gap-2">
-              <button id="filterBtn" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Filter</button>
-              <button id="clearBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Reset</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- Log Table -->
-        <section class="bg-white rounded-xl shadow p-6 border border-gray-100 dark:bg-slate-700 card-hover">
-          <h2 class="text-lg font-semibold mb-4 text-gray-700">Daftar Aktivitas</h2>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left border">
-              <thead class="bg-gray-100 text-gray-700">
+      <main class="container">
+        <section class="panel">
+          <h4>Riwayat Aktivitas Sistem</h4>
+          <div class="table-container">
+            <table class="data-table" id="logTable">
+              <thead>
                 <tr>
-                  <th class="py-2 px-2">#</th>
-                  <th>Username</th>
-                  <th>Role</th>
+                  <th>Tanggal</th>
+                  <th>Pengguna</th>
                   <th>Aksi</th>
-                  <th>Target</th>
-                  <th>Waktu</th>
                 </tr>
               </thead>
-              <tbody id="logTable" class="text-gray-700"></tbody>
+              <tbody>
+                <tr><td colspan="3" style="text-align:center;">Loading...</td></tr>
+              </tbody>
             </table>
           </div>
         </section>
       </main>
 
-      <footer
-        class="text-center py-3 text-xs text-gray-400 border-t dark:border-gray-700 dark:bg-slate-900"
-      >
-        © 2025 Travel Dashboard Enterprise v3.7
+      <footer class="footer">
+        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
       </footer>
     </div>
 
-    <!-- Scripts -->
-    <script src="/js/app.js"></script>
-    <script src="/js/ui.js"></script>
+    <!-- Sidebar & Theme script -->
     <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const logTable = document.getElementById("logTable");
-        const userFilter = document.getElementById("filterUser");
-        const actionFilter = document.getElementById("filterAction");
-        const filterBtn = document.getElementById("filterBtn");
-        const clearBtn = document.getElementById("clearBtn");
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 
-        async function loadLogs(filters = {}) {
-          const params = new URLSearchParams(filters);
-          try {
-            const data = await apiFetch(`/api/logs?${params.toString()}`);
-            logTable.innerHTML = data.logs
-              .map(
-                (l, i) => `
-                <tr class="border-b hover:bg-gray-50">
-                  <td class="py-1 px-2">${i + 1}</td>
-                  <td>${l.username}</td>
-                  <td>${l.role}</td>
-                  <td>${l.action}</td>
-                  <td>${l.target}</td>
-                  <td>${new Date(l.timestamp).toLocaleString("id-ID")}</td>
-                </tr>`
-              )
-              .join("");
-          } catch {
-            showToast("Gagal memuat log", { type: "error" });
-          }
-        }
-
-        filterBtn.addEventListener("click", () => {
-          loadLogs({
-            username: userFilter.value,
-            action: actionFilter.value,
-          });
-        });
-
-        clearBtn.addEventListener("click", () => {
-          userFilter.value = "";
-          actionFilter.value = "";
-          loadLogs();
-        });
-
-        loadLogs();
-      });
-    <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
-
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
-
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+      const sidebar = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
+      document.querySelectorAll(".expand-toggle").forEach((btn) =>
+        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
+      );
+    </script>
   </body>
 </html>
