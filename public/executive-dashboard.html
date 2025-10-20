@@ -45,9 +45,7 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer">
-        <small>v5.1 • Travel Dashboard</small>
-      </div>
+      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
@@ -58,40 +56,44 @@
       </header>
 
       <main class="container">
-        <!-- KPI CARDS -->
+        <!-- KPI SUMMARY -->
         <section class="cards-grid" id="summaryCards">
-          <div class="card">
-            <h3>Total Sales</h3>
-            <p id="totalSales">Rp 0</p>
-          </div>
-          <div class="card">
-            <h3>Total Profit</h3>
-            <p id="totalProfit">Rp 0</p>
-          </div>
-          <div class="card">
-            <h3>Total Tours</h3>
-            <p id="totalTours">0</p>
-          </div>
-          <div class="card">
-            <h3>Total Pax</h3>
-            <p id="totalPax">0</p>
-          </div>
-          <div class="card">
-            <h3>Target Achieved</h3>
-            <p id="targetAchieved">0%</p>
-          </div>
+          <div class="card"><h3>Total Sales</h3><p id="totalSales">Rp 0</p></div>
+          <div class="card"><h3>Total Profit</h3><p id="totalProfit">Rp 0</p></div>
+          <div class="card"><h3>Total Tours</h3><p id="totalTours">0</p></div>
+          <div class="card"><h3>Total Pax</h3><p id="totalPax">0</p></div>
+          <div class="card"><h3>Target Achieved</h3><p id="targetAchieved">0%</p></div>
         </section>
 
-        <!-- SALES & PROFIT TREND -->
+        <!-- CHARTS SECTION -->
         <section class="panel" style="margin-top:20px;">
-          <h4>📈 Sales & Profit Trend (12 Bulan)</h4>
-          <canvas id="salesProfitChart" height="100"></canvas>
+          <h4>📈 Sales vs Target (12 Bulan Terakhir)</h4>
+          <canvas id="monthlyChart" height="100"></canvas>
         </section>
 
-        <!-- TOUR DISTRIBUTION -->
         <section class="panel" style="margin-top:20px;">
-          <h4>🌍 Tour Distribution by Region</h4>
-          <canvas id="tourRegionChart" height="100"></canvas>
+          <h4>🌍 Distribusi Tour per Region</h4>
+          <canvas id="regionChart" height="100"></canvas>
+        </section>
+
+        <!-- TOP STAFF -->
+        <section class="panel" style="margin-top:20px;">
+          <h4>🏅 Top 5 Staff by Profit</h4>
+          <div class="table-container">
+            <table class="data-table" id="topStaffTable">
+              <thead>
+                <tr>
+                  <th>Staff</th>
+                  <th>Total Sales</th>
+                  <th>Total Profit</th>
+                  <th>Transaksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </section>
       </main>
 
@@ -104,82 +106,101 @@
     <script src="/js/ui.js"></script>
 
     <!-- EXECUTIVE DASHBOARD LOGIC -->
-    <script>
-      async function loadKPI() {
-        try {
-          const res = await fetch("/api/dashboard/summary");
-          const data = await res.json();
-          document.getElementById("totalSales").textContent = "Rp " + Number(data.totalSales || 0).toLocaleString("id-ID");
-          document.getElementById("totalProfit").textContent = "Rp " + Number(data.totalProfit || 0).toLocaleString("id-ID");
-          document.getElementById("totalTours").textContent = data.totalTours || 0;
-          document.getElementById("totalPax").textContent = data.totalPax || 0;
-          document.getElementById("targetAchieved").textContent = (data.targetAchieved || 0) + "%";
-        } catch (err) {
-          console.error("Error loading KPI:", err);
-        }
+    <script type="module">
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      async function loadSummary() {
+        const res = await fetch("/api/executive/summary");
+        const data = await res.json();
+        document.getElementById("totalSales").textContent = "Rp " + Number(data.totalSales).toLocaleString("id-ID");
+        document.getElementById("totalProfit").textContent = "Rp " + Number(data.totalProfit).toLocaleString("id-ID");
+        document.getElementById("totalTours").textContent = data.totalTours;
+        document.getElementById("totalPax").textContent = data.totalPax;
+        document.getElementById("targetAchieved").textContent = data.targetAchieved + "%";
       }
 
-      async function loadSalesProfitChart() {
-        try {
-          const res = await fetch("/api/dashboard/sales-profit-trend");
-          const data = await res.json();
-          const ctx = document.getElementById("salesProfitChart");
-          new Chart(ctx, {
-            type: "line",
-            data: {
-              labels: data.labels || [],
-              datasets: [
-                {
-                  label: "Sales",
-                  data: data.sales,
-                  borderColor: "#0b74de",
-                  fill: false,
-                },
-                {
-                  label: "Profit",
-                  data: data.profit,
-                  borderColor: "#28a745",
-                  fill: false,
-                },
-              ],
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { position: "bottom" } },
-              scales: { y: { beginAtZero: true } },
-            },
-          });
-        } catch (err) {
-          console.error("Error loading chart:", err);
-        }
+      async function loadMonthlyChart() {
+        const res = await fetch("/api/executive/monthly-performance");
+        const data = await res.json();
+        const ctx = document.getElementById("monthlyChart");
+        new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: data.labels,
+            datasets: [
+              {
+                label: "Sales",
+                data: data.actualSales,
+                borderColor: "#0b74de",
+                fill: false,
+              },
+              {
+                label: "Target Sales",
+                data: data.targetSales,
+                borderColor: "#ffc107",
+                borderDash: [5, 5],
+                fill: false,
+              },
+              {
+                label: "Profit",
+                data: data.actualProfit,
+                borderColor: "#28a745",
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+            scales: { y: { beginAtZero: true } },
+          },
+        });
       }
 
-      async function loadTourRegionChart() {
-        try {
-          const res = await fetch("/api/dashboard/tour-region");
-          const data = await res.json();
-          const ctx = document.getElementById("tourRegionChart");
-          new Chart(ctx, {
-            type: "doughnut",
-            data: {
-              labels: data.labels || [],
-              datasets: [
-                {
-                  data: data.counts,
-                  backgroundColor: ["#0b74de", "#28a745", "#ffc107", "#dc3545", "#17a2b8"],
-                },
-              ],
-            },
-            options: { responsive: true, plugins: { legend: { position: "bottom" } } },
-          });
-        } catch (err) {
-          console.error("Error loading region chart:", err);
-        }
+      async function loadRegionChart() {
+        const res = await fetch("/api/executive/region-performance");
+        const data = await res.json();
+        const ctx = document.getElementById("regionChart");
+        new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: data.regions,
+            datasets: [
+              {
+                data: data.totalTours,
+                backgroundColor: ["#0b74de", "#28a745", "#ffc107", "#dc3545", "#17a2b8"],
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+          },
+        });
       }
 
-      loadKPI();
-      loadSalesProfitChart();
-      loadTourRegionChart();
+      async function loadTopStaff() {
+        const res = await fetch("/api/executive/top-staff");
+        const data = await res.json();
+        const tbody = document.querySelector("#topStaffTable tbody");
+        tbody.innerHTML = "";
+        if (!data.length)
+          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`);
+        data.forEach((s) => {
+          const row = `<tr>
+            <td>${s.staff_name}</td>
+            <td>Rp ${Number(s.total_sales_amount).toLocaleString("id-ID")}</td>
+            <td>Rp ${Number(s.total_profit).toLocaleString("id-ID")}</td>
+            <td>${s.total_sales}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+
+      loadSummary();
+      loadMonthlyChart();
+      loadRegionChart();
+      loadTopStaff();
     </script>
   </body>
 </html>
