@@ -170,5 +170,27 @@
     </div>
 
     <script type="module" src="/js/report_sales.js"></script>
+    <script>
+  // Sidebar collapse toggle
+  const sidebar = document.getElementById("sidebar");
+  const sidebarToggle = document.getElementById("sidebarToggle");
+  sidebarToggle?.addEventListener("click", () => {
+    sidebar.classList.toggle("collapsed");
+  });
+
+  // Theme toggle
+  const themeToggle = document.getElementById("themeToggle");
+  themeToggle?.addEventListener("click", () => {
+    document.body.classList.toggle("theme-dark");
+  });
+
+  // Expand/collapse submenu
+  document.querySelectorAll(".expand-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const submenu = btn.nextElementSibling;
+      submenu.classList.toggle("open");
+    });
+  });
+</script>
   </body>
 </html>
