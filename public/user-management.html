@@ -15,12 +15,14 @@
         <h1 class="brand">TravelDash</h1>
         <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
+
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">Dashboard</a></li>
           <li><a href="/report_tour.html">Report Tour</a></li>
           <li><a href="/report_sales.html">Report Sales</a></li>
           <li><a href="/report_document.html">Report Document</a></li>
+          <li><a href="/region_management.html">Region Management</a></li>
           <li><a href="/user-management.html" class="active">User Management</a></li>
           <li><a href="/executive-dashboard.html">Executive</a></li>
           <li><a href="/audit_log.html">Audit Log</a></li>
@@ -28,9 +30,13 @@
           <li><a href="/logout.html">Logout</a></li>
         </ul>
       </nav>
+
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>User Management</h2>
@@ -38,54 +44,64 @@
       </header>
 
       <main class="container">
-        <!-- FORM USER -->
+        <!-- FORM INPUT -->
         <section class="form-section">
           <h4>Tambah / Edit User</h4>
           <form id="userForm">
-            <div class="form-group">
-              <label for="username">Username</label>
-              <input type="text" id="username" name="username" required />
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required />
+              </div>
+
+              <div class="form-group">
+                <label for="staffName">Nama Staff</label>
+                <input type="text" id="staffName" name="staffName" required />
+              </div>
+
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required />
+              </div>
+
+              <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" name="role" required>
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                  <option value="super">Super</option>
+                </select>
+              </div>
+
+              <input type="hidden" id="userId" name="id" />
             </div>
 
-            <div class="form-group">
-              <label for="staffName">Nama Staff</label>
-              <input type="text" id="staffName" name="staffName" required />
-            </div>
-
-            <div class="form-group">
-              <label for="password">Password</label>
-              <input type="password" id="password" name="password" required />
-            </div>
-
-            <div class="form-group">
-              <label for="role">Role</label>
-              <select id="role" name="role" required>
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-                <option value="super">Super</option>
-              </select>
-            </div>
-
-            <div class="form-actions">
+            <div class="form-actions" style="margin-top:12px;">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" class="btn" style="background:#999;">↺ Reset</button>
+              <button type="reset" id="btnReset" class="btn" style="background:#999;">↺ Reset</button>
+              <button type="button" id="btnDelete" class="btn" style="background:#d9534f;display:none;">🗑️ Hapus</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE USER -->
-        <section class="panel">
-          <div class="panel-header">
+        <!-- TABLE -->
+        <section class="panel" style="margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
             <h4>Daftar User</h4>
+            <div class="filter-bar">
+              <input type="text" id="searchInput" placeholder="Cari username / nama staff..." />
+              <select id="filterRole">
+                <option value="">Semua Role</option>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+                <option value="super">Super</option>
+              </select>
+              <button id="btnExportExcel" class="btn">📤 Excel</button>
+              <button id="btnExportCSV" class="btn">📄 CSV</button>
+            </div>
           </div>
 
-          <div class="filter-bar">
-            <input type="text" id="searchUser" placeholder="Cari username / nama staff..." />
-            <button id="btnExportExcel" class="btn">📤 Excel</button>
-            <button id="btnExportCSV" class="btn">📄 CSV</button>
-          </div>
-
-          <div class="table-container">
+          <div class="table-container" style="margin-top:10px;">
             <table class="data-table" id="userTable">
               <thead>
                 <tr>
