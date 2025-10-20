@@ -1,46 +1,42 @@
 {
   "name": "travel-dashboard-enterprise",
-  "version": "5.0.0",
-  "description": "Enterprise Travel Dashboard with Node.js, Express, NeonDB, and Modern Frontend",
-  "main": "server.js",
+  "version": "5.2.0",
+  "description": "Enterprise Travel Dashboard with PostgreSQL (Neon) + Render Deployment",
   "type": "module",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "init-db": "node scripts/initDatabase.js",
+    "migrate": "node scripts/migrateDatabase.js",
     "setup-admin": "node scripts/setup-admin.js",
-    "postinstall": "npm run setup-admin"
+    "verify-routes": "node scripts/verify-routes.js"
   },
+  "keywords": [
+    "travel",
+    "dashboard",
+    "enterprise",
+    "neon",
+    "render",
+    "postgresql",
+    "reporting"
+  ],
+  "author": "Raden Cakra",
+  "license": "MIT",
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "body-parser": "^1.20.3",
-    "compression": "^1.7.4",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "helmet": "^7.1.0",
+    "express": "^4.19.2",
+    "helmet": "^7.1.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "pg": "^8.11.5",
-    "winston": "^3.14.2"
+    "pg": "^8.13.1",
+    "chart.js": "^4.4.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
   },
   "engines": {
-    "node": ">=20.0.0"
-  },
-  "keywords": [
-    "nodejs",
-    "express",
-    "dashboard",
-    "travel",
-    "enterprise",
-    "reporting",
-    "postgresql",
-    "neon",
-    "render"
-  ],
-  "author": "Raden Cakra + ChatGPT DevOps Assistant",
-  "license": "MIT"
+    "node": ">=18.x"
+  }
 }
