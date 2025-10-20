@@ -9,48 +9,47 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <!-- SIDEBAR (Standardized Template) -->
-<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-  <div class="sidebar-top">
-    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
-    <h1 class="brand">TravelDash</h1>
-    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
-  </div>
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+      </div>
 
-  <nav class="sidebar-nav" role="navigation">
-    <ul>
-      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <li class="expandable">
-        <button class="expand-toggle">📊 Reports</button>
-        <ul class="submenu">
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
+          <li class="expandable">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu">
+              <li><a href="/report_tour.html">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable open">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu open">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html" class="active">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
-      </li>
+      </nav>
 
-      <li class="expandable">
-        <button class="expand-toggle">⚙️ Management</button>
-        <ul class="submenu">
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-        </ul>
-      </li>
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
 
-      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-      <li><a href="/profile.html">👤 Profile</a></li>
-      <li><a href="/logout.html">🚪 Logout</a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <small>v5.0 • Travel Dashboard</small>
-  </div>
-</aside>
-
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>User Management</h2>
@@ -58,11 +57,11 @@
       </header>
 
       <main class="container">
-        <!-- FORM INPUT -->
+        <!-- FORM INPUT USER -->
         <section class="form-section">
           <h4>Tambah / Edit User</h4>
           <form id="userForm">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div class="form-grid">
               <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required />
@@ -83,39 +82,31 @@
                 <select id="role" name="role" required>
                   <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
-                  <option value="super">Super</option>
+                  <option value="super">Super Admin</option>
                 </select>
               </div>
-
-              <input type="hidden" id="userId" name="id" />
             </div>
 
-            <div class="form-actions" style="margin-top:12px;">
+            <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" id="btnReset" class="btn" style="background:#999;">↺ Reset</button>
-              <button type="button" id="btnDelete" class="btn" style="background:#d9534f;display:none;">🗑️ Hapus</button>
+              <button type="reset" id="btnResetForm" class="btn gray">↺ Reset</button>
+              <button type="button" id="btnDelete" class="btn danger" style="display:none;">🗑️ Hapus</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE -->
+        <!-- TABLE USER -->
         <section class="panel" style="margin-top:18px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="panel-header">
             <h4>Daftar User</h4>
             <div class="filter-bar">
-              <input type="text" id="searchInput" placeholder="Cari username / nama staff..." />
-              <select id="filterRole">
-                <option value="">Semua Role</option>
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-                <option value="super">Super</option>
-              </select>
+              <input type="text" id="searchInput" placeholder="Cari username / staff..." />
               <button id="btnExportExcel" class="btn">📤 Excel</button>
               <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
           </div>
 
-          <div class="table-container" style="margin-top:10px;">
+          <div class="table-container">
             <table class="data-table" id="userTable">
               <thead>
                 <tr>
@@ -138,28 +129,24 @@
       </footer>
     </div>
 
-    <script type="module" src="/js/users.js"></script>
+    <!-- UNIVERSAL SIDEBAR SCRIPT -->
     <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
+      const sidebar = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
 
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+      document.querySelectorAll(".expand-toggle").forEach((btn) =>
+        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
+      );
+
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    </script>
+
+    <!-- USER LOGIC -->
+    <script type="module" src="/js/users.js"></script>
   </body>
 </html>
