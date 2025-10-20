@@ -2,10 +2,75 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Travel Dashboard Enterprise</title>
-    <meta http-equiv="refresh" content="0; url=/login.html" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <style>
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #0b74de, #004b99);
+        color: #fff;
+        font-family: "Inter", sans-serif;
+        text-align: center;
+      }
+      .loading-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        animation: fadeIn 0.8s ease;
+      }
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+      }
+      p {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .loader {
+        margin: 20px auto;
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
   </head>
+
   <body>
-    <p>Redirecting ke halaman login...</p>
+    <div class="loading-container">
+      <h1>Travel Dashboard Enterprise</h1>
+      <p>Mengarahkan Anda ke halaman utama...</p>
+      <div class="loader"></div>
+    </div>
+
+    <script src="/js/ui.js"></script>
+    <script>
+      const token = localStorage.getItem("token");
+      setTimeout(() => {
+        if (token) window.location.href = "/dashboard.html";
+        else window.location.href = "/login.html";
+      }, 1200);
+    </script>
   </body>
 </html>
