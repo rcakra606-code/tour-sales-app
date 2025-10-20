@@ -9,32 +9,46 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
-      <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon">☰</button>
-        <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon">🌓</button>
-      </div>
+    <!-- SIDEBAR (Standardized Template) -->
+<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+  <div class="sidebar-top">
+    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+    <h1 class="brand">TravelDash</h1>
+    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+  </div>
 
-      <nav class="sidebar-nav">
-        <ul>
-          <li><a href="/dashboard.html">Dashboard</a></li>
+  <nav class="sidebar-nav" role="navigation">
+    <ul>
+      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+
+      <li class="expandable">
+        <button class="expand-toggle">📊 Reports</button>
+        <ul class="submenu">
           <li><a href="/report_tour.html">Report Tour</a></li>
           <li><a href="/report_sales.html">Report Sales</a></li>
           <li><a href="/report_document.html">Report Document</a></li>
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html" class="active">User Management</a></li>
-          <li><a href="/executive-dashboard.html">Executive</a></li>
-          <li><a href="/audit_log.html">Audit Log</a></li>
-          <li><a href="/profile.html">Profile</a></li>
-          <li><a href="/logout.html">Logout</a></li>
         </ul>
-      </nav>
+      </li>
 
-      <div class="sidebar-footer">
-        <small>v5.0 • Travel Dashboard</small>
-      </div>
-    </aside>
+      <li class="expandable">
+        <button class="expand-toggle">⚙️ Management</button>
+        <ul class="submenu">
+          <li><a href="/region_management.html">Region Management</a></li>
+          <li><a href="/user-management.html">User Management</a></li>
+        </ul>
+      </li>
+
+      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+      <li><a href="/profile.html">👤 Profile</a></li>
+      <li><a href="/logout.html">🚪 Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    <small>v5.0 • Travel Dashboard</small>
+  </div>
+</aside>
 
     <!-- MAIN -->
     <div id="main" class="main-content">
