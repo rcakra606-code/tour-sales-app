@@ -1,116 +1,131 @@
-/**
- * ==========================================================
- * 🚀 server.js — Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Optimized for:
- * - Render hosting
- * - Neon PostgreSQL
- * - Full ESM support
- * ==========================================================
- */
+// ==========================================================
+// 🚀 Travel Dashboard Enterprise v5.1
+// Main Server (Express + Neon PostgreSQL)
+// ==========================================================
 
 import express from "express";
-import dotenv from "dotenv";
-import helmet from "helmet";
-import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { Pool } from "pg";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+import dotenv from "dotenv";
+import pkg from "pg";
 import fs from "fs";
 
-// ====== Load Environment ======
+// Load env
 dotenv.config();
 
-// ====== Initialize Express ======
-const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// ====== PostgreSQL Connection (Neon) ======
+// PostgreSQL setup
+const { Pool } = pkg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// ====== Test Database Connection ======
-(async () => {
-  try {
-    const res = await pool.query("SELECT NOW()");
-    console.log("✅ PostgreSQL connected:", res.rows[0].now);
-  } catch (err) {
-    console.error("❌ Failed to connect to PostgreSQL:", err.message);
-  }
-})();
+// Express app
+const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// ====== Middleware ======
-app.use(express.json({ limit: "5mb" }));
+// ==========================================================
+// Middleware
+// ==========================================================
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
 
-// ====== CSP & Security Headers ======
+// Helmet (Security Headers)
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: ["'self'", "https:", "http:"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-        imgSrc: ["'self'", "data:", "https:"],
-        fontSrc: ["'self'", "https:", "data:"],
-      },
-    },
+    contentSecurityPolicy: false, // disable CSP strict mode (for inline scripts)
     crossOriginEmbedderPolicy: false,
   })
 );
 
-// ====== Static Public Folder ======
+// CORS
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  })
+);
+
+// Logger
+app.use(morgan("dev"));
+
+// Static Files
 app.use(express.static(path.join(__dirname, "public")));
 
-// ====== API Routes ======
+// ==========================================================
+// Database Migration (auto-run once per boot)
+// ==========================================================
+import { execSync } from "child_process";
+
+try {
+  console.log("⏳ Checking and migrating database...");
+  execSync("node ./scripts/migrateDatabase.js", { stdio: "inherit" });
+  console.log("✅ Database migration completed!");
+} catch (err) {
+  console.error("⚠️ Database migration skipped or failed:", err.message);
+}
+
+// ==========================================================
+// Routes Import
+// ==========================================================
 import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import toursRoutes from "./routes/tours.js";
 import salesRoutes from "./routes/sales.js";
 import documentsRoutes from "./routes/documents.js";
 import usersRoutes from "./routes/users.js";
-import profileRoutes from "./routes/profile.js";
+import regionsRoutes from "./routes/regions.js";
 import logsRoutes from "./routes/logs.js";
+import executiveRoutes from "./routes/executiveReport.js";
 
+// ==========================================================
+// Routes Use
+// ==========================================================
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/tours", toursRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api/users", usersRoutes);
-app.use("/api/profile", profileRoutes);
+app.use("/api/regions", regionsRoutes);
 app.use("/api/logs", logsRoutes);
+app.use("/api/executive", executiveRoutes);
 
-// ====== Health Check (Render) ======
+// ==========================================================
+// Health Check
+// ==========================================================
 app.get("/api/health", async (req, res) => {
   try {
-    const result = await pool.query("SELECT NOW() AS time");
-    res.status(200).json({
-      status: "ok",
-      db_time: result.rows[0].time,
-      message: "Server and database are healthy 🚀",
-    });
+    const result = await pool.query("SELECT NOW()");
+    res.json({ status: "ok", db_time: result.rows[0].now });
   } catch (err) {
-    res.status(500).json({
-      status: "error",
-      message: "Database connection failed",
-      error: err.message,
-    });
+    res.status(500).json({ status: "error", message: err.message });
   }
 });
 
-// ====== Serve HTML (Fallback) ======
+// ==========================================================
+// Catch-All for Frontend Routes
+// ==========================================================
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// ====== PORT CONFIG ======
+// ==========================================================
+// Error Handling Middleware
+// ==========================================================
+app.use((err, req, res, next) => {
+  console.error("❌ Error:", err.message);
+  res.status(500).json({ message: "Internal Server Error", error: err.message });
+});
+
+// ==========================================================
+// Server Start
+// ==========================================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running on port ${PORT} [${process.env.NODE_ENV}]`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT} [ENV: ${process.env.NODE_ENV}]`);
+});
