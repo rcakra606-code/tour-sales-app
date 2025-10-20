@@ -9,48 +9,47 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <!-- SIDEBAR (Standardized Template) -->
-<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-  <div class="sidebar-top">
-    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
-    <h1 class="brand">TravelDash</h1>
-    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
-  </div>
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+      </div>
 
-  <nav class="sidebar-nav" role="navigation">
-    <ul>
-      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <li class="expandable">
-        <button class="expand-toggle">📊 Reports</button>
-        <ul class="submenu">
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
+          <li class="expandable open">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu open">
+              <li><a href="/report_tour.html" class="active">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
-      </li>
+      </nav>
 
-      <li class="expandable">
-        <button class="expand-toggle">⚙️ Management</button>
-        <ul class="submenu">
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-        </ul>
-      </li>
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
 
-      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-      <li><a href="/profile.html">👤 Profile</a></li>
-      <li><a href="/logout.html">🚪 Logout</a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <small>v5.0 • Travel Dashboard</small>
-  </div>
-</aside>
-
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Report Tour</h2>
@@ -206,28 +205,24 @@
       </footer>
     </div>
 
-    <script type="module" src="/js/report_tour.js"></script>
+    <!-- UNIVERSAL SIDEBAR SCRIPT -->
     <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
+      const sidebar = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
 
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+      document.querySelectorAll(".expand-toggle").forEach((btn) =>
+        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
+      );
+
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    </script>
+
+    <!-- LOGIC FILE -->
+    <script type="module" src="/js/report_tour.js"></script>
   </body>
 </html>
