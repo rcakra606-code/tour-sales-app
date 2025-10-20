@@ -15,12 +15,14 @@
         <h1 class="brand">TravelDash</h1>
         <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
+
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">Dashboard</a></li>
           <li><a href="/report_tour.html">Report Tour</a></li>
           <li><a href="/report_sales.html" class="active">Report Sales</a></li>
           <li><a href="/report_document.html">Report Document</a></li>
+          <li><a href="/region_management.html">Region Management</a></li>
           <li><a href="/user-management.html">User Management</a></li>
           <li><a href="/executive-dashboard.html">Executive</a></li>
           <li><a href="/audit_log.html">Audit Log</a></li>
@@ -28,44 +30,119 @@
           <li><a href="/logout.html">Logout</a></li>
         </ul>
       </nav>
+
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- MAIN -->
     <div id="main" class="main-content">
+      <!-- TOPBAR -->
       <header class="topbar">
         <h2>Report Sales</h2>
         <div id="userBadge" class="user-badge">admin</div>
       </header>
 
       <main class="container">
-        <section class="panel">
-          <div class="panel-header">
+        <!-- FORM INPUT SALES -->
+        <section class="form-section">
+          <h4>Input Data Sales</h4>
+          <form id="salesForm">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+              <div class="form-group">
+                <label for="transactionDate">Tanggal Transaksi</label>
+                <input type="date" id="transactionDate" name="transactionDate" required />
+              </div>
+
+              <div class="form-group">
+                <label for="invoiceNumber">Invoice Number</label>
+                <input type="text" id="invoiceNumber" name="invoiceNumber" placeholder="No invoice / kwitansi" />
+              </div>
+
+              <div class="form-group">
+                <label for="staffName">Nama Staff</label>
+                <input type="text" id="staffName" name="staffName" required />
+              </div>
+
+              <div class="form-group">
+                <label for="salesAmount">Sales Amount (Rp)</label>
+                <input type="number" id="salesAmount" name="salesAmount" min="0" required />
+              </div>
+
+              <div class="form-group">
+                <label for="profitAmount">Profit Amount (Rp)</label>
+                <input type="number" id="profitAmount" name="profitAmount" min="0" required />
+              </div>
+
+              <input type="hidden" id="salesId" name="id" />
+            </div>
+
+            <div class="form-actions" style="margin-top:12px;">
+              <button type="submit" class="btn">💾 Simpan</button>
+              <button type="reset" id="btnResetForm" class="btn" style="background:#999;">↺ Reset</button>
+              <button type="button" id="btnDelete" class="btn" style="background:#d9534f;display:none;">🗑️ Hapus</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- FORM INPUT TARGET PER STAFF -->
+        <section class="form-section" style="margin-top:18px;">
+          <h4>Input Target Sales & Profit Per Staff</h4>
+          <form id="targetForm">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+              <div class="form-group">
+                <label for="targetStaff">Nama Staff</label>
+                <input type="text" id="targetStaff" name="staff" required />
+              </div>
+
+              <div class="form-group">
+                <label for="targetMonth">Bulan</label>
+                <input type="month" id="targetMonth" name="month" required />
+              </div>
+
+              <div class="form-group">
+                <label for="targetSales">Target Sales (Rp)</label>
+                <input type="number" id="targetSales" name="salesTarget" min="0" />
+              </div>
+
+              <div class="form-group">
+                <label for="targetProfit">Target Profit (Rp)</label>
+                <input type="number" id="targetProfit" name="profitTarget" min="0" />
+              </div>
+            </div>
+
+            <div class="form-actions" style="margin-top:10px;">
+              <button type="submit" class="btn">🎯 Simpan Target</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- TABLE & FILTER -->
+        <section class="panel" style="margin-top:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
             <h4>Data Sales</h4>
+            <div class="filter-bar">
+              <input type="text" id="searchInput" placeholder="Cari nama staff / invoice..." />
+              <input type="month" id="filterMonth" />
+              <button id="btnExportExcel" class="btn">📤 Excel</button>
+              <button id="btnExportCSV" class="btn">📄 CSV</button>
+            </div>
           </div>
 
-          <!-- FILTER & TOOLS -->
-          <div class="filter-bar">
-            <input type="text" id="searchInput" placeholder="Cari nama staff..." />
-            <input type="month" id="filterMonth" />
-            <button id="btnExportExcel" class="btn">📤 Excel</button>
-            <button id="btnExportCSV" class="btn">📄 CSV</button>
-          </div>
-
-          <!-- TABEL -->
-          <div class="table-container">
+          <div class="table-container" style="margin-top:10px;">
             <table class="data-table" id="salesTable">
               <thead>
                 <tr>
-                  <th>Tanggal Transaksi</th>
+                  <th>Tanggal</th>
+                  <th>Invoice</th>
                   <th>Nama Staff</th>
                   <th>Sales (Rp)</th>
                   <th>Profit (Rp)</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td colspan="4" style="text-align:center;">Loading...</td>
-                </tr>
+                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -77,6 +154,6 @@
       </footer>
     </div>
 
-    <script src="/js/report_sales.js" type="module"></script>
+    <script type="module" src="/js/report_sales.js"></script>
   </body>
 </html>
