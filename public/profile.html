@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>User Profile - Travel Dashboard Enterprise</title>
+    <title>Profile - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
   </head>
 
@@ -44,66 +44,50 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer">
-        <small>v5.1 • Travel Dashboard</small>
-      </div>
+      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Profil Pengguna</h2>
-        <div id="userBadge" class="user-badge">user</div>
+        <h2>User Profile</h2>
+        <div id="userBadge" class="user-badge">staff</div>
       </header>
 
       <main class="container">
-        <!-- USER INFO -->
-        <section class="form-section">
+        <!-- PROFILE INFO -->
+        <section class="panel">
           <h4>Informasi Akun</h4>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Username</label>
-              <input type="text" id="profileUsername" readonly />
-            </div>
-
-            <div class="form-group">
-              <label>Nama Staff</label>
-              <input type="text" id="profileName" readonly />
-            </div>
-
-            <div class="form-group">
-              <label>Role</label>
-              <input type="text" id="profileRole" readonly />
-            </div>
+          <div class="profile-info">
+            <p><strong>Username:</strong> <span id="username">-</span></p>
+            <p><strong>Nama Staff:</strong> <span id="staffName">-</span></p>
+            <p><strong>Role:</strong> <span id="role">-</span></p>
+            <p><strong>Bergabung Sejak:</strong> <span id="createdAt">-</span></p>
           </div>
         </section>
 
-        <!-- PASSWORD UPDATE -->
-        <section class="form-section">
+        <!-- CHANGE PASSWORD -->
+        <section class="form-section" style="margin-top:20px;">
           <h4>Ubah Password</h4>
           <form id="passwordForm">
             <div class="form-grid">
               <div class="form-group">
-                <label for="oldPassword">Password Lama</label>
+                <label>Password Lama</label>
                 <input type="password" id="oldPassword" required />
               </div>
-
               <div class="form-group">
-                <label for="newPassword">Password Baru</label>
+                <label>Password Baru</label>
                 <input type="password" id="newPassword" required />
-              </div>
-
-              <div class="form-group">
-                <label for="confirmPassword">Konfirmasi Password Baru</label>
-                <input type="password" id="confirmPassword" required />
               </div>
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn">🔑 Simpan Password</button>
+              <button type="submit" class="btn">🔐 Ubah Password</button>
               <button type="reset" class="btn gray">↺ Reset</button>
             </div>
           </form>
+
+          <div id="passwordMessage" class="info-message" style="display:none;"></div>
         </section>
       </main>
 
@@ -117,50 +101,62 @@
 
     <!-- PROFILE LOGIC -->
     <script type="module">
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      const token = localStorage.getItem("token");
+      if (!token) window.location.href = "/login.html";
+
       async function loadProfile() {
         try {
-          const res = await fetch("/api/profile");
+          const res = await fetch("/api/profile", {
+            headers: { Authorization: "Bearer " + token },
+          });
           const data = await res.json();
+          if (!res.ok) throw new Error(data.message);
 
-          document.getElementById("profileUsername").value = data.username || "-";
-          document.getElementById("profileName").value = data.staff_name || "-";
-          document.getElementById("profileRole").value = data.role || "-";
-          document.getElementById("userBadge").textContent = data.role || "user";
+          document.getElementById("username").textContent = data.username;
+          document.getElementById("staffName").textContent = data.staff_name;
+          document.getElementById("role").textContent = data.role;
+          document.getElementById("createdAt").textContent = new Date(data.created_at).toLocaleDateString("id-ID");
+          document.getElementById("userBadge").textContent = data.role;
         } catch (err) {
-          console.error("Error loading profile:", err);
+          console.error("❌ Gagal memuat profil:", err);
+          window.location.href = "/login.html";
         }
       }
 
-      const form = document.getElementById("passwordForm");
-      form.addEventListener("submit", async (e) => {
+      document.getElementById("passwordForm").addEventListener("submit", async (e) => {
         e.preventDefault();
-
-        const oldPass = document.getElementById("oldPassword").value.trim();
-        const newPass = document.getElementById("newPassword").value.trim();
-        const confirm = document.getElementById("confirmPassword").value.trim();
-
-        if (newPass !== confirm) {
-          alert("❌ Konfirmasi password tidak cocok!");
-          return;
-        }
+        const messageBox = document.getElementById("passwordMessage");
+        messageBox.style.display = "none";
+        const oldPassword = document.getElementById("oldPassword").value.trim();
+        const newPassword = document.getElementById("newPassword").value.trim();
 
         try {
           const res = await fetch("/api/profile/password", {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass }),
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + token,
+            },
+            body: JSON.stringify({ oldPassword, newPassword }),
           });
-
-          if (!res.ok) throw new Error("Gagal memperbarui password");
-          alert("✅ Password berhasil diubah!");
-          form.reset();
+          const data = await res.json();
+          messageBox.style.display = "block";
+          if (res.ok) {
+            messageBox.className = "info-message success";
+            messageBox.textContent = "✅ " + data.message;
+          } else {
+            messageBox.className = "info-message error";
+            messageBox.textContent = "❌ " + (data.message || "Gagal mengubah password");
+          }
         } catch (err) {
-          console.error(err);
-          alert("❌ Terjadi kesalahan saat memperbarui password");
+          messageBox.style.display = "block";
+          messageBox.className = "info-message error";
+          messageBox.textContent = "❌ Gagal terhubung ke server";
         }
       });
 
-      document.getElementById("year").textContent = new Date().getFullYear();
       loadProfile();
     </script>
   </body>
