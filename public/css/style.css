@@ -1,4 +1,13 @@
+/* =========================================
+   Travel Dashboard Enterprise v5.0
+   UNIVERSAL DASHBOARD STYLE
+   ========================================= */
+
 /* ====== BASE ====== */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: "Inter", sans-serif;
@@ -6,19 +15,27 @@ body {
   color: var(--text);
   transition: background-color 0.3s, color 0.3s;
 }
+
 :root {
-  --bg: #f5f7fb;
+  --bg: #f6f8fb;
   --panel: #fff;
-  --text: #222;
+  --text: #1a1a1a;
   --accent: #0b74de;
+  --accent-hover: #095fb5;
+  --border: #e0e0e0;
   --muted: #666;
+  --shadow: rgba(0, 0, 0, 0.05);
 }
+
 body.theme-dark {
   --bg: #121212;
-  --panel: #1e1e1e;
+  --panel: #1c1c1c;
   --text: #eaeaea;
   --accent: #4aa3ff;
+  --accent-hover: #1e7fdb;
+  --border: #2c2c2c;
   --muted: #aaa;
+  --shadow: rgba(255, 255, 255, 0.05);
 }
 
 /* ====== SIDEBAR ====== */
@@ -29,54 +46,89 @@ body.theme-dark {
   width: 240px;
   height: 100vh;
   background: var(--panel);
-  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 2px 0 6px var(--shadow);
+  border-right: 1px solid var(--border);
   overflow-y: auto;
-  transition: width 0.3s;
+  transition: width 0.3s ease;
   z-index: 1000;
 }
 .sidebar.collapsed {
   width: 70px;
 }
+
 .sidebar-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border);
 }
+.brand {
+  font-size: 1.1rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .sidebar-nav ul {
   list-style: none;
   margin: 0;
   padding: 0;
 }
+
 .sidebar-nav ul li {
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid var(--border);
 }
+
 .sidebar-nav ul li a,
 .expand-toggle {
   display: block;
   padding: 10px 16px;
   color: var(--text);
   text-decoration: none;
-  transition: 0.2s;
+  transition: all 0.25s ease;
   font-size: 15px;
+  border-left: 3px solid transparent;
 }
+
+.sidebar-nav ul li a.active {
+  background: rgba(11, 116, 222, 0.1);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+
 .sidebar-nav ul li a:hover,
 .expand-toggle:hover {
   background: var(--accent);
   color: #fff;
+  border-left-color: var(--accent);
 }
-.sidebar-nav .expandable ul.submenu {
+
+.expandable button.expand-toggle {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 10px 16px;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.submenu {
   display: none;
+  transition: all 0.25s ease;
   background: var(--bg);
 }
-.sidebar-nav .expandable ul.submenu.open {
+
+.submenu.open {
   display: block;
 }
-.sidebar-nav .submenu a {
-  padding-left: 32px;
+
+.submenu a {
+  padding-left: 34px;
   font-size: 14px;
 }
+
 .sidebar-footer {
   padding: 10px;
   text-align: center;
@@ -87,22 +139,64 @@ body.theme-dark {
 /* ====== MAIN CONTENT ====== */
 .main-content {
   margin-left: 240px;
-  transition: margin-left 0.3s;
+  transition: margin-left 0.3s ease;
   padding: 20px;
 }
 .sidebar.collapsed + .main-content {
   margin-left: 70px;
 }
 
-/* ====== TOPBAR ====== */
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
+.user-badge {
+  background: var(--accent);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 13px;
+}
 
-/* ====== FORM LAYOUT ====== */
+/* ====== CARDS / PANELS ====== */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px var(--shadow);
+  transition: transform 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+}
+.card h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+.card p {
+  font-size: 20px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* ====== FORMS ====== */
+.form-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px var(--shadow);
+}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -121,13 +215,19 @@ input,
 textarea,
 select {
   padding: 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--panel);
   color: var(--text);
 }
 textarea {
   resize: vertical;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent);
+  outline: none;
 }
 
 /* ====== BUTTONS ====== */
@@ -138,13 +238,14 @@ textarea {
   border-radius: 6px;
   color: #fff;
   cursor: pointer;
-  transition: 0.3s;
+  font-weight: 500;
+  transition: background 0.3s;
 }
 .btn:hover {
-  opacity: 0.9;
+  background: var(--accent-hover);
 }
 .btn.gray {
-  background: #888;
+  background: #999;
 }
 .btn.danger {
   background: #e74c3c;
@@ -155,54 +256,38 @@ textarea {
   font-size: 18px;
   cursor: pointer;
   color: var(--text);
+  transition: 0.2s;
+}
+.btn-icon:hover {
+  color: var(--accent);
 }
 
-/* ====== TABLE ====== */
+/* ====== TABLES ====== */
 .table-container {
   overflow-x: auto;
 }
 .data-table {
   width: 100%;
   border-collapse: collapse;
+  border-radius: 8px;
+  overflow: hidden;
 }
 .data-table th,
 .data-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #ddd;
-}
-.data-table tbody tr:hover {
-  background: rgba(11, 116, 222, 0.1);
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 14px;
 }
 .data-table th {
   background: var(--panel);
   position: sticky;
   top: 0;
-}
-/* === Sidebar Expand Animation === */
-.submenu {
-  display: none;
-  transition: all 0.25s ease;
-}
-.submenu.open {
-  display: block;
-}
-.expandable button.expand-toggle {
-  background: none;
-  border: none;
-  width: 100%;
-  text-align: left;
+  color: var(--muted);
   font-weight: 600;
-  padding: 10px 16px;
-  color: var(--text);
-  cursor: pointer;
 }
-.expandable button.expand-toggle:hover {
-  background: var(--accent);
-  color: #fff;
-}
-.expandable ul.submenu a {
-  padding-left: 34px;
-  font-size: 14px;
+.data-table tbody tr:hover {
+  background: rgba(11, 116, 222, 0.08);
 }
 
 /* ====== FOOTER ====== */
@@ -211,4 +296,21 @@ textarea {
   text-align: center;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 900px) {
+  .main-content {
+    margin-left: 70px;
+    padding: 12px;
+  }
+  .sidebar {
+    width: 70px;
+  }
+  .sidebar.collapsed {
+    width: 240px;
+  }
+  .sidebar-nav ul li a {
+    font-size: 14px;
+  }
 }
