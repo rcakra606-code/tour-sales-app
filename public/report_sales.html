@@ -9,51 +9,48 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-   <!-- SIDEBAR (Standardized Template) -->
-<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-  <div class="sidebar-top">
-    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
-    <h1 class="brand">TravelDash</h1>
-    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
-  </div>
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+      </div>
 
-  <nav class="sidebar-nav" role="navigation">
-    <ul>
-      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <li class="expandable">
-        <button class="expand-toggle">📊 Reports</button>
-        <ul class="submenu">
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
+          <li class="expandable open">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu open">
+              <li><a href="/report_tour.html">Report Tour</a></li>
+              <li><a href="/report_sales.html" class="active">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
-      </li>
+      </nav>
 
-      <li class="expandable">
-        <button class="expand-toggle">⚙️ Management</button>
-        <ul class="submenu">
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-        </ul>
-      </li>
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
 
-      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-      <li><a href="/profile.html">👤 Profile</a></li>
-      <li><a href="/logout.html">🚪 Logout</a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <small>v5.0 • Travel Dashboard</small>
-  </div>
-</aside>
-
-
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
-      <!-- TOPBAR -->
       <header class="topbar">
         <h2>Report Sales</h2>
         <div id="userBadge" class="user-badge">admin</div>
@@ -62,17 +59,17 @@
       <main class="container">
         <!-- FORM INPUT SALES -->
         <section class="form-section">
-          <h4>Input Data Sales</h4>
+          <h4>Input / Edit Data Sales</h4>
           <form id="salesForm">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div class="form-grid">
               <div class="form-group">
                 <label for="transactionDate">Tanggal Transaksi</label>
                 <input type="date" id="transactionDate" name="transactionDate" required />
               </div>
 
               <div class="form-group">
-                <label for="invoiceNumber">Invoice Number</label>
-                <input type="text" id="invoiceNumber" name="invoiceNumber" placeholder="No invoice / kwitansi" />
+                <label for="invoiceNumber">Nomor Invoice</label>
+                <input type="text" id="invoiceNumber" name="invoiceNumber" required />
               </div>
 
               <div class="form-group">
@@ -89,69 +86,68 @@
                 <label for="profitAmount">Profit Amount (Rp)</label>
                 <input type="number" id="profitAmount" name="profitAmount" min="0" required />
               </div>
-
-              <input type="hidden" id="salesId" name="id" />
             </div>
 
-            <div class="form-actions" style="margin-top:12px;">
+            <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" id="btnResetForm" class="btn" style="background:#999;">↺ Reset</button>
-              <button type="button" id="btnDelete" class="btn" style="background:#d9534f;display:none;">🗑️ Hapus</button>
+              <button type="reset" id="btnResetForm" class="btn gray">↺ Reset</button>
+              <button type="button" id="btnDelete" class="btn danger" style="display:none;">🗑️ Hapus</button>
             </div>
           </form>
         </section>
 
-        <!-- FORM INPUT TARGET PER STAFF -->
-        <section class="form-section" style="margin-top:18px;">
-          <h4>Input Target Sales & Profit Per Staff</h4>
+        <!-- FORM INPUT TARGET -->
+        <section class="form-section">
+          <h4>🎯 Target Sales & Profit per Staff (Bulanan)</h4>
           <form id="targetForm">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">
+            <div class="form-grid">
               <div class="form-group">
                 <label for="targetStaff">Nama Staff</label>
-                <input type="text" id="targetStaff" name="staff" required />
+                <input type="text" id="targetStaff" name="targetStaff" required />
               </div>
 
               <div class="form-group">
-                <label for="targetMonth">Bulan</label>
-                <input type="month" id="targetMonth" name="month" required />
+                <label for="targetMonth">Periode (Bulan)</label>
+                <input type="month" id="targetMonth" name="targetMonth" required />
               </div>
 
               <div class="form-group">
                 <label for="targetSales">Target Sales (Rp)</label>
-                <input type="number" id="targetSales" name="salesTarget" min="0" />
+                <input type="number" id="targetSales" name="targetSales" min="0" required />
               </div>
 
               <div class="form-group">
                 <label for="targetProfit">Target Profit (Rp)</label>
-                <input type="number" id="targetProfit" name="profitTarget" min="0" />
+                <input type="number" id="targetProfit" name="targetProfit" min="0" required />
               </div>
             </div>
 
-            <div class="form-actions" style="margin-top:10px;">
-              <button type="submit" class="btn">🎯 Simpan Target</button>
+            <div class="form-actions">
+              <button type="submit" class="btn">💾 Simpan Target</button>
+              <button type="reset" id="btnResetTarget" class="btn gray">↺ Reset</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE & FILTER -->
+        <!-- TABLE DATA SALES -->
         <section class="panel" style="margin-top:18px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h4>Data Sales</h4>
+          <div class="panel-header">
+            <h4>Daftar Sales</h4>
             <div class="filter-bar">
-              <input type="text" id="searchInput" placeholder="Cari nama staff / invoice..." />
+              <input type="text" id="searchInput" placeholder="Cari staff / invoice..." />
               <input type="month" id="filterMonth" />
               <button id="btnExportExcel" class="btn">📤 Excel</button>
               <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
           </div>
 
-          <div class="table-container" style="margin-top:10px;">
+          <div class="table-container">
             <table class="data-table" id="salesTable">
               <thead>
                 <tr>
                   <th>Tanggal</th>
                   <th>Invoice</th>
-                  <th>Nama Staff</th>
+                  <th>Staff</th>
                   <th>Sales (Rp)</th>
                   <th>Profit (Rp)</th>
                 </tr>
@@ -169,28 +165,24 @@
       </footer>
     </div>
 
-    <script type="module" src="/js/report_sales.js"></script>
+    <!-- UNIVERSAL SIDEBAR SCRIPT -->
     <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
+      const sidebar = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
 
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+      document.querySelectorAll(".expand-toggle").forEach((btn) =>
+        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
+      );
+
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    </script>
+
+    <!-- SALES LOGIC -->
+    <script type="module" src="/js/report_sales.js"></script>
   </body>
 </html>
