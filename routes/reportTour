@@ -1,0 +1,38 @@
+/**
+ * routes/reportTour.js
+ * ============================================
+ * Travel Dashboard Enterprise v5.0
+ * CRUD dan reporting untuk data Tour.
+ */
+
+import express from "express";
+import {
+  getTours,
+  getTourById,
+  createTour,
+  updateTour,
+  deleteTour,
+} from "../controllers/reportTourController.js";
+import { verifyToken } from "../middleware/auth.js";
+import { checkRole } from "../middleware/roleCheck.js";
+
+const router = express.Router();
+
+router.use(verifyToken);
+
+// GET semua tour
+router.get("/", getTours);
+
+// GET satu tour
+router.get("/:id", getTourById);
+
+// Tambah tour (Admin / Super)
+router.post("/", checkRole(["admin", "super"]), createTour);
+
+// Update tour
+router.put("/:id", checkRole(["admin", "super"]), updateTour);
+
+// Hapus tour
+router.delete("/:id", checkRole(["admin", "super"]), deleteTour);
+
+export default router;
