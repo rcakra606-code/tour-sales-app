@@ -74,39 +74,46 @@
 
   <body class="min-h-screen flex bg-gray-50 transition-colors duration-500">
     <!-- Sidebar -->
-    <aside
-      id="sidebar"
-      class="sidebar-expanded bg-white shadow-lg border-r border-gray-100 flex flex-col transition-all duration-300"
-    >
-      <div class="flex items-center justify-between p-4 border-b border-gray-200">
-        <h2 id="sidebarTitle" class="text-lg font-bold text-indigo-700">Menu</h2>
-        <button
-          id="toggleSidebar"
-          class="text-gray-500 hover:text-indigo-600 transition"
-          title="Expand/Collapse"
-        >
-          ☰
-        </button>
-      </div>
+    <!-- SIDEBAR (Standardized Template) -->
+<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+  <div class="sidebar-top">
+    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+    <h1 class="brand">TravelDash</h1>
+    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+  </div>
 
-      <nav class="flex-1 p-3 space-y-1 text-sm font-medium">
-        <a href="/dashboard.html" class="block px-3 py-2 rounded hover:bg-indigo-100">🏠 Dashboard</a>
-        <a href="/report_tour.html" class="block px-3 py-2 rounded hover:bg-indigo-100">✈️ Report Tour</a>
-        <a href="/report_sales.html" class="block px-3 py-2 rounded hover:bg-indigo-100">💰 Report Sales</a>
-        <a href="/report_document.html" class="block px-3 py-2 rounded hover:bg-indigo-100">📄 Report Dokumen</a>
-        <a href="/user-management.html" class="block px-3 py-2 rounded hover:bg-indigo-100">👥 User Management</a>
-        <a href="/audit_log.html" class="block px-3 py-2 rounded bg-indigo-100 text-indigo-700">🧾 Audit Log</a>
-      </nav>
+  <nav class="sidebar-nav" role="navigation">
+    <ul>
+      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <div class="p-3 border-t border-gray-200">
-        <button
-          id="themeToggle"
-          class="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
-        >
-          🌙 Ganti Mode
-        </button>
-      </div>
-    </aside>
+      <li class="expandable">
+        <button class="expand-toggle">📊 Reports</button>
+        <ul class="submenu">
+          <li><a href="/report_tour.html">Report Tour</a></li>
+          <li><a href="/report_sales.html">Report Sales</a></li>
+          <li><a href="/report_document.html">Report Document</a></li>
+        </ul>
+      </li>
+
+      <li class="expandable">
+        <button class="expand-toggle">⚙️ Management</button>
+        <ul class="submenu">
+          <li><a href="/region_management.html">Region Management</a></li>
+          <li><a href="/user-management.html">User Management</a></li>
+        </ul>
+      </li>
+
+      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+      <li><a href="/profile.html">👤 Profile</a></li>
+      <li><a href="/logout.html">🚪 Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    <small>v5.0 • Travel Dashboard</small>
+  </div>
+</aside>
 
     <!-- Main -->
     <div class="flex-1 flex flex-col">
