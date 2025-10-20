@@ -1,6 +1,6 @@
 // ==========================================================
-// 🚀 Travel Dashboard Enterprise v5.1
-// Automatic Database Migration Script (PostgreSQL / Neon)
+// 🧩 Travel Dashboard Enterprise v5.2
+// Safe Database Migration Script (for Neon PostgreSQL)
 // ==========================================================
 
 import pkg from "pg";
@@ -8,43 +8,31 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const { Pool } = pkg;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-async function migrate() {
-  console.log("⏳ Starting database migration check...");
+export default async function migrate() {
+  console.log("⏳ Running database migrations...");
 
-  const queries = [
+  const migrations = [
     // USERS TABLE
     `
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username VARCHAR(50) UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      staff_name VARCHAR(100) NOT NULL,
+      staff_name VARCHAR(100) DEFAULT '',
       role VARCHAR(20) DEFAULT 'staff',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    `,
-    `
-    INSERT INTO users (username, password, staff_name, role)
-    SELECT 'admin', '$2b$10$5jKx1v1O/ssWbOQK6Hr86OayW7sMZFBGdGzK7VkC92rkKypEj/jrS', 'Administrator', 'super'
-    WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_name VARCHAR(100) DEFAULT '';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'staff';
     `,
 
-    // REGIONS
-    `
-    CREATE TABLE IF NOT EXISTS regions (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(100) NOT NULL,
-      code VARCHAR(20),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-    `,
-
-    // TOURS
+    // TOURS TABLE
     `
     CREATE TABLE IF NOT EXISTS tours (
       id SERIAL PRIMARY KEY,
@@ -68,43 +56,46 @@ async function migrate() {
       departure_status VARCHAR(20) DEFAULT 'PENDING',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS all_passengers TEXT;
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS region VARCHAR(100);
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS profit_amount NUMERIC DEFAULT 0;
     `,
-    `ALTER TABLE tours ADD COLUMN IF NOT EXISTS all_passengers TEXT;`,
 
-    // SALES
+    // SALES TABLE
     `
     CREATE TABLE IF NOT EXISTS sales (
       id SERIAL PRIMARY KEY,
       transaction_date DATE NOT NULL,
       invoice_number VARCHAR(50) NOT NULL,
-      staff_name VARCHAR(100) NOT NULL,
+      staff_name VARCHAR(100),
       sales_amount NUMERIC DEFAULT 0,
       profit_amount NUMERIC DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE sales ADD COLUMN IF NOT EXISTS staff_name VARCHAR(100);
     `,
 
-    // TARGETS
+    // TARGETS TABLE
     `
     CREATE TABLE IF NOT EXISTS targets (
       id SERIAL PRIMARY KEY,
-      staff_name VARCHAR(100) NOT NULL,
-      target_month DATE NOT NULL,
+      staff_name VARCHAR(100),
+      target_month DATE,
       target_sales NUMERIC DEFAULT 0,
       target_profit NUMERIC DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `,
 
-    // DOCUMENTS
+    // DOCUMENTS TABLE
     `
     CREATE TABLE IF NOT EXISTS documents (
       id SERIAL PRIMARY KEY,
-      receive_date DATE NOT NULL,
+      receive_date DATE,
       send_date DATE,
       guest_name VARCHAR(100),
       passport_visa VARCHAR(100),
-      process_type VARCHAR(20),
+      process_type VARCHAR(20) DEFAULT 'Biasa',
       booking_code_dms VARCHAR(50),
       invoice_number VARCHAR(50),
       guest_phone VARCHAR(50),
@@ -113,9 +104,21 @@ async function migrate() {
       tour_code VARCHAR(50),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE documents ADD COLUMN IF NOT EXISTS process_type VARCHAR(20) DEFAULT 'Biasa';
+    ALTER TABLE documents ADD COLUMN IF NOT EXISTS guest_phone VARCHAR(50);
     `,
 
-    // LOGS
+    // REGIONS TABLE
+    `
+    CREATE TABLE IF NOT EXISTS regions (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      code VARCHAR(20),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    `,
+
+    // LOGS TABLE
     `
     CREATE TABLE IF NOT EXISTS logs (
       id SERIAL PRIMARY KEY,
@@ -126,19 +129,25 @@ async function migrate() {
       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     `,
+
+    // HEALTH CHECK TABLE (optional tracking)
+    `
+    CREATE TABLE IF NOT EXISTS system_status (
+      id SERIAL PRIMARY KEY,
+      last_migration TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    `,
   ];
 
   try {
-    for (const [i, q] of queries.entries()) {
-      await pool.query(q);
-      console.log(`✅ Migration ${i + 1}/${queries.length} executed`);
+    for (let i = 0; i < migrations.length; i++) {
+      await pool.query(migrations[i]);
+      console.log(`✅ Migration step ${i + 1}/${migrations.length} completed`);
     }
-    console.log("🎉 Database schema is fully up to date!");
+    console.log("🎉 All migrations executed successfully!");
   } catch (err) {
     console.error("❌ Migration error:", err.message);
   } finally {
     await pool.end();
   }
 }
-
-migrate();
