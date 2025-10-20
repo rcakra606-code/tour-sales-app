@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
 
   <body class="theme-light">
@@ -20,9 +21,9 @@
         <ul>
           <li><a href="/dashboard.html" class="active">🏠 Dashboard</a></li>
 
-          <li class="expandable open">
+          <li class="expandable">
             <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu open">
+            <ul class="submenu">
               <li><a href="/report_tour.html">Report Tour</a></li>
               <li><a href="/report_sales.html">Report Sales</a></li>
               <li><a href="/report_document.html">Report Document</a></li>
@@ -45,107 +46,54 @@
       </nav>
 
       <div class="sidebar-footer">
-        <small>v5.1 • Travel Dashboard</small>
+        <small>v5.2 • Travel Dashboard</small>
       </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <div class="topbar-left">
-          <h2>Dashboard</h2>
-        </div>
-        <div class="topbar-right">
-          <div id="userBadge" class="user-badge">admin</div>
-        </div>
+        <h2>Dashboard Overview</h2>
+        <div id="userBadge" class="user-badge">admin</div>
       </header>
 
       <main class="container">
-        <!-- SUMMARY CARDS -->
+        <!-- KPI Cards -->
         <section class="cards-grid" id="summaryCards">
           <div class="card">
             <h3>Total Sales</h3>
-            <p id="totalSales">—</p>
+            <p id="totalSales">Rp 0</p>
           </div>
           <div class="card">
             <h3>Total Profit</h3>
-            <p id="totalProfit">—</p>
+            <p id="totalProfit">Rp 0</p>
           </div>
           <div class="card">
             <h3>Total Tours</h3>
-            <p id="totalTours">—</p>
-          </div>
-          <div class="card">
-            <h3>Active Targets</h3>
-            <p id="totalTargets">—</p>
+            <p id="totalTours">0</p>
           </div>
           <div class="card">
             <h3>Total Pax</h3>
-            <p id="totalPax">—</p>
+            <p id="totalPax">0</p>
+          </div>
+          <div class="card">
+            <h3>Target Achieved</h3>
+            <p id="targetAchieved">0%</p>
           </div>
         </section>
 
-        <!-- PANELS -->
-        <section class="panels-grid">
-          <!-- TOUR SUMMARY -->
-          <div class="panel">
-            <h4>Tour Summary</h4>
+        <!-- Charts -->
+        <section class="panel">
+          <h4>📊 Sales & Profit Trend</h4>
+          <canvas id="salesProfitChart" height="100"></canvas>
+        </section>
 
-            <div class="table-container">
-              <h5>📅 Per Bulan</h5>
-              <table id="tourByMonth" class="data-table">
-                <thead>
-                  <tr>
-                    <th>Bulan</th>
-                    <th>Tahun</th>
-                    <th>Jumlah Tour</th>
-                    <th>Total Pax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="table-container">
-              <h5>🌍 Per Region</h5>
-              <table id="tourByRegion" class="data-table">
-                <thead>
-                  <tr>
-                    <th>Region</th>
-                    <th>Jumlah Tour</th>
-                    <th>Total Pax</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colspan="3" style="text-align:center;">Loading...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- SALES SUMMARY -->
-          <div class="panel">
-            <h4>Sales Performance</h4>
-            <div id="salesSummary">
-              <p><strong>Total Sales:</strong> <span id="salesTotal">Rp 0</span></p>
-              <p><strong>Total Profit:</strong> <span id="profitTotal">Rp 0</span></p>
-              <p class="muted">Lihat detail di Report Sales</p>
-            </div>
-          </div>
-
-          <!-- TARGET PERFORMANCE -->
-          <div class="panel">
-            <h4>🎯 Target Performance</h4>
-            <div id="targetContainer" class="target-list">
-              <p>Loading target data...</p>
-            </div>
-          </div>
+        <section class="panel" style="margin-top:20px;">
+          <h4>🌍 Tour Distribution by Region</h4>
+          <canvas id="tourRegionChart" height="100"></canvas>
         </section>
       </main>
 
-      <!-- FOOTER -->
       <footer class="footer">
         <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
       </footer>
@@ -155,6 +103,91 @@
     <script src="/js/ui.js"></script>
 
     <!-- DASHBOARD LOGIC -->
-    <script type="module" src="/js/dashboard.js"></script>
+    <script>
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      async function loadSummary() {
+        try {
+          const res = await fetch("/api/dashboard/summary");
+          const data = await res.json();
+
+          document.getElementById("totalSales").textContent =
+            "Rp " + Number(data.totalSales || 0).toLocaleString("id-ID");
+          document.getElementById("totalProfit").textContent =
+            "Rp " + Number(data.totalProfit || 0).toLocaleString("id-ID");
+          document.getElementById("totalTours").textContent = data.totalTours || 0;
+          document.getElementById("totalPax").textContent = data.totalPax || 0;
+          document.getElementById("targetAchieved").textContent =
+            (data.targetAchieved || 0) + "%";
+        } catch (err) {
+          console.error("❌ Gagal memuat summary:", err);
+        }
+      }
+
+      async function loadSalesProfitChart() {
+        try {
+          const res = await fetch("/api/dashboard/sales-profit-trend");
+          const data = await res.json();
+          const ctx = document.getElementById("salesProfitChart");
+          new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: data.labels || [],
+              datasets: [
+                {
+                  label: "Sales",
+                  data: data.sales,
+                  borderColor: "#0b74de",
+                  fill: false,
+                },
+                {
+                  label: "Profit",
+                  data: data.profit,
+                  borderColor: "#28a745",
+                  fill: false,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: "bottom" } },
+              scales: { y: { beginAtZero: true } },
+            },
+          });
+        } catch (err) {
+          console.error("❌ Gagal memuat chart sales-profit:", err);
+        }
+      }
+
+      async function loadTourRegionChart() {
+        try {
+          const res = await fetch("/api/dashboard/tour-region");
+          const data = await res.json();
+          const ctx = document.getElementById("tourRegionChart");
+          new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: data.labels || [],
+              datasets: [
+                {
+                  data: data.counts,
+                  backgroundColor: ["#0b74de", "#28a745", "#ffc107", "#dc3545", "#17a2b8"],
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { position: "bottom" } },
+            },
+          });
+        } catch (err) {
+          console.error("❌ Gagal memuat chart region:", err);
+        }
+      }
+
+      loadSummary();
+      loadSalesProfitChart();
+      loadTourRegionChart();
+    </script>
   </body>
 </html>
