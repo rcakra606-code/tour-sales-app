@@ -44,9 +44,7 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer">
-        <small>v5.1 • Travel Dashboard</small>
-      </div>
+      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
@@ -63,32 +61,29 @@
           <form id="regionForm">
             <div class="form-grid">
               <div class="form-group">
-                <label for="regionName">Nama Region</label>
-                <input type="text" id="regionName" name="name" required placeholder="Contoh: Asia Timur" />
+                <label>Nama Region</label>
+                <input type="text" id="regionName" required />
               </div>
-
               <div class="form-group">
-                <label for="regionCode">Kode Region (Opsional)</label>
-                <input type="text" id="regionCode" name="code" placeholder="Contoh: ASIA-TM" />
+                <label>Kode Region</label>
+                <input type="text" id="regionCode" />
               </div>
-
-              <input type="hidden" id="regionId" name="id" />
             </div>
 
             <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" id="btnReset" class="btn gray">↺ Reset</button>
-              <button type="button" id="btnDelete" class="btn danger" style="display:none;">🗑️ Hapus</button>
+              <button type="reset" class="btn gray">↺ Reset</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE REGION -->
-        <section class="panel" style="margin-top:18px;">
+        <!-- FILTER + TABLE -->
+        <section class="panel" style="margin-top:20px;">
           <div class="panel-header">
             <h4>Daftar Region</h4>
             <div class="filter-bar">
-              <input type="text" id="searchRegion" placeholder="Cari nama / kode..." />
+              <input type="text" id="searchRegion" placeholder="Cari region..." />
+              <button id="btnSearch" class="btn">🔍 Cari</button>
               <button id="btnExportExcel" class="btn">📤 Excel</button>
               <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
@@ -99,7 +94,7 @@
               <thead>
                 <tr>
                   <th>Nama Region</th>
-                  <th>Kode Region</th>
+                  <th>Kode</th>
                   <th>Dibuat Pada</th>
                 </tr>
               </thead>
@@ -119,7 +114,62 @@
     <!-- UNIVERSAL UI SCRIPT -->
     <script src="/js/ui.js"></script>
 
-    <!-- REGION MANAGEMENT LOGIC -->
-    <script type="module" src="/js/region_management.js"></script>
+    <!-- REGION LOGIC -->
+    <script type="module">
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      async function loadRegions() {
+        const res = await fetch("/api/regions");
+        const data = await res.json();
+        const tbody = document.querySelector("#regionTable tbody");
+        tbody.innerHTML = "";
+        if (!data.length)
+          return (tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Tidak ada data</td></tr>`);
+        data.forEach((r) => {
+          const row = `<tr>
+            <td>${r.name}</td>
+            <td>${r.code || "-"}</td>
+            <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("id-ID") : "-"}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      }
+
+      document.getElementById("regionForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("regionName").value.trim();
+        const code = document.getElementById("regionCode").value.trim();
+        const res = await fetch("/api/regions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, code }),
+        });
+        if (res.ok) {
+          alert("✅ Region berhasil ditambahkan!");
+          e.target.reset();
+          loadRegions();
+        } else alert("❌ Gagal menambahkan region");
+      });
+
+      document.getElementById("btnSearch").addEventListener("click", async () => {
+        const search = document.getElementById("searchRegion").value;
+        const res = await fetch(`/api/regions?search=${encodeURIComponent(search)}`);
+        const data = await res.json();
+        const tbody = document.querySelector("#regionTable tbody");
+        tbody.innerHTML = "";
+        if (!data.length)
+          return (tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Tidak ada hasil</td></tr>`);
+        data.forEach((r) => {
+          const row = `<tr>
+            <td>${r.name}</td>
+            <td>${r.code || "-"}</td>
+            <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("id-ID") : "-"}</td>
+          </tr>`;
+          tbody.innerHTML += row;
+        });
+      });
+
+      loadRegions();
+    </script>
   </body>
 </html>
