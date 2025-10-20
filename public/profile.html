@@ -3,92 +3,103 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile - Travel Dashboard Enterprise</title>
+    <title>User Profile - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <!-- SIDEBAR (Standardized Template) -->
-<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-  <div class="sidebar-top">
-    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
-    <h1 class="brand">TravelDash</h1>
-    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
-  </div>
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+      </div>
 
-  <nav class="sidebar-nav" role="navigation">
-    <ul>
-      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <li class="expandable">
-        <button class="expand-toggle">📊 Reports</button>
-        <ul class="submenu">
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
+          <li class="expandable">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu">
+              <li><a href="/report_tour.html">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html" class="active">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
-      </li>
+      </nav>
 
-      <li class="expandable">
-        <button class="expand-toggle">⚙️ Management</button>
-        <ul class="submenu">
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-        </ul>
-      </li>
-
-      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-      <li><a href="/profile.html">👤 Profile</a></li>
-      <li><a href="/logout.html">🚪 Logout</a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <small>v5.0 • Travel Dashboard</small>
-  </div>
-</aside>
-
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>User Profile</h2>
-        <div id="userBadge" class="user-badge">admin</div>
+        <div id="userBadge" class="user-badge">staff</div>
       </header>
 
       <main class="container">
-        <section class="panel" id="profilePanel">
+        <section class="form-section">
           <h4>Informasi Akun</h4>
-          <div class="profile-info">
-            <div class="info-row"><strong>Username:</strong> <span id="username">—</span></div>
-            <div class="info-row"><strong>Nama Staff:</strong> <span id="staffName">—</span></div>
-            <div class="info-row"><strong>Role:</strong> <span id="role">—</span></div>
-            <div class="info-row"><strong>Dibuat Pada:</strong> <span id="createdAt">—</span></div>
+          <div id="profileInfo" class="form-grid">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="profileUsername" readonly />
+            </div>
+
+            <div class="form-group">
+              <label>Nama Staff</label>
+              <input type="text" id="profileName" readonly />
+            </div>
+
+            <div class="form-group">
+              <label>Role</label>
+              <input type="text" id="profileRole" readonly />
+            </div>
           </div>
         </section>
 
         <section class="form-section">
           <h4>Ubah Password</h4>
           <form id="passwordForm">
-            <div class="form-group">
-              <label for="oldPassword">Password Lama</label>
-              <input type="password" id="oldPassword" name="oldPassword" required />
-            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="oldPassword">Password Lama</label>
+                <input type="password" id="oldPassword" name="oldPassword" required />
+              </div>
 
-            <div class="form-group">
-              <label for="newPassword">Password Baru</label>
-              <input type="password" id="newPassword" name="newPassword" required />
-            </div>
+              <div class="form-group">
+                <label for="newPassword">Password Baru</label>
+                <input type="password" id="newPassword" name="newPassword" required />
+              </div>
 
-            <div class="form-group">
-              <label for="confirmPassword">Konfirmasi Password Baru</label>
-              <input type="password" id="confirmPassword" name="confirmPassword" required />
+              <div class="form-group">
+                <label for="confirmPassword">Konfirmasi Password Baru</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required />
+              </div>
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn">🔒 Ubah Password</button>
+              <button type="submit" class="btn">🔑 Simpan Password</button>
+              <button type="reset" class="btn gray">↺ Reset</button>
             </div>
           </form>
         </section>
@@ -99,28 +110,67 @@
       </footer>
     </div>
 
-    <script type="module" src="/js/profile.js"></script>
+    <!-- UNIVERSAL SIDEBAR SCRIPT -->
     <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
+      const sidebar = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
 
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+      document.querySelectorAll(".expand-toggle").forEach((btn) =>
+        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
+      );
+
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    </script>
+
+    <!-- PROFILE LOGIC -->
+    <script type="module">
+      async function loadProfile() {
+        try {
+          const res = await fetch("/api/profile");
+          const data = await res.json();
+          document.getElementById("profileUsername").value = data.username || "-";
+          document.getElementById("profileName").value = data.staff_name || "-";
+          document.getElementById("profileRole").value = data.role || "-";
+          document.getElementById("userBadge").textContent = data.role || "user";
+        } catch (err) {
+          console.error("Error loading profile:", err);
+        }
+      }
+
+      const form = document.getElementById("passwordForm");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const oldPass = document.getElementById("oldPassword").value;
+        const newPass = document.getElementById("newPassword").value;
+        const confirm = document.getElementById("confirmPassword").value;
+
+        if (newPass !== confirm) {
+          alert("❌ Konfirmasi password tidak cocok!");
+          return;
+        }
+
+        try {
+          const res = await fetch("/api/profile/password", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass }),
+          });
+
+          if (!res.ok) throw new Error("Gagal memperbarui password");
+          alert("✅ Password berhasil diubah!");
+          form.reset();
+        } catch (err) {
+          console.error(err);
+          alert("❌ Gagal mengubah password");
+        }
+      });
+
+      loadProfile();
+    </script>
   </body>
 </html>
