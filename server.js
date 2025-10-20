@@ -107,11 +107,14 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-// ==========================================================
-// Catch-All for Frontend Routes
-// ==========================================================
+// Landing Page -> login.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
+// Catch-All untuk semua route frontend lain
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
 });
 
 // ==========================================================
