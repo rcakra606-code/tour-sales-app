@@ -1,127 +1,96 @@
 <!DOCTYPE html>
 <html lang="id">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Executive Dashboard - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <!-- SIDEBAR (Standardized Template) -->
-<aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
-  <div class="sidebar-top">
-    <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
-    <h1 class="brand">TravelDash</h1>
-    <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
-  </div>
+    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+      <div class="sidebar-top">
+        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <h1 class="brand">TravelDash</h1>
+        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+      </div>
 
-  <nav class="sidebar-nav" role="navigation">
-    <ul>
-      <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+      <nav class="sidebar-nav" role="navigation">
+        <ul>
+          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-      <li class="expandable">
-        <button class="expand-toggle">📊 Reports</button>
-        <ul class="submenu">
-          <li><a href="/report_tour.html">Report Tour</a></li>
-          <li><a href="/report_sales.html">Report Sales</a></li>
-          <li><a href="/report_document.html">Report Document</a></li>
+          <li class="expandable">
+            <button class="expand-toggle">📊 Reports</button>
+            <ul class="submenu">
+              <li><a href="/report_tour.html">Report Tour</a></li>
+              <li><a href="/report_sales.html">Report Sales</a></li>
+              <li><a href="/report_document.html">Report Document</a></li>
+            </ul>
+          </li>
+
+          <li class="expandable">
+            <button class="expand-toggle">⚙️ Management</button>
+            <ul class="submenu">
+              <li><a href="/region_management.html">Region Management</a></li>
+              <li><a href="/user-management.html">User Management</a></li>
+            </ul>
+          </li>
+
+          <li><a href="/executive-dashboard.html" class="active">📈 Executive Dashboard</a></li>
+          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+          <li><a href="/profile.html">👤 Profile</a></li>
+          <li><a href="/logout.html">🚪 Logout</a></li>
         </ul>
-      </li>
+      </nav>
 
-      <li class="expandable">
-        <button class="expand-toggle">⚙️ Management</button>
-        <ul class="submenu">
-          <li><a href="/region_management.html">Region Management</a></li>
-          <li><a href="/user-management.html">User Management</a></li>
-        </ul>
-      </li>
+      <div class="sidebar-footer">
+        <small>v5.0 • Travel Dashboard</small>
+      </div>
+    </aside>
 
-      <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-      <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-      <li><a href="/profile.html">👤 Profile</a></li>
-      <li><a href="/logout.html">🚪 Logout</a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <small>v5.0 • Travel Dashboard</small>
-  </div>
-</aside>
-
-
-    <!-- MAIN -->
+    <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Executive Dashboard</h2>
-        <div id="userBadge" class="user-badge">admin</div>
+        <div id="userBadge" class="user-badge">executive</div>
       </header>
 
       <main class="container">
-        <!-- KPI Cards -->
-        <section class="cards-grid" id="kpiCards">
+        <!-- KPI CARDS -->
+        <section class="cards-grid" id="summaryCards">
           <div class="card">
-            <h3>Total Sales (Selected)</h3>
-            <p id="kpiSales">—</p>
+            <h3>Total Sales</h3>
+            <p id="totalSales">Rp 0</p>
           </div>
           <div class="card">
-            <h3>Total Profit (Selected)</h3>
-            <p id="kpiProfit">—</p>
+            <h3>Total Profit</h3>
+            <p id="totalProfit">Rp 0</p>
           </div>
           <div class="card">
-            <h3>Jumlah Tours</h3>
-            <p id="kpiTours">—</p>
+            <h3>Total Tours</h3>
+            <p id="totalTours">0</p>
           </div>
           <div class="card">
             <h3>Total Pax</h3>
-            <p id="kpiPax">—</p>
+            <p id="totalPax">0</p>
+          </div>
+          <div class="card">
+            <h3>Target Achieved</h3>
+            <p id="targetAchieved">0%</p>
           </div>
         </section>
 
-        <!-- Controls -->
-        <section class="panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <label for="rangeFrom">From</label>
-            <input type="date" id="rangeFrom" />
-            <label for="rangeTo">To</label>
-            <input type="date" id="rangeTo" />
-            <select id="groupBy">
-              <option value="month">Group: Month</option>
-              <option value="week">Group: Week</option>
-            </select>
-            <button id="btnApply" class="btn">Apply</button>
-          </div>
-
-          <div class="filter-bar">
-            <button id="btnExportCSV" class="btn">📄 Export CSV</button>
-            <button id="btnExportExcel" class="btn">📤 Export Excel</button>
-          </div>
+        <!-- CHARTS -->
+        <section class="panel" style="margin-top:20px;">
+          <h4>📈 Sales & Profit Trend (12 Bulan)</h4>
+          <canvas id="salesProfitChart" height="100"></canvas>
         </section>
 
-        <!-- Charts -->
-        <section class="panels-grid" style="margin-top:12px;">
-          <div class="panel" style="min-height:320px;">
-            <h4>Sales & Profit (Trend)</h4>
-            <canvas id="chartSalesProfit" width="600" height="320"></canvas>
-          </div>
-
-          <div class="panel" style="min-height:320px;">
-            <h4>Tours by Region (Pax)</h4>
-            <canvas id="chartRegionPax" width="600" height="320"></canvas>
-          </div>
-        </section>
-
-        <section class="panels-grid" style="margin-top:12px;">
-          <div class="panel" style="min-height:320px;">
-            <h4>Top Staff (Sales)</h4>
-            <canvas id="chartTopStaff" width="600" height="320"></canvas>
-          </div>
-
-          <div class="panel" style="min-height:320px;">
-            <h4>Targets vs Realisasi</h4>
-            <canvas id="chartTargets" width="600" height="320"></canvas>
-          </div>
+        <section class="panel" style="margin-top:20px;">
+          <h4>🌍 Tour Distribution by Region</h4>
+          <canvas id="tourRegionChart" height="100"></canvas>
         </section>
       </main>
 
@@ -130,33 +99,99 @@
       </footer>
     </div>
 
-    <!-- Chart.js UMD -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- XLSX for export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-    <script type="module" src="/js/executive-dashboard.js"></script>
+    <!-- UNIVERSAL SIDEBAR SCRIPT -->
     <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
+      const sidebar = document.getElementById("sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      sidebarToggle?.addEventListener("click", () => sidebar.classList.toggle("collapsed"));
 
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle?.addEventListener("click", () => document.body.classList.toggle("theme-dark"));
 
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+      document.querySelectorAll(".expand-toggle").forEach((btn) =>
+        btn.addEventListener("click", () => btn.nextElementSibling.classList.toggle("open"))
+      );
+
+      const yearSpan = document.getElementById("year");
+      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+    </script>
+
+    <!-- EXECUTIVE DASHBOARD LOGIC -->
+    <script>
+      // Load KPI Summary
+      async function loadKPI() {
+        try {
+          const res = await fetch("/api/dashboard/summary");
+          const data = await res.json();
+          document.getElementById("totalSales").textContent = "Rp " + Number(data.totalSales || 0).toLocaleString("id-ID");
+          document.getElementById("totalProfit").textContent = "Rp " + Number(data.totalProfit || 0).toLocaleString("id-ID");
+          document.getElementById("totalTours").textContent = data.totalTours || 0;
+          document.getElementById("totalPax").textContent = data.totalPax || 0;
+          document.getElementById("targetAchieved").textContent = (data.targetAchieved || 0) + "%";
+        } catch (err) {
+          console.error("Error loading KPI:", err);
+        }
+      }
+
+      // Chart.js - Sales vs Profit
+      async function loadSalesProfitChart() {
+        try {
+          const res = await fetch("/api/dashboard/sales-profit-trend");
+          const data = await res.json();
+          const ctx = document.getElementById("salesProfitChart");
+          new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: data.labels || [],
+              datasets: [
+                {
+                  label: "Sales",
+                  data: data.sales,
+                  borderColor: "#0b74de",
+                  fill: false,
+                },
+                {
+                  label: "Profit",
+                  data: data.profit,
+                  borderColor: "#28a745",
+                  fill: false,
+                },
+              ],
+            },
+            options: { responsive: true, plugins: { legend: { position: "bottom" } } },
+          });
+        } catch (err) {
+          console.error("Error loading chart:", err);
+        }
+      }
+
+      // Chart.js - Tour by Region
+      async function loadTourRegionChart() {
+        try {
+          const res = await fetch("/api/dashboard/tour-region");
+          const data = await res.json();
+          const ctx = document.getElementById("tourRegionChart");
+          new Chart(ctx, {
+            type: "doughnut",
+            data: {
+              labels: data.labels || [],
+              datasets: [
+                {
+                  data: data.counts,
+                  backgroundColor: ["#0b74de", "#28a745", "#ffc107", "#dc3545", "#17a2b8"],
+                },
+              ],
+            },
+            options: { responsive: true, plugins: { legend: { position: "bottom" } } },
+          });
+        } catch (err) {
+          console.error("Error loading region chart:", err);
+        }
+      }
+
+      loadKPI();
+      loadSalesProfitChart();
+      loadTourRegionChart();
+    </script>
   </body>
 </html>
