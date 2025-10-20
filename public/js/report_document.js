@@ -1,7 +1,19 @@
+/**
+ * public/js/report_document.js
+ * Travel Dashboard Enterprise v5.0
+ * ==========================================================
+ * Fitur:
+ * - CRUD dokumen lengkap (create, update, delete)
+ * - Filter bulan & search
+ * - Export Excel/CSV
+ * - Sidebar expand, theme toggle
+ * ==========================================================
+ */
+
 import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
 
-const documentForm = document.getElementById("documentForm");
-const btnResetForm = document.getElementById("btnResetForm");
+const form = document.getElementById("documentForm");
+const btnReset = document.getElementById("btnResetForm");
 const btnDelete = document.getElementById("btnDelete");
 const tableBody = document.querySelector("#documentTable tbody");
 const searchInput = document.getElementById("searchInput");
@@ -13,7 +25,7 @@ if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 
 let documents = [];
 
-// ===== UTIL =====
+// ======== UTIL ========
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("id-ID") : "-");
 const escapeHtml = (str) =>
   String(str || "")
@@ -23,7 +35,7 @@ const escapeHtml = (str) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
-// ===== LOAD DOCUMENTS =====
+// ======== LOAD DOCUMENTS ========
 async function loadDocuments() {
   try {
     const res = await fetch("/api/report/documents");
@@ -32,14 +44,14 @@ async function loadDocuments() {
     renderTable(documents);
   } catch (err) {
     console.error(err);
-    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Gagal memuat data</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Gagal memuat data</td></tr>`;
   }
 }
 
-// ===== RENDER TABLE =====
+// ======== RENDER TABLE ========
 function renderTable(data) {
   if (!data || data.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Tidak ada data</td></tr>`;
     return;
   }
 
@@ -51,9 +63,13 @@ function renderTable(data) {
         <td><button class="btn-link view-doc" data-id="${d.id}">${escapeHtml(
         d.guest_name
       )}</button></td>
+        <td>${escapeHtml(d.passport_visa || "-")}</td>
+        <td>${escapeHtml(d.process_type || "-")}</td>
         <td>${escapeHtml(d.booking_code_dms || "-")}</td>
-        <td>${escapeHtml(d.tour_code || "-")}</td>
-        <td>${escapeHtml(d.remarks || "-")}</td>
+        <td>${escapeHtml(d.invoice_number || "-")}</td>
+        <td>${escapeHtml(d.guest_phone || "-")}</td>
+        <td>${fmtDate(d.estimate_finish)}</td>
+        <td>${escapeHtml(d.staff_name || "-")}</td>
       </tr>`
     )
     .join("");
@@ -66,34 +82,39 @@ function renderTable(data) {
   });
 }
 
-// ===== POPULATE FORM =====
+// ======== POPULATE FORM ========
 function populateForm(d) {
-  document.getElementById("docId").value = d.id;
-  document.getElementById("receiveDate").value = d.receive_date
-    ? d.receive_date.split("T")[0]
-    : "";
+  document.getElementById("receiveDate").value = d.receive_date?.split("T")[0] || "";
+  document.getElementById("sendDate").value = d.send_date?.split("T")[0] || "";
   document.getElementById("guestName").value = d.guest_name || "";
+  document.getElementById("passportVisa").value = d.passport_visa || "";
+  document.getElementById("processType").value = d.process_type || "Biasa";
   document.getElementById("bookingCodeDMS").value = d.booking_code_dms || "";
+  document.getElementById("invoiceNumber").value = d.invoice_number || "";
+  document.getElementById("guestPhone").value = d.guest_phone || "";
+  document.getElementById("estimateFinish").value = d.estimate_finish?.split("T")[0] || "";
+  document.getElementById("staffName").value = d.staff_name || "";
   document.getElementById("tourCode").value = d.tour_code || "";
-  document.getElementById("remarks").value = d.remarks || "";
+
+  form.dataset.id = d.id;
   btnDelete.style.display = "inline-block";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// ===== RESET FORM =====
-btnResetForm.addEventListener("click", () => {
-  documentForm.reset();
-  document.getElementById("docId").value = "";
+// ======== RESET FORM ========
+btnReset.addEventListener("click", () => {
+  form.reset();
+  delete form.dataset.id;
   btnDelete.style.display = "none";
 });
 
-// ===== SUBMIT FORM =====
-documentForm.addEventListener("submit", async (e) => {
+// ======== SUBMIT FORM ========
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const id = document.getElementById("docId").value;
-  const data = Object.fromEntries(new FormData(documentForm).entries());
-  const method = id ? "PUT" : "POST";
+  const data = Object.fromEntries(new FormData(form).entries());
+  const id = form.dataset.id;
   const url = id ? `/api/report/documents/${id}` : `/api/report/documents`;
+  const method = id ? "PUT" : "POST";
 
   try {
     const res = await fetch(url, {
@@ -103,7 +124,7 @@ documentForm.addEventListener("submit", async (e) => {
     });
     if (!res.ok) throw new Error("Gagal menyimpan data");
     alert("✅ Data dokumen tersimpan!");
-    documentForm.reset();
+    form.reset();
     btnDelete.style.display = "none";
     loadDocuments();
   } catch (err) {
@@ -112,16 +133,16 @@ documentForm.addEventListener("submit", async (e) => {
   }
 });
 
-// ===== DELETE =====
+// ======== DELETE ========
 btnDelete.addEventListener("click", async () => {
-  const id = document.getElementById("docId").value;
+  const id = form.dataset.id;
   if (!id) return;
   if (!confirm("Yakin ingin menghapus data ini?")) return;
   try {
     const res = await fetch(`/api/report/documents/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Gagal menghapus");
     alert("✅ Data dihapus");
-    documentForm.reset();
+    form.reset();
     btnDelete.style.display = "none";
     loadDocuments();
   } catch (err) {
@@ -130,7 +151,7 @@ btnDelete.addEventListener("click", async () => {
   }
 });
 
-// ===== FILTER & SEARCH =====
+// ======== FILTER & SEARCH ========
 searchInput.addEventListener("input", applyFilters);
 filterMonth.addEventListener("change", applyFilters);
 
@@ -143,7 +164,8 @@ function applyFilters() {
     filtered = filtered.filter(
       (d) =>
         d.guest_name.toLowerCase().includes(q) ||
-        (d.booking_code_dms && d.booking_code_dms.toLowerCase().includes(q))
+        (d.booking_code_dms && d.booking_code_dms.toLowerCase().includes(q)) ||
+        (d.invoice_number && d.invoice_number.toLowerCase().includes(q))
     );
   }
 
@@ -160,7 +182,7 @@ function applyFilters() {
   renderTable(filtered);
 }
 
-// ===== EXPORT =====
+// ======== EXPORT ========
 btnExcel.addEventListener("click", () => exportFile("xlsx"));
 btnCSV.addEventListener("click", () => exportFile("csv"));
 
