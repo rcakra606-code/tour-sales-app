@@ -1,89 +1,97 @@
-// ==========================================================
-// 💰 Travel Dashboard Enterprise v5.3
-// Sales Controller (CRUD + Target + PostgreSQL Secure)
-// ==========================================================
+// controllers/salesController.js
 import pkg from "pg";
 const { Pool } = pkg;
-import dotenv from "dotenv";
-dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// 📊 Get All Sales
-export const getAllSales = async (req, res) => {
+/**
+ * GET /api/sales
+ * Return list of all sales (admin & semiadmin), or only own sales (staff)
+ */
+export async function getSales(req, res) {
   try {
-    const result = await pool.query("SELECT * FROM sales ORDER BY id DESC");
-    res.json(result.rows);
+    const role = req.user.role;
+    const staff = req.user.staff_name || req.user.username;
+
+    let q = `SELECT id, transaction_date, staff_name, invoice_number, sales_amount, profit_amount, remarks 
+             FROM sales `;
+    if (role === "staff") {
+      q += `WHERE LOWER(staff_name) = LOWER($1) ORDER BY transaction_date DESC`;
+    } else {
+      q += `ORDER BY transaction_date DESC`;
+    }
+
+    const values = role === "staff" ? [staff] : [];
+    const { rows } = await pool.query(q, values);
+
+    const formatted = rows.map((r) => ({
+      id: r.id,
+      transactionDate: r.transaction_date,
+      staffName: r.staff_name,
+      invoiceNumber: r.invoice_number,
+      salesAmount: parseFloat(r.sales_amount) || 0,
+      profitAmount: parseFloat(r.profit_amount) || 0,
+      remarks: r.remarks,
+    }));
+
+    res.json(formatted);
   } catch (err) {
-    console.error("❌ getAllSales error:", err.message);
+    console.error("❌ GET /api/sales error:", err);
     res.status(500).json({ message: "Gagal memuat data sales" });
   }
-};
+}
 
-// ➕ Create New Sale
-export const createSale = async (req, res) => {
+/**
+ * POST /api/sales
+ * Create new sales record
+ */
+export async function createSale(req, res) {
   try {
-    const { transactionDate, invoiceNumber, staffName, salesAmount, profitAmount } = req.body;
+    const { transactionDate, staffName, invoiceNumber, salesAmount, profitAmount, remarks } = req.body;
 
-    if (!transactionDate || !invoiceNumber || !staffName)
-      return res.status(400).json({ message: "Tanggal, invoice, dan nama staff wajib diisi" });
+    if (!transactionDate || !staffName) {
+      return res.status(400).json({ message: "Tanggal transaksi dan nama staff wajib diisi" });
+    }
 
-    await pool.query(
-      `INSERT INTO sales (transaction_date, invoice_number, staff_name, sales_amount, profit_amount)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [transactionDate, invoiceNumber, staffName, salesAmount || 0, profitAmount || 0]
-    );
+    const q = `
+      INSERT INTO sales (transaction_date, staff_name, invoice_number, sales_amount, profit_amount, remarks)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, staff_name, invoice_number, sales_amount, profit_amount, remarks;
+    `;
+    const values = [transactionDate, staffName, invoiceNumber, salesAmount, profitAmount, remarks];
 
-    res.status(201).json({ message: "✅ Transaksi sales berhasil disimpan" });
+    const { rows } = await pool.query(q, values);
+    res.status(201).json({
+      message: "Data sales berhasil disimpan",
+      data: rows[0],
+    });
   } catch (err) {
-    console.error("❌ createSale error:", err.message);
-    res.status(500).json({ message: "Gagal menyimpan transaksi sales" });
+    console.error("❌ POST /api/sales error:", err);
+    res.status(500).json({ message: "Gagal menyimpan data sales" });
   }
-};
+}
 
-// ❌ Delete Sale
-export const deleteSale = async (req, res) => {
+/**
+ * DELETE /api/sales/:id
+ * Delete a sales record by ID (Admin or SemiAdmin only)
+ */
+export async function deleteSale(req, res) {
   try {
+    const role = req.user.role;
+    if (!["admin", "semiadmin"].includes(role)) {
+      return res.status(403).json({ message: "Akses ditolak. Hanya Admin atau SemiAdmin yang dapat menghapus." });
+    }
+
     const { id } = req.params;
-    await pool.query("DELETE FROM sales WHERE id = $1", [id]);
-    res.json({ message: "✅ Data sales berhasil dihapus" });
+    if (!id) return res.status(400).json({ message: "ID tidak valid" });
+
+    await pool.query(`DELETE FROM sales WHERE id = $1;`, [id]);
+    res.json({ message: "Data sales berhasil dihapus" });
   } catch (err) {
-    console.error("❌ deleteSale error:", err.message);
+    console.error("❌ DELETE /api/sales error:", err);
     res.status(500).json({ message: "Gagal menghapus data sales" });
   }
-};
-
-// 🎯 Get All Targets
-export const getAllTargets = async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM targets ORDER BY target_month DESC");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ getAllTargets error:", err.message);
-    res.status(500).json({ message: "Gagal memuat target bulanan" });
-  }
-};
-
-// ➕ Create Target
-export const createTarget = async (req, res) => {
-  try {
-    const { targetStaff, targetMonth, targetSales, targetProfit } = req.body;
-
-    if (!targetStaff || !targetMonth)
-      return res.status(400).json({ message: "Nama staff dan bulan target wajib diisi" });
-
-    await pool.query(
-      `INSERT INTO targets (staff_name, target_month, target_sales, target_profit)
-       VALUES ($1, $2, $3, $4)`,
-      [targetStaff, targetMonth, targetSales || 0, targetProfit || 0]
-    );
-
-    res.status(201).json({ message: "✅ Target bulanan berhasil disimpan" });
-  } catch (err) {
-    console.error("❌ createTarget error:", err.message);
-    res.status(500).json({ message: "Gagal menyimpan target bulanan" });
-  }
-};
+}
