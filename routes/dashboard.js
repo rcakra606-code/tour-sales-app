@@ -1,25 +1,17 @@
-// ==========================================================
-// 📊 Travel Dashboard Enterprise v5.3
-// Dashboard Routes (JWT + Role-Based Access)
-// ==========================================================
+// routes/dashboard.js
 import express from "express";
+import { authenticate } from "../middleware/authMiddleware.js";
 import {
   getDashboardSummary,
-  getSalesProfitTrend,
-  getTourRegionData,
+  getStaffProgress,
+  getTourRegion,
 } from "../controllers/dashboardController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import { roleCheck } from "../middleware/roleCheck.js";
 
 const router = express.Router();
 
-// 📈 Summary data (semua role)
-router.get("/summary", authMiddleware, roleCheck(["staff", "semiadmin", "admin"]), getDashboardSummary);
-
-// 📉 Sales vs Profit Trend
-router.get("/sales-profit-trend", authMiddleware, roleCheck(["semiadmin", "admin"]), getSalesProfitTrend);
-
-// 🌍 Tour Region Chart Data
-router.get("/tour-region", authMiddleware, roleCheck(["staff", "semiadmin", "admin"]), getTourRegionData);
+// Semua route dashboard butuh autentikasi
+router.get("/summary", authenticate, getDashboardSummary);
+router.get("/staff-progress", authenticate, getStaffProgress);
+router.get("/tour-region", authenticate, getTourRegion);
 
 export default router;
