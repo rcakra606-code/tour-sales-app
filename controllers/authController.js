@@ -1,20 +1,7 @@
-/**
- * ==========================================================
- * 📁 controllers/authController.js (ESM version)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Controller untuk autentikasi:
- * - Login user
- * - Verifikasi token
- * ==========================================================
- */
-
-import bcrypt from "bcrypt";
+// controllers/authController.js
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import pkg from "pg";
-
-dotenv.config();
 const { Pool } = pkg;
 
 const pool = new Pool({
@@ -22,64 +9,132 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
+const JWT_SECRET = process.env.JWT_SECRET || "secretkey";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+
 /**
- * 🔐 Login User
- * Validasi kredensial, buat token JWT
+ * Generate JWT tokens
  */
-export const loginUser = async (req, res) => {
+function generateTokens(user) {
+  const accessToken = jwt.sign(
+    { id: user.id, username: user.username, role: user.role, staff_name: user.staff_name },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user.id, username: user.username },
+    JWT_SECRET,
+    { expiresIn: JWT_REFRESH_EXPIRES_IN }
+  );
+
+  return { accessToken, refreshToken };
+}
+
+/**
+ * POST /api/auth/login
+ */
+export async function login(req, res) {
   try {
     const { username, password } = req.body;
+
     if (!username || !password)
-      return res.status(400).json({ message: "Username dan password wajib diisi." });
+      return res.status(400).json({ message: "Username dan password wajib diisi" });
 
-    const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-    if (result.rows.length === 0)
-      return res.status(401).json({ message: "User tidak ditemukan." });
+    const q = `SELECT id, username, staff_name, role, password_hash FROM users WHERE username = $1 LIMIT 1;`;
+    const { rows } = await pool.query(q, [username]);
 
-    const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match)
-      return res.status(401).json({ message: "Password salah." });
+    if (rows.length === 0) return res.status(401).json({ message: "User tidak ditemukan" });
 
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-    );
+    const user = rows[0];
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ message: "Password salah" });
+
+    const { accessToken, refreshToken } = generateTokens(user);
 
     res.json({
-      message: "Login berhasil.",
-      token,
+      message: "Login berhasil",
+      token: accessToken,
+      refreshToken,
       user: {
+        id: user.id,
         username: user.username,
+        staff_name: user.staff_name,
         role: user.role,
       },
     });
   } catch (err) {
-    console.error("❌ Auth login error:", err.message);
-    res.status(500).json({ message: "Gagal login." });
+    console.error("❌ Auth login error:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
-};
+}
 
 /**
- * 🔎 Verifikasi Token JWT
- * Mengecek validitas token dan mengembalikan data user
+ * POST /api/auth/register
  */
-export const verifyToken = async (req, res) => {
+export async function register(req, res) {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader)
-      return res.status(401).json({ message: "Token tidak ditemukan." });
+    const { username, staff_name, password, role } = req.body;
 
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!username || !password || !role)
+      return res.status(400).json({ message: "Data tidak lengkap" });
 
-    res.json({
-      valid: true,
-      user: decoded,
+    const hashed = await bcrypt.hash(password, 10);
+    const q = `
+      INSERT INTO users (username, staff_name, password_hash, role)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, username, staff_name, role;
+    `;
+    const values = [username, staff_name || username, hashed, role];
+    const { rows } = await pool.query(q, values);
+
+    res.status(201).json({ message: "User berhasil dibuat", user: rows[0] });
+  } catch (err) {
+    console.error("❌ Register error:", err);
+    res.status(500).json({ message: "Gagal membuat user" });
+  }
+}
+
+/**
+ * POST /api/auth/refresh
+ */
+export async function refreshToken(req, res) {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ message: "Refresh token wajib" });
+
+    jwt.verify(refreshToken, JWT_SECRET, (err, decoded) => {
+      if (err) return res.status(401).json({ message: "Refresh token tidak valid" });
+
+      const newToken = jwt.sign(
+        { id: decoded.id, username: decoded.username },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+      );
+
+      res.json({ token: newToken });
     });
   } catch (err) {
-    console.error("❌ Token verification error:", err.message);
-    res.status(401).json({ valid: false, message: "Token tidak valid." });
+    console.error("❌ Refresh token error:", err);
+    res.status(500).json({ message: "Gagal memperbarui token" });
   }
-};
+}
+
+/**
+ * GET /api/auth/verify
+ */
+export async function verify(req, res) {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.json({ valid: true, decoded });
+  } catch (err) {
+    console.error("❌ Verify token error:", err);
+    res.status(401).json({ valid: false, message: "Token tidak valid" });
+  }
+}
