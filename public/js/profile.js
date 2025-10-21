@@ -1,6 +1,6 @@
 // ==========================================================
-// 👤 User Profile v5.3.4
-// Update profile & password for logged-in user
+// 👤 Profile v5.3.6
+// Fix: Update profil staff & password hash
 // ==========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
@@ -14,28 +14,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   const form = document.getElementById("profileForm");
   const msg = document.getElementById("statusMsg");
 
-  // Load current profile data
+  // ==========================================================
+  // LOAD CURRENT PROFILE
+  // ==========================================================
   async function loadProfile() {
     try {
       const res = await fetch("/api/profile", { headers });
-      const data = await res.json();
+      if (!res.ok) throw new Error("Gagal memuat profil");
 
+      const data = await res.json();
       form.username.value = data.username;
-      form.staffName.value = data.staff_name;
+      form.staffName.value = data.staff_name || "";
       form.role.value = data.role;
     } catch (err) {
-      console.error("❌ Error load profile:", err);
-      msg.textContent = "Gagal memuat data profil.";
+      console.error("❌ Gagal memuat profil:", err);
+      msg.textContent = "Gagal memuat profil pengguna.";
+      msg.style.color = "#dc3545";
     }
   }
 
-  // Update profile
+  // ==========================================================
+  // UPDATE PROFILE
+  // ==========================================================
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const payload = {
       staff_name: form.staffName.value,
-      newPassword: form.newPassword.value.trim() || undefined,
+      newPassword: form.newPassword.value || "",
     };
 
     try {
@@ -47,20 +53,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.message || "Update gagal");
+      if (!res.ok) throw new Error(data.message || "Gagal memperbarui profil");
 
       msg.textContent = "✅ Profil berhasil diperbarui!";
       msg.style.color = "#28a745";
 
-      // Update cache user
+      // Update cache user di localStorage
       const updatedUser = { ...user, staff_name: payload.staff_name };
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
-      // Reset field password
+      document.getElementById("activeUser").textContent = `${payload.staff_name} (${user.role})`;
+
+      // Reset password field
       form.newPassword.value = "";
     } catch (err) {
       console.error("❌ Update error:", err);
-      msg.textContent = "Gagal memperbarui profil.";
+      msg.textContent = err.message || "Gagal memperbarui profil.";
       msg.style.color = "#dc3545";
     }
   });
