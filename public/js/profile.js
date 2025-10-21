@@ -1,75 +1,59 @@
 // ==========================================================
-// 👤 Profile v5.3.6
-// Fix: Update profil staff & password hash
+// 👤 Profile Page Logic — v5.3.6
 // ==========================================================
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (!token || token === "undefined") return (window.location.href = "/login.html");
-
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  document.getElementById("year").textContent = new Date().getFullYear();
-  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
 
-  const form = document.getElementById("profileForm");
-  const msg = document.getElementById("statusMsg");
+  const profileForm = document.getElementById("profileForm");
+  const usernameField = document.getElementById("username");
+  const staffNameField = document.getElementById("staffName");
+  const roleField = document.getElementById("role");
+  const userIdField = document.getElementById("userId");
+  const createdAtField = document.getElementById("createdAt");
 
-  // ==========================================================
-  // LOAD CURRENT PROFILE
-  // ==========================================================
   async function loadProfile() {
     try {
       const res = await fetch("/api/profile", { headers });
-      if (!res.ok) throw new Error("Gagal memuat profil");
-
       const data = await res.json();
-      form.username.value = data.username;
-      form.staffName.value = data.staff_name || "";
-      form.role.value = data.role;
+      if (!res.ok) throw new Error(data.message || "Gagal memuat profil");
+
+      usernameField.value = data.username || "-";
+      staffNameField.value = data.staff_name || "";
+      roleField.value = data.role || "-";
+      userIdField.textContent = data.id || "-";
+      createdAtField.textContent = data.created_at
+        ? new Date(data.created_at).toLocaleString("id-ID")
+        : "-";
+
+      document.getElementById("activeUser").textContent =
+        `${data.staff_name || data.username} (${data.role})`;
     } catch (err) {
-      console.error("❌ Gagal memuat profil:", err);
-      msg.textContent = "Gagal memuat profil pengguna.";
-      msg.style.color = "#dc3545";
+      console.error("❌ loadProfile error:", err);
+      alert("Gagal memuat profil");
     }
   }
 
-  // ==========================================================
-  // UPDATE PROFILE
-  // ==========================================================
-  form.addEventListener("submit", async (e) => {
+  profileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const payload = {
-      staff_name: form.staffName.value,
-      newPassword: form.newPassword.value || "",
-    };
+    const staff_name = staffNameField.value.trim();
+    const newPassword = document.getElementById("newPassword").value.trim();
+
+    if (!staff_name) return alert("Nama staff wajib diisi");
 
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
         headers,
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ staff_name, newPassword }),
       });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Gagal memperbarui profil");
-
-      msg.textContent = "✅ Profil berhasil diperbarui!";
-      msg.style.color = "#28a745";
-
-      // Update cache user di localStorage
-      const updatedUser = { ...user, staff_name: payload.staff_name };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      document.getElementById("activeUser").textContent = `${payload.staff_name} (${user.role})`;
-
-      // Reset password field
-      form.newPassword.value = "";
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+      alert("✅ Profil berhasil diperbarui");
+      loadProfile();
     } catch (err) {
-      console.error("❌ Update error:", err);
-      msg.textContent = err.message || "Gagal memperbarui profil.";
-      msg.style.color = "#dc3545";
+      alert("❌ Gagal memperbarui profil: " + err.message);
     }
   });
 
