@@ -1,5 +1,5 @@
 // controllers/profileController.js
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import pkg from "pg";
 const { Pool } = pkg;
 
