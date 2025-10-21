@@ -1,15 +1,15 @@
 // ==========================================================
-// 👥 User Management v5.3.4
-// CRUD + Search + Export CSV + Role Access
+// 👥 User Management v5.3.6
+// Fix: Staff Name display + CRUD sync with backend
 // ==========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   if (!token || token === "undefined") return (window.location.href = "/login.html");
 
-  // Cegah akses jika bukan admin
+  // Hanya admin yang boleh akses
   if (user.role !== "admin") {
-    alert("❌ Hanya Admin yang dapat mengakses halaman ini.");
+    alert("❌ Akses hanya untuk Admin");
     return (window.location.href = "/dashboard.html");
   }
 
@@ -21,15 +21,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const tableBody = document.querySelector("#userTable tbody");
   const searchInput = document.getElementById("searchUser");
 
+  // ==========================================================
+  // LOAD USERS
+  // ==========================================================
   async function loadUsers() {
-    const res = await fetch("/api/users", { headers });
-    const data = await res.json();
-    renderUsers(data);
+    try {
+      const res = await fetch("/api/users", { headers });
+      if (!res.ok) throw new Error("Gagal memuat user");
+      const data = await res.json();
+      renderUsers(data);
+    } catch (err) {
+      console.error("❌ Load users error:", err);
+    }
   }
 
-  function renderUsers(data) {
+  function renderUsers(users) {
     tableBody.innerHTML = "";
-    data.forEach((u) => {
+    users.forEach((u) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${u.username}</td>
@@ -42,39 +50,67 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Tambah user baru
+  // ==========================================================
+  // ADD USER
+  // ==========================================================
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const userData = {
-      username: form.username.value,
-      staff_name: form.staffName.value,
+    const payload = {
+      username: form.username.value.trim(),
+      staff_name: form.staffName.value.trim(),
       password: form.password.value,
       role: form.role.value,
     };
 
-    await fetch("/api/users", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(userData),
-    });
+    if (!payload.username || !payload.password) {
+      return alert("⚠️ Username dan Password wajib diisi!");
+    }
 
-    form.reset();
-    loadUsers();
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Gagal menambah user");
+
+      alert("✅ User berhasil dibuat!");
+      form.reset();
+      await loadUsers();
+    } catch (err) {
+      console.error("❌ Add user error:", err);
+      alert(err.message);
+    }
   });
 
-  // Hapus user
+  // ==========================================================
+  // DELETE USER
+  // ==========================================================
   tableBody.addEventListener("click", async (e) => {
     const btn = e.target.closest("button");
     if (!btn) return;
     const id = btn.dataset.id;
     if (btn.dataset.action === "delete" && confirm("Hapus user ini?")) {
-      await fetch(`/api/users/${id}`, { method: "DELETE", headers });
-      loadUsers();
+      try {
+        const res = await fetch(`/api/users/${id}`, {
+          method: "DELETE",
+          headers,
+        });
+        if (!res.ok) throw new Error("Gagal menghapus user");
+        alert("🗑️ User berhasil dihapus!");
+        await loadUsers();
+      } catch (err) {
+        console.error("❌ Delete user error:", err);
+        alert("❌ Gagal menghapus user.");
+      }
     }
   });
 
-  // Pencarian
+  // ==========================================================
+  // SEARCH FILTER
+  // ==========================================================
   searchInput.addEventListener("input", () => {
     const q = searchInput.value.toLowerCase();
     const rows = tableBody.querySelectorAll("tr");
@@ -83,22 +119,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Export CSV
-  document.getElementById("exportUsers").addEventListener("click", () => {
-    const rows = [["Username", "Nama Staff", "Role"]];
-    document.querySelectorAll("#userTable tbody tr").forEach((tr) => {
-      const cols = Array.from(tr.children).map((td) => td.innerText);
-      rows.push(cols.slice(0, 3));
-    });
-
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `user-data-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-  });
-
-  loadUsers();
+  // ==========================================================
+  // INIT
+  // ==========================================================
+  await loadUsers();
 });
