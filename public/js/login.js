@@ -1,39 +1,40 @@
-/**
- * ==========================================================
- * public/js/login.js — Travel Dashboard Enterprise v3.4.1
- * ==========================================================
- * ✅ Tangani submit form login
- * ✅ Kirim request ke /api/auth/login
- * ✅ Simpan token JWT ke localStorage
- * ✅ Integrasi penuh dengan app.js (redirect otomatis)
- * ✅ Pesan error / sukses tampil dinamis
- * ==========================================================
- */
+// ==========================================================
+// 🔐 Login Handler v5.3.4
+// Safe login flow with redirect & token storage
+// ==========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("loginForm");
-  const msg = document.getElementById("loginMessage");
+  const errorMsg = document.getElementById("errorMsg");
+  const year = document.getElementById("year");
+  year.textContent = new Date().getFullYear();
 
-  if (!form) {
-    console.warn("⚠️ Login form tidak ditemukan di halaman.");
+  // Jika user sudah login sebelumnya, langsung redirect
+  const existingToken = localStorage.getItem("token");
+  const validToken =
+    existingToken &&
+    existingToken !== "undefined" &&
+    existingToken !== "null" &&
+    existingToken.trim().length > 20;
+
+  if (validToken) {
+    console.log("✅ Token masih valid, redirect ke dashboard...");
+    window.location.href = "/dashboard.html";
     return;
   }
 
+  // Handle form login
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    errorMsg.textContent = "";
 
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
     if (!username || !password) {
-      msg.textContent = "⚠️ Username dan password wajib diisi.";
-      msg.classList.add("text-red-600");
+      errorMsg.textContent = "Username dan password wajib diisi.";
       return;
     }
-
-    msg.textContent = "⏳ Sedang memproses login...";
-    msg.classList.remove("text-red-600");
-    msg.classList.add("text-gray-600");
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -42,34 +43,27 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        msg.textContent = data.error || "Login gagal. Periksa username dan password.";
-        msg.classList.add("text-red-600");
+        const err = await res.json();
+        errorMsg.textContent = err.message || "Login gagal, periksa kembali.";
         return;
       }
 
+      const data = await res.json();
       if (!data.token) {
-        msg.textContent = "Server tidak mengembalikan token login.";
-        msg.classList.add("text-red-600");
+        errorMsg.textContent = "Gagal mendapatkan token autentikasi.";
         return;
       }
 
-      // Simpan token di localStorage (digunakan app.js)
+      // Simpan token & user info
       localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
-      msg.textContent = "✅ Login berhasil! Mengarahkan ke dashboard...";
-      msg.classList.remove("text-red-600");
-      msg.classList.add("text-green-600");
-
-      setTimeout(() => {
-        window.location.href = "/dashboard.html";
-      }, 800);
+      console.log("✅ Login berhasil. Mengarahkan ke dashboard...");
+      window.location.href = "/dashboard.html";
     } catch (err) {
-      console.error("❌ Login error:", err);
-      msg.textContent = "Terjadi kesalahan koneksi ke server.";
-      msg.classList.add("text-red-600");
+      console.error("❌ Error login:", err);
+      errorMsg.textContent = "Gagal terhubung ke server.";
     }
   });
 });
