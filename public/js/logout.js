@@ -4,22 +4,23 @@
 // ==========================================================
 
 window.addEventListener("DOMContentLoaded", () => {
-  console.log("🚪 Logging out...");
+  console.log("🚪 Memulai proses logout...");
 
   try {
-    // Bersihkan semua session data
+    // Hapus semua session dan local data
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     sessionStorage.clear();
 
-    console.log("✅ Session cleared.");
+    console.log("✅ Semua sesi berhasil dibersihkan.");
 
-    // Tunggu sedikit supaya storage flush sempurna
+    // Tambahkan delay pendek supaya browser flush storage
     setTimeout(() => {
-      window.location.href = "/login.html";
+      console.log("➡️ Mengarahkan ke login...");
+      window.location.replace("/login.html");
     }, 700);
   } catch (err) {
-    console.error("❌ Logout failed:", err);
-    window.location.href = "/login.html";
+    console.error("❌ Logout error:", err);
+    window.location.replace("/login.html");
   }
 });
