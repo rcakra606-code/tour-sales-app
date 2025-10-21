@@ -1,106 +1,70 @@
-/**
- * ==========================================================
- * 📁 controllers/userController.js (ESM version)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Controller untuk modul User Management:
- * - Ambil semua user
- * - Tambah / edit user
- * - Hapus user
- * ==========================================================
- */
-
-import bcrypt from "bcrypt";
+// ==========================================================
+// 👥 Travel Dashboard Enterprise v5.3
+// User Controller (CRUD + Secure + Bcrypt + PostgreSQL)
+// ==========================================================
 import pkg from "pg";
-import dotenv from "dotenv";
-
-dotenv.config();
 const { Pool } = pkg;
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
+dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-/**
- * 👥 Ambil semua user
- */
-export const getUsers = async (req, res) => {
+// 📋 Get All Users (Admin Only)
+export const getAllUsers = async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT id, username, role, created_at
-      FROM users
-      ORDER BY created_at DESC
-    `);
+    const result = await pool.query(
+      "SELECT id, username, staff_name, role, created_at FROM users ORDER BY id DESC"
+    );
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Gagal memuat data user:", err.message);
-    res.status(500).json({ message: "Gagal memuat data user." });
+    console.error("❌ getAllUsers error:", err.message);
+    res.status(500).json({ message: "Gagal memuat data user" });
   }
 };
 
-/**
- * ➕ Tambah atau edit user
- */
+// ➕ Create New User
 export const createUser = async (req, res) => {
   try {
-    const { username, password, role } = req.body;
-    if (!username) {
-      return res.status(400).json({ message: "Username wajib diisi." });
-    }
+    const { username, staffName, password, role } = req.body;
 
-    const userCheck = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-    const hashedPassword = password ? await bcrypt.hash(password, 10) : null;
+    if (!username || !password || !role)
+      return res.status(400).json({ message: "Username, password, dan role wajib diisi" });
 
-    if (userCheck.rows.length > 0) {
-      // Update user
-      if (password) {
-        await pool.query(
-          `UPDATE users SET password=$1, role=$2 WHERE username=$3`,
-          [hashedPassword, role || userCheck.rows[0].role, username]
-        );
-      } else {
-        await pool.query(
-          `UPDATE users SET role=$1 WHERE username=$2`,
-          [role || userCheck.rows[0].role, username]
-        );
-      }
-      return res.json({ message: "User berhasil diperbarui." });
-    }
+    const existing = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
+    if (existing.rows.length > 0)
+      return res.status(400).json({ message: "Username sudah digunakan" });
 
-    // Buat user baru
-    if (!password) {
-      return res.status(400).json({ message: "Password wajib diisi untuk user baru." });
-    }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO users (username, password, role, created_at)
-       VALUES ($1, $2, $3, NOW())`,
-      [username, hashedPassword, role || "basic"]
+      "INSERT INTO users (username, staff_name, password, role) VALUES ($1, $2, $3, $4)",
+      [username, staffName || null, hashedPassword, role]
     );
 
-    res.status(201).json({ message: "User berhasil ditambahkan." });
+    res.status(201).json({ message: "✅ User berhasil ditambahkan" });
   } catch (err) {
-    console.error("❌ Gagal menambah/memperbarui user:", err.message);
-    res.status(500).json({ message: "Gagal menambah/memperbarui user." });
+    console.error("❌ createUser error:", err.message);
+    res.status(500).json({ message: "Gagal menambahkan user" });
   }
 };
 
-/**
- * ❌ Hapus user berdasarkan username
- */
+// ❌ Delete User (Admin Only)
 export const deleteUser = async (req, res) => {
   try {
-    const { username } = req.params;
-    if (!username) return res.status(400).json({ message: "Username tidak ditemukan." });
+    const id = req.params.id;
 
-    const result = await pool.query("DELETE FROM users WHERE username = $1", [username]);
-    if (result.rowCount === 0)
-      return res.status(404).json({ message: "User tidak ditemukan." });
+    const check = await pool.query("SELECT id FROM users WHERE id = $1", [id]);
+    if (check.rows.length === 0)
+      return res.status(404).json({ message: "User tidak ditemukan" });
 
-    res.json({ message: "User berhasil dihapus." });
+    await pool.query("DELETE FROM users WHERE id = $1", [id]);
+    res.json({ message: "✅ User berhasil dihapus" });
   } catch (err) {
-    console.error("❌ Gagal menghapus user:", err.message);
-    res.status(500).json({ message: "Gagal menghapus user." });
+    console.error("❌ deleteUser error:", err.message);
+    res.status(500).json({ message: "Gagal menghapus user" });
   }
 };
