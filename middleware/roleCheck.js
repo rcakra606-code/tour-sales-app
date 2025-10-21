@@ -1,36 +1,46 @@
-/**
- * ==========================================================
- * 📁 middleware/roleCheck.js (ESM version)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Middleware untuk membatasi akses berdasarkan role user:
- * - super → akses penuh
- * - semi → akses terbatas
- * - basic → hanya bisa view
- * ==========================================================
- */
+// ==========================================================
+// 🧩 Travel Dashboard Enterprise v5.3
+// Role-Based Access Middleware (Admin / SemiAdmin / Staff)
+// ==========================================================
 
-/**
- * 🧩 Middleware Role Check
- * @param {Array} allowedRoles - daftar role yang diizinkan mengakses route
- */
-export const roleCheck = (allowedRoles = []) => {
+export function roleCheck(allowedRoles = []) {
   return (req, res, next) => {
     try {
-      if (!req.user || !req.user.role) {
-        return res.status(403).json({ message: "Akses ditolak. User tidak terautentikasi." });
+      const user = req.user; // sudah didekode dari JWT di authMiddleware.js
+      if (!user || !user.role) {
+        return res.status(401).json({ message: "Unauthorized: No user context" });
       }
 
-      if (!allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
-          message: `Anda tidak memiliki hak akses (${req.user.role}).`,
-        });
+      const role = user.role.toLowerCase();
+
+      // jika role diizinkan
+      if (allowedRoles.includes(role)) {
+        return next();
       }
 
-      next();
+      // jika tidak diizinkan
+      return res.status(403).json({
+        message: `Access denied: Role '${role}' tidak memiliki izin untuk mengakses resource ini`,
+      });
     } catch (err) {
-      console.error("❌ Role check error:", err.message);
-      res.status(500).json({ message: "Terjadi kesalahan otorisasi." });
+      console.error("❌ Role check error:", err);
+      return res.status(500).json({ message: "Internal Server Error (roleCheck)" });
     }
   };
-};
+}
+
+// ==========================================================
+// 📘 Quick Usage Reference
+// ==========================================================
+//
+// Import di route:
+// import { roleCheck } from "../middleware/roleCheck.js";
+//
+// Contoh pemakaian:
+//
+// router.get("/admin-only", authMiddleware, roleCheck(["admin"]), (req, res) => {...});
+//
+// router.post("/edit-data", authMiddleware, roleCheck(["semiadmin", "admin"]), (req, res) => {...});
+//
+// router.get("/staff-data", authMiddleware, roleCheck(["staff", "semiadmin", "admin"]), (req, res) => {...});
+//
