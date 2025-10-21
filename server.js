@@ -1,18 +1,18 @@
 // ==========================================================
-// 🚀 Travel Dashboard Enterprise v5.2
-// Server Entry Point (Render + Neon PostgreSQL)
+// 🚀 Travel Dashboard Enterprise v5.3.3
+// Server Entry Point — Secure, Role-Based, Render Compatible
 // ==========================================================
 
 import express from "express";
 import path from "path";
+import dotenv from "dotenv";
+import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import cors from "cors";
-import dotenv from "dotenv";
 import { fileURLToPath } from "url";
-import fs from "fs";
+import pkg from "pg";
+const { Pool } = pkg;
 
-// ROUTES
 import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import toursRoutes from "./routes/tours.js";
@@ -20,78 +20,54 @@ import salesRoutes from "./routes/sales.js";
 import documentsRoutes from "./routes/documents.js";
 import usersRoutes from "./routes/users.js";
 import regionsRoutes from "./routes/regions.js";
-import logsRoutes from "./routes/logs.js";
 import executiveRoutes from "./routes/executiveReport.js";
 import profileRoutes from "./routes/profile.js";
+import logsRoutes from "./routes/logs.js";
 
-// CONFIG
-import pkg from "pg";
-const { Pool } = pkg;
+import { errorHandler } from "./middleware/errorHandler.js";
 
 // ==========================================================
-// 📦 INIT EXPRESS APP
+// 🔧 Environment Setup
 // ==========================================================
-const app = express();
 dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ==========================================================
-// 🧩 DATABASE CONNECTION (NEON POSTGRESQL)
+// 🧩 Middleware Setup
+// ==========================================================
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
+app.use(helmet());
+app.use(morgan("dev"));
+
+// ==========================================================
+// 📂 Static File Serving (Public Folder)
+// ==========================================================
+app.use(express.static(path.join(__dirname, "public")));
+
+// ==========================================================
+// 🧠 PostgreSQL Connection Check (Optional Logging)
 // ==========================================================
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// ==========================================================
-// 🧱 AUTO MIGRATION (SAFE STRUCTURE)
-// ==========================================================
-async function runMigrations() {
-  console.log("⏳ Checking database structure...");
-  const migrationFile = path.join(__dirname, "scripts", "migrateDatabase.js");
-
-  if (fs.existsSync(migrationFile)) {
-    const { default: migrate } = await import("./scripts/migrateDatabase.js");
-    await migrate();
-  } else {
-    console.warn("⚠️ Migration file not found: scripts/migrateDatabase.js");
+(async () => {
+  try {
+    const res = await pool.query("SELECT NOW()");
+    console.log("✅ PostgreSQL Connected:", res.rows[0].now);
+  } catch (err) {
+    console.error("❌ Failed to connect PostgreSQL:", err.message);
   }
-}
+})();
 
 // ==========================================================
-// 🧰 MIDDLEWARES
-// ==========================================================
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// CORS setup
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-);
-
-// CSP & Secure headers via Helmet
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // disable strict CSP to allow chart.js & inline scripts
-    crossOriginEmbedderPolicy: false,
-  })
-);
-
-// Logging
-app.use(morgan("dev"));
-
-// ==========================================================
-// 🗂️ STATIC FILES (Frontend Integration)
-// ==========================================================
-app.use(express.static(path.join(__dirname, "public")));
-
-// ==========================================================
-// 🔐 ROUTE MAPPING
+// 🔒 API Routes
 // ==========================================================
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
@@ -100,52 +76,61 @@ app.use("/api/sales", salesRoutes);
 app.use("/api/documents", documentsRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/regions", regionsRoutes);
-app.use("/api/logs", logsRoutes);
 app.use("/api/executive", executiveRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/logs", logsRoutes);
 
 // ==========================================================
-// ❤️ HEALTH CHECK ENDPOINT
+// ❤️ Healthcheck Endpoint (for Render)
 // ==========================================================
-app.get("/api/health", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT NOW()");
-    res.json({ status: "ok", time: result.rows[0].now });
-  } catch {
-    res.status(500).json({ status: "error", message: "Database unreachable" });
-  }
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    time: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || "development",
+  });
 });
 
 // ==========================================================
-// 🌐 ROUTE FALLBACKS (FRONTEND PAGES)
+// 🌍 Default Route (Serve index.html)
 // ==========================================================
-
-// Root -> Login page
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
-// Other pages fallback (dashboard by default)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "dashboard.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ==========================================================
-// ⚙️ ERROR HANDLING
+// 🧰 Global Error Handler
 // ==========================================================
-app.use((err, req, res, next) => {
-  console.error("❌ Global error handler:", err.message);
-  res.status(500).json({ error: "Internal Server Error", message: err.message });
-});
+app.use(errorHandler);
 
 // ==========================================================
-// 🚀 START SERVER
+// 🧭 Scheduled Backup Support (Optional - CRON BACKUP)
 // ==========================================================
-const PORT = process.env.PORT || 5000;
+if (process.env.CRON_BACKUP_SCHEDULE) {
+  import("node-cron").then(({ default: cron }) => {
+    cron.schedule(process.env.CRON_BACKUP_SCHEDULE, async () => {
+      try {
+        console.log("⏰ Running automatic scheduled backup...");
+        const { exec } = await import("child_process");
+        exec("node scripts/backup-database.js", (err, stdout, stderr) => {
+          if (err) console.error("❌ Scheduled backup error:", err);
+          if (stdout) console.log(stdout);
+          if (stderr) console.warn(stderr);
+        });
+      } catch (err) {
+        console.error("❌ Backup cron error:", err.message);
+      }
+    });
+  });
+}
 
-app.listen(PORT, async () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  await runMigrations().catch((err) =>
-    console.error("❌ Migration error:", err.message)
-  );
+// ==========================================================
+// 🚀 Start Server
+// ==========================================================
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT} (${process.env.NODE_ENV})`);
+  console.log(`🗂  Static files served from /public`);
+  if (process.env.BACKUP_DIR)
+    console.log(`💾 Backup directory: ${process.env.BACKUP_DIR}`);
 });
