@@ -2,15 +2,19 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Executive Dashboard - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="/favicon.ico" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
+    <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
         <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
@@ -20,14 +24,16 @@
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-          <li class="expandable">
+
+          <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu">
+            <ul class="submenu open">
               <li><a href="/report_tour.html">Report Tour</a></li>
               <li><a href="/report_sales.html">Report Sales</a></li>
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
+
           <li class="expandable">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu">
@@ -35,6 +41,7 @@
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
+
           <li><a href="/executive-dashboard.html" class="active">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -42,34 +49,46 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.3.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer">
+        <small>v5.3.4 • Travel Dashboard</small>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Executive Performance Dashboard</h2>
+        <h2>Executive Performance Overview</h2>
         <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- Monthly Performance Chart -->
+        <!-- PERFORMANCE OVERVIEW -->
         <section class="panel">
           <div class="panel-header">
-            <h4>📆 Monthly Performance (Sales vs Profit)</h4>
+            <h4>📊 Monthly Performance Summary</h4>
           </div>
-          <div class="panel-body" style="padding: 20px;">
-            <canvas id="monthlyChart" height="120"></canvas>
+          <div class="panel-body">
+            <canvas id="monthlyPerformanceChart" height="100"></canvas>
           </div>
         </section>
 
-        <!-- Region Distribution Chart -->
+        <!-- SALES VS TARGET -->
         <section class="panel">
           <div class="panel-header">
-            <h4>🌍 Tour Distribution by Region</h4>
+            <h4>🎯 Sales vs Target (Per Staff)</h4>
           </div>
-          <div class="panel-body" style="padding: 20px;">
-            <canvas id="regionChart" height="120"></canvas>
+          <div class="panel-body">
+            <canvas id="targetChart" height="100"></canvas>
+          </div>
+        </section>
+
+        <!-- PROFIT TREND -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>💰 Profit Trend (12 Bulan Terakhir)</h4>
+          </div>
+          <div class="panel-body">
+            <canvas id="profitChart" height="100"></canvas>
           </div>
         </section>
       </main>
@@ -79,118 +98,8 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL UI SCRIPT -->
+    <!-- SCRIPTS -->
     <script src="/js/ui.js"></script>
-
-    <script type="module">
-      document.getElementById("year").textContent = new Date().getFullYear();
-
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user && user.username) {
-        document.getElementById("activeUser").textContent =
-          (user.staff_name || user.username) + " (" + user.role + ")";
-      }
-
-      // 🔐 Redirect if not logged in
-      if (!localStorage.getItem("token")) {
-        window.location.href = "/login.html";
-      }
-
-      const token = localStorage.getItem("token");
-
-      // 📊 Fetch Monthly Performance Data
-      async function loadMonthlyPerformance() {
-        const res = await fetch("/api/executive/monthly-performance", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          console.warn("Gagal memuat monthly performance");
-          return;
-        }
-        const data = await res.json();
-        renderMonthlyChart(data);
-      }
-
-      // 🌍 Fetch Region Data
-      async function loadRegionData() {
-        const res = await fetch("/api/dashboard/tour-region", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) {
-          console.warn("Gagal memuat region data");
-          return;
-        }
-        const data = await res.json();
-        renderRegionChart(data);
-      }
-
-      // 📈 Monthly Performance Chart (Line)
-      function renderMonthlyChart(data) {
-        const ctx = document.getElementById("monthlyChart");
-        new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: data.map((d) => d.month),
-            datasets: [
-              {
-                label: "Sales",
-                data: data.map((d) => d.total_sales),
-                borderColor: "#004b99",
-                tension: 0.3,
-                fill: false,
-              },
-              {
-                label: "Profit",
-                data: data.map((d) => d.total_profit),
-                borderColor: "#28a745",
-                tension: 0.3,
-                fill: false,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            scales: {
-              y: { beginAtZero: true, title: { display: true, text: "Nominal (Rp)" } },
-              x: { title: { display: true, text: "Periode" } },
-            },
-            plugins: { legend: { position: "bottom" } },
-          },
-        });
-      }
-
-      // 🍩 Region Chart (Doughnut)
-      function renderRegionChart(data) {
-        const ctx = document.getElementById("regionChart");
-        new Chart(ctx, {
-          type: "doughnut",
-          data: {
-            labels: data.labels,
-            datasets: [
-              {
-                data: data.counts,
-                backgroundColor: [
-                  "#004b99",
-                  "#0a66c2",
-                  "#007bff",
-                  "#17a2b8",
-                  "#ffc107",
-                  "#28a745",
-                  "#dc3545",
-                  "#6f42c1",
-                ],
-              },
-            ],
-          },
-          options: {
-            plugins: { legend: { position: "bottom" } },
-          },
-        });
-      }
-
-      // 🚀 Load Data
-      loadMonthlyPerformance();
-      loadRegionData();
-    </script>
+    <script src="/js/executive-dashboard.js" defer></script>
   </body>
 </html>
