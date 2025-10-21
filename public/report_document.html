@@ -9,14 +9,14 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <aside id="sidebar" class="sidebar collapsed">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
-      <nav class="sidebar-nav" role="navigation">
+      <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
           <li class="expandable open">
@@ -41,14 +41,14 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Report Document</h2>
-        <div id="userBadge" class="user-badge">staff</div>
+        <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
@@ -113,10 +113,10 @@
           </form>
         </section>
 
-        <!-- FILTER + TABLE -->
+        <!-- TABLE DOCUMENT -->
         <section class="panel" style="margin-top:20px;">
           <div class="panel-header">
-            <h4>Data Dokumen</h4>
+            <h4>Daftar Dokumen</h4>
             <div class="filter-bar">
               <input type="month" id="filterMonth" />
               <input type="text" id="searchDoc" placeholder="Cari nama / staff..." />
@@ -136,11 +136,12 @@
                   <th>Proses</th>
                   <th>Staff</th>
                   <th>Invoice</th>
-                  <th>Tour</th>
+                  <th>Tour Code</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="8" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -159,22 +160,33 @@
     <script type="module">
       document.getElementById("year").textContent = new Date().getFullYear();
 
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user && user.username) {
+        document.getElementById("activeUser").textContent =
+          (user.staff_name || user.username) + " (" + user.role + ")";
+      }
+
       async function loadDocuments() {
         const res = await fetch("/api/documents");
         const data = await res.json();
         const tbody = document.querySelector("#docTable tbody");
         tbody.innerHTML = "";
         if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Tidak ada data</td></tr>`);
+          return (tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Tidak ada data</td></tr>`);
+
         data.forEach((d) => {
           const row = `<tr>
             <td>${d.receive_date ? new Date(d.receive_date).toLocaleDateString("id-ID") : "-"}</td>
             <td>${d.guest_name}</td>
-            <td>${d.passport_visa}</td>
+            <td>${d.passport_visa || "-"}</td>
             <td>${d.process_type}</td>
-            <td>${d.staff_name}</td>
-            <td>${d.invoice_number}</td>
+            <td>${d.staff_name || "-"}</td>
+            <td>${d.invoice_number || "-"}</td>
             <td>${d.tour_code || "-"}</td>
+            <td>
+              <button class="btn small edit-btn semiadmin-only" data-id="${d.id}">✏️</button>
+              <button class="btn small danger btn-delete admin-only" data-id="${d.id}">🗑️</button>
+            </td>
           </tr>`;
           tbody.innerHTML += row;
         });
@@ -194,18 +206,28 @@
           guestPhone: f.guestPhone.value,
           estimateFinish: f.estimateFinish.value,
           staffName: f.staffName.value,
-          tourCode: f.tourCode.value,
+          tourCode: f.tourCode.value
         };
         const res = await fetch("/api/documents", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(data)
         });
         if (res.ok) {
           alert("✅ Data dokumen berhasil disimpan!");
           f.reset();
           loadDocuments();
         } else alert("❌ Gagal menyimpan data dokumen");
+      });
+
+      document.addEventListener("click", async (e) => {
+        if (e.target.classList.contains("btn-delete")) {
+          const id = e.target.dataset.id;
+          if (confirm("Yakin ingin menghapus data ini?")) {
+            await fetch(`/api/documents/${id}`, { method: "DELETE" });
+            loadDocuments();
+          }
+        }
       });
 
       loadDocuments();
