@@ -4,69 +4,66 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="/favicon.ico" />
     <style>
       body {
         display: flex;
         justify-content: center;
         align-items: center;
         height: 100vh;
-        background: linear-gradient(135deg, #0b74de, #004b99);
+        flex-direction: column;
+        background: linear-gradient(135deg, #004b99, #0a66c2);
         color: white;
         font-family: "Inter", sans-serif;
-        flex-direction: column;
-        text-align: center;
-        animation: fadeIn 0.8s ease;
+        margin: 0;
       }
-      h1 {
+      .logo {
         font-size: 1.8rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
         margin-bottom: 10px;
       }
-      p {
+      .desc {
         opacity: 0.9;
       }
       .loader {
-        margin-top: 20px;
         width: 42px;
         height: 42px;
         border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid white;
+        border-top: 4px solid #fff;
         border-radius: 50%;
         animation: spin 1s linear infinite;
+        margin-top: 25px;
       }
       @keyframes spin {
         to {
           transform: rotate(360deg);
         }
       }
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
     </style>
   </head>
 
   <body>
-    <h1>Travel Dashboard Enterprise</h1>
-    <p>Memuat sistem, mohon tunggu sebentar...</p>
+    <div class="logo">Travel Dashboard Enterprise</div>
+    <div class="desc">Memuat sistem, harap tunggu sebentar...</div>
     <div class="loader"></div>
 
     <script>
-      // Tunggu 1 detik agar UX smooth
-      setTimeout(() => {
-        const token = localStorage.getItem("token");
-        if (token && token !== "undefined") {
-          window.location.href = "/dashboard.html";
-        } else {
-          window.location.href = "/login.html";
-        }
-      }, 1000);
+      window.addEventListener("DOMContentLoaded", () => {
+        setTimeout(() => {
+          try {
+            const token = localStorage.getItem("token");
+            if (token && token !== "undefined") {
+              window.location.replace("/dashboard.html");
+            } else {
+              window.location.replace("/login.html");
+            }
+          } catch (e) {
+            console.warn("Auto redirect gagal:", e);
+            window.location.replace("/login.html");
+          }
+        }, 900);
+      });
     </script>
   </body>
 </html>
