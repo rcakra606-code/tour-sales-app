@@ -1,65 +1,57 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Report Sales - Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Report Sales — Travel Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body class="theme-light">
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-top">
+      <button id="sidebarToggle" class="btn-icon">☰</button>
+      <h1 class="brand">TravelDash</h1>
+      <button id="themeToggle" class="btn-icon">🌓</button>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+        <li class="expandable">
+          <button class="expand-toggle">📊 Reports</button>
+          <ul class="submenu">
+            <li><a href="/report_tour.html">Report Tour</a></li>
+            <li><a href="/report_sales.html" class="active">Report Sales</a></li>
+            <li><a href="/report_document.html">Report Document</a></li>
+          </ul>
+        </li>
+        <li class="expandable">
+          <button class="expand-toggle">⚙️ Management</button>
+          <ul class="submenu">
+            <li><a href="/region_management.html">Region Management</a></li>
+            <li><a href="/user-management.html">User Management</a></li>
+          </ul>
+        </li>
+        <li><a href="/executive-dashboard.html">📈 Executive</a></li>
+        <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+        <li><a href="/profile.html">👤 Profile</a></li>
+        <li><a href="/logout.html">🚪 Logout</a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer"><small>v5.3.6 • Travel Dashboard</small></div>
+  </aside>
 
-  <body class="theme-light">
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon">☰</button>
-        <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon">🌓</button>
-      </div>
+  <div id="main" class="main-content">
+    <header class="topbar">
+      <h2>Report Sales</h2>
+      <div class="user-info"><span id="activeUser">Loading...</span></div>
+    </header>
 
-      <nav class="sidebar-nav">
-        <ul>
-          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
-          <li class="expandable open">
-            <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu open">
-              <li><a href="/report_tour.html">Report Tour</a></li>
-              <li><a href="/report_sales.html" class="active">Report Sales</a></li>
-              <li><a href="/report_document.html">Report Document</a></li>
-            </ul>
-          </li>
-
-          <li class="expandable">
-            <button class="expand-toggle">⚙️ Management</button>
-            <ul class="submenu">
-              <li><a href="/region_management.html">Region Management</a></li>
-              <li><a href="/user-management.html">User Management</a></li>
-            </ul>
-          </li>
-
-          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-          <li><a href="/profile.html">👤 Profile</a></li>
-          <li><a href="/logout.html">🚪 Logout</a></li>
-        </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-        <small>v5.3.6 • Travel Dashboard</small>
-      </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <div id="main" class="main-content">
-      <header class="topbar">
-        <h2>Sales Report & Target Management</h2>
-        <div class="user-info"><span id="activeUser">Loading...</span></div>
-      </header>
-
-      <main class="container">
-        <!-- FORM INPUT SALES -->
-        <section class="form-section">
-          <h4>💼 Input Data Sales</h4>
+    <main class="container">
+      <section class="panel form-panel">
+        <div class="panel-header"><h4>✚ Input Data Sales</h4></div>
+        <div class="panel-body">
           <form id="salesForm" class="form-grid">
             <div class="form-group">
               <label>Tanggal Transaksi</label>
@@ -72,98 +64,68 @@
             </div>
 
             <div class="form-group">
-              <label>Nomor Invoice</label>
-              <input type="text" id="invoiceNumber" required />
+              <label>Invoice</label>
+              <input type="text" id="invoiceNumber" />
             </div>
 
             <div class="form-group">
-              <label>Nominal Sales</label>
-              <input type="number" id="salesAmount" required />
+              <label>Sales Amount</label>
+              <input type="number" id="salesAmount" step="0.01" />
             </div>
 
             <div class="form-group">
-              <label>Nominal Profit</label>
-              <input type="number" id="profitAmount" required />
+              <label>Profit Amount</label>
+              <input type="number" id="profitAmount" step="0.01" />
             </div>
 
             <div class="form-group">
               <label>Keterangan</label>
-              <textarea id="remarks" rows="2"></textarea>
+              <input type="text" id="remarks" />
             </div>
 
-            <div class="form-group" style="grid-column: span 2;">
-              <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" class="btn gray">🔄 Reset</button>
-            </div>
-          </form>
-        </section>
-
-        <!-- FORM INPUT TARGET SALES -->
-        <section class="form-section">
-          <h4>🎯 Input Target Sales per Staff</h4>
-          <form id="targetForm" class="form-grid">
-            <div class="form-group">
-              <label>Nama Staff</label>
-              <input type="text" id="targetStaff" required />
-            </div>
-
-            <div class="form-group">
-              <label>Target Sales</label>
-              <input type="number" id="targetSales" required />
-            </div>
-
-            <div class="form-group">
-              <label>Target Profit</label>
-              <input type="number" id="targetProfit" required />
-            </div>
-
-            <div class="form-group">
-              <label>Bulan</label>
-              <input type="month" id="targetMonth" required />
-            </div>
-
-            <div class="form-group" style="grid-column: span 2;">
-              <button type="submit" class="btn">🎯 Simpan Target</button>
-              <button type="reset" class="btn gray">🔄 Reset</button>
+            <div class="form-actions" style="grid-column: 1 / -1;">
+              <button class="btn" type="submit">💾 Simpan</button>
+              <button class="btn gray" type="reset">🔄 Reset</button>
+              <button id="exportSalesBtn" type="button" class="btn outline">⬇️ Export CSV</button>
             </div>
           </form>
-        </section>
+        </div>
+      </section>
 
-        <!-- TABEL SALES -->
-        <section class="panel">
-          <div class="panel-header">
-            <h4>📋 Daftar Data Sales</h4>
-            <div class="filter-bar">
-              <input type="text" id="searchSales" placeholder="🔍 Cari staff atau invoice..." />
-              <button id="exportSales" class="btn small">⬇️ Export CSV</button>
-            </div>
+      <section class="panel list-panel">
+        <div class="panel-header">
+          <h4>📋 Daftar Sales</h4>
+          <div class="filter-bar">
+            <input id="searchSales" type="text" placeholder="🔍 Cari staff, invoice, keterangan..." />
+            <select id="monthFilter">
+              <option value="">Semua Bulan</option>
+            </select>
           </div>
-          <div class="table-container">
-            <table class="data-table" id="salesTable">
-              <thead>
-                <tr>
-                  <th>Tanggal</th>
-                  <th>Staff</th>
-                  <th>Invoice</th>
-                  <th>Sales</th>
-                  <th>Profit</th>
-                  <th>Keterangan</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+        </div>
 
-      <footer class="footer">
-        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-      </footer>
-    </div>
+        <div class="panel-body table-wrap">
+          <table class="data-table" id="salesTable">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Staff</th>
+                <th>Invoice</th>
+                <th>Sales</th>
+                <th>Profit</th>
+                <th>Keterangan</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
 
-    <!-- SCRIPTS -->
-    <script src="/js/ui.js"></script>
-    <script src="/js/report_sales.js" defer></script>
-  </body>
+    <footer class="footer"><small>© <span id="year"></span> Travel Dashboard Enterprise</small></footer>
+  </div>
+
+  <script src="/js/ui.js"></script>
+  <script src="/js/report_sales.js" defer></script>
+</body>
 </html>
