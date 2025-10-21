@@ -1,130 +1,93 @@
-/**
- * ==========================================================
- * 📁 controllers/dashboardController.js
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Menyediakan data ringkasan dashboard:
- * - Total sales, profit, tours, pax, targets
- * - Breakdown tour per bulan & region
- * - Target performance data
- * ==========================================================
- */
-
+// ==========================================================
+// 📊 Travel Dashboard Enterprise v5.3
+// Dashboard Controller (Summary + Charts + PostgreSQL)
+// ==========================================================
 import pkg from "pg";
-import dotenv from "dotenv";
-
-dotenv.config();
 const { Pool } = pkg;
+import dotenv from "dotenv";
+dotenv.config();
 
-// ======== KONFIGURASI DATABASE ========
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// =========================================================
-// 📊 GET DASHBOARD SUMMARY
-// =========================================================
-export const getSummary = async (req, res) => {
+// 📈 Dashboard Summary (Total KPI)
+export const getDashboardSummary = async (req, res) => {
   try {
-    const [salesRes, profitRes, toursRes, targetsRes, paxRes, regionRes, monthRes] = await Promise.all([
-      pool.query("SELECT COALESCE(SUM(sales_amount), 0) AS total_sales FROM sales"),
-      pool.query("SELECT COALESCE(SUM(profit_amount), 0) AS total_profit FROM sales"),
+    const [sales, profit, tours, pax, targets] = await Promise.all([
+      pool.query("SELECT COALESCE(SUM(sales_amount),0) AS total_sales FROM sales"),
+      pool.query("SELECT COALESCE(SUM(profit_amount),0) AS total_profit FROM sales"),
       pool.query("SELECT COUNT(*) AS total_tours FROM tours"),
-      pool.query("SELECT COUNT(*) AS total_targets FROM targets"),
-      pool.query(`
-        SELECT 
-          COALESCE(SUM(
-            CASE WHEN all_passengers <> '' THEN array_length(string_to_array(all_passengers, ','),1)
-            ELSE 0 END
-          ), 0)
-          + COUNT(DISTINCT lead_passenger) AS total_pax
-        FROM tours;
-      `),
-      pool.query(`
-        SELECT region, 
-               COUNT(*) AS tour_count,
-               COALESCE(SUM(
-                 CASE WHEN all_passengers <> '' THEN array_length(string_to_array(all_passengers, ','),1)
-                 ELSE 0 END
-               ), 0)
-               + COUNT(DISTINCT lead_passenger) AS pax_count
-        FROM tours
-        WHERE region IS NOT NULL AND TRIM(region) <> ''
-        GROUP BY region
-        ORDER BY pax_count DESC;
-      `),
-      pool.query(`
-        SELECT 
-          EXTRACT(YEAR FROM departure_date)::INT AS year,
-          EXTRACT(MONTH FROM departure_date)::INT AS month,
-          COUNT(*) AS tour_count,
-          COALESCE(SUM(
-            CASE WHEN all_passengers <> '' THEN array_length(string_to_array(all_passengers, ','),1)
-            ELSE 0 END
-          ), 0)
-          + COUNT(DISTINCT lead_passenger) AS pax_count
-        FROM tours
-        WHERE departure_date IS NOT NULL
-        GROUP BY year, month
-        ORDER BY year DESC, month DESC;
-      `),
+      pool.query("SELECT COALESCE(SUM(ARRAY_LENGTH(string_to_array(all_passengers, ','),1)),0) AS total_pax FROM tours"),
+      pool.query("SELECT COALESCE(AVG(target_sales),0) AS avg_target_sales, COALESCE(AVG(target_profit),0) AS avg_target_profit FROM targets")
     ]);
 
-    const summary = {
-      total_sales: parseFloat(salesRes.rows[0].total_sales),
-      total_profit: parseFloat(profitRes.rows[0].total_profit),
-      total_tours: parseInt(toursRes.rows[0].total_tours),
-      total_targets: parseInt(targetsRes.rows[0].total_targets),
-      total_pax: parseInt(paxRes.rows[0].total_pax),
-      region_breakdown: regionRes.rows,
-      month_breakdown: monthRes.rows,
-    };
+    // Hitung target achieved (rata-rata pencapaian)
+    const totalSales = Number(sales.rows[0].total_sales);
+    const totalProfit = Number(profit.rows[0].total_profit);
+    const targetSales = Number(targets.rows[0].avg_target_sales);
+    const targetProfit = Number(targets.rows[0].avg_target_profit);
 
-    res.json(summary);
+    const targetAchieved =
+      targetSales > 0
+        ? Math.round(((totalSales / targetSales) * 100 + (totalProfit / targetProfit) * 100) / 2)
+        : 0;
+
+    res.json({
+      totalSales,
+      totalProfit,
+      totalTours: Number(tours.rows[0].total_tours),
+      totalPax: Number(pax.rows[0].total_pax),
+      targetAchieved
+    });
   } catch (err) {
     console.error("❌ Dashboard summary error:", err.message);
-    res.status(500).json({ message: "Gagal memuat data dashboard." });
+    res.status(500).json({ message: "Gagal memuat data dashboard" });
   }
 };
 
-// =========================================================
-// 🎯 GET TARGET PERFORMANCE
-// =========================================================
-export const getTargets = async (req, res) => {
+// 📉 Sales & Profit Trend (Monthly)
+export const getSalesProfitTrend = async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-        category,
-        COALESCE(SUM(target_amount), 0) AS target,
-        COALESCE(SUM(actual_amount), 0) AS actual
-      FROM targets
-      GROUP BY category
-      ORDER BY category;
+      SELECT
+        TO_CHAR(transaction_date, 'YYYY-MM') AS month,
+        SUM(sales_amount) AS total_sales,
+        SUM(profit_amount) AS total_profit
+      FROM sales
+      GROUP BY 1
+      ORDER BY 1 ASC
     `);
-    res.json(result.rows);
+
+    const labels = result.rows.map(r => r.month);
+    const sales = result.rows.map(r => Number(r.total_sales));
+    const profit = result.rows.map(r => Number(r.total_profit));
+
+    res.json({ labels, sales, profit });
   } catch (err) {
-    console.error("❌ Gagal load target:", err.message);
-    res.status(500).json({ message: "Gagal memuat data target." });
+    console.error("❌ getSalesProfitTrend error:", err.message);
+    res.status(500).json({ message: "Gagal memuat data grafik sales/profit" });
   }
 };
 
-// =========================================================
-// 🩺 HEALTH CHECK (optional untuk Render health monitor)
-// =========================================================
-export const getHealth = async (req, res) => {
+// 🌍 Tour Distribution by Region
+export const getTourRegionData = async (req, res) => {
   try {
-    const dbCheck = await pool.query("SELECT NOW() AS time");
-    res.status(200).json({
-      status: "ok",
-      db_time: dbCheck.rows[0].time,
-      message: "Server and database are healthy 🚀",
-    });
+    const result = await pool.query(`
+      SELECT region, COUNT(*) AS total_tours
+      FROM tours
+      WHERE region IS NOT NULL AND region <> ''
+      GROUP BY region
+      ORDER BY total_tours DESC
+    `);
+
+    const labels = result.rows.map(r => r.region);
+    const counts = result.rows.map(r => Number(r.total_tours));
+
+    res.json({ labels, counts });
   } catch (err) {
-    res.status(500).json({
-      status: "error",
-      message: "Database connection failed",
-      error: err.message,
-    });
+    console.error("❌ getTourRegionData error:", err.message);
+    res.status(500).json({ message: "Gagal memuat distribusi tour region" });
   }
 };
