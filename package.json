@@ -1,7 +1,7 @@
 {
   "name": "travel-dashboard-enterprise",
-  "version": "5.3.1",
-  "description": "Enterprise-grade travel dashboard with role-based access, reporting, and secure Neon PostgreSQL backend.",
+  "version": "5.3.3",
+  "description": "Enterprise-grade Travel Dashboard dengan role-based access, reporting, dan integrasi Neon PostgreSQL + Render backup automation.",
   "type": "module",
   "main": "server.js",
   "scripts": {
@@ -10,10 +10,11 @@
     "init-db": "node scripts/initDatabase.js",
     "setup-test-users": "node scripts/setup-test-users.js",
     "backup-db": "node scripts/backup-database.js",
-    "setup-admin": "node scripts/setup-admin.js",
-    "verify-routes": "node scripts/verify-routes.js",
-    "test-email": "node scripts/test-email.js",
+    "restore-db": "node scripts/restore-database.js ./backups/latest.json.gz",
     "setup-cron": "node scripts/setup-cron.js",
+    "verify-routes": "node scripts/verify-routes.js",
+    "setup-admin": "node scripts/setup-admin.js",
+    "test-email": "node scripts/test-email.js",
     "postinstall": "npm run setup-test-users"
   },
   "keywords": [
@@ -23,8 +24,11 @@
     "postgresql",
     "neon",
     "render",
-    "jwt-auth",
-    "enterprise"
+    "jwt",
+    "rbac",
+    "enterprise",
+    "admin-dashboard",
+    "backup"
   ],
   "author": "Travel Dashboard Dev Team",
   "license": "MIT",
@@ -36,7 +40,9 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "pg": "^8.11.5"
+    "pg": "^8.11.5",
+    "zlib": "^1.0.5",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
