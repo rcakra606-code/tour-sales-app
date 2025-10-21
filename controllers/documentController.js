@@ -1,128 +1,125 @@
-// ==========================================================
-// 📄 Travel Dashboard Enterprise v5.3
-// Document Controller (CRUD + Secure + PostgreSQL)
-// ==========================================================
+// controllers/documentController.js
 import pkg from "pg";
 const { Pool } = pkg;
-import dotenv from "dotenv";
-dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// 📋 Get All Documents
-export const getAllDocuments = async (req, res) => {
+/**
+ * GET /api/documents
+ * Ambil semua data dokumen (admin/semiadmin) atau milik staff sendiri
+ */
+export async function getDocuments(req, res) {
   try {
-    const result = await pool.query("SELECT * FROM documents ORDER BY id DESC");
-    res.json(result.rows);
+    const role = req.user.role;
+    const staff = req.user.staff_name || req.user.username;
+
+    let query = `
+      SELECT 
+        id, received_date, sent_date, guest_name, document_type, process_type,
+        booking_code, invoice_number, guest_phone, estimated_finish,
+        staff_name, tour_code
+      FROM documents
+    `;
+
+    let params = [];
+    if (role === "staff") {
+      query += " WHERE LOWER(staff_name) = LOWER($1)";
+      params = [staff];
+    }
+    query += " ORDER BY received_date DESC";
+
+    const { rows } = await pool.query(query, params);
+    res.json(rows);
   } catch (err) {
-    console.error("❌ getAllDocuments error:", err.message);
+    console.error("❌ GET /api/documents error:", err);
     res.status(500).json({ message: "Gagal memuat data dokumen" });
   }
-};
+}
 
-// ➕ Create Document
-export const createDocument = async (req, res) => {
+/**
+ * POST /api/documents
+ * Simpan data dokumen baru
+ */
+export async function createDocument(req, res) {
   try {
     const {
-      receiveDate,
-      sendDate,
+      receivedDate,
+      sentDate,
       guestName,
-      passportVisa,
+      documentType,
       processType,
-      bookingCodeDMS,
+      bookingCode,
       invoiceNumber,
       guestPhone,
-      estimateFinish,
+      estimatedFinish,
       staffName,
       tourCode,
     } = req.body;
 
-    if (!guestName || !receiveDate)
-      return res.status(400).json({ message: "Nama tamu dan tanggal terima wajib diisi" });
+    if (!receivedDate || !guestName || !staffName) {
+      return res.status(400).json({ message: "Tanggal terima, nama tamu, dan staff wajib diisi" });
+    }
 
     const q = `
       INSERT INTO documents (
-        receive_date, send_date, guest_name, passport_visa, process_type,
-        booking_code_dms, invoice_number, guest_phone, estimate_finish,
+        received_date, sent_date, guest_name, document_type, process_type,
+        booking_code, invoice_number, guest_phone, estimated_finish,
         staff_name, tour_code
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      VALUES (
+        $1,$2,$3,$4,$5,
+        $6,$7,$8,$9,
+        $10,$11
+      )
+      RETURNING id, guest_name, booking_code, document_type, staff_name;
     `;
 
     const values = [
-      receiveDate,
-      sendDate,
+      receivedDate,
+      sentDate,
       guestName,
-      passportVisa,
+      documentType,
       processType,
-      bookingCodeDMS,
+      bookingCode,
       invoiceNumber,
       guestPhone,
-      estimateFinish,
+      estimatedFinish,
       staffName,
       tourCode,
     ];
 
-    await pool.query(q, values);
-    res.status(201).json({ message: "✅ Data dokumen berhasil disimpan" });
+    const { rows } = await pool.query(q, values);
+    res.status(201).json({
+      message: "Data dokumen berhasil disimpan",
+      data: rows[0],
+    });
   } catch (err) {
-    console.error("❌ createDocument error:", err.message);
+    console.error("❌ POST /api/documents error:", err);
     res.status(500).json({ message: "Gagal menyimpan data dokumen" });
   }
-};
+}
 
-// ✏️ Update Document
-export const updateDocument = async (req, res) => {
+/**
+ * DELETE /api/documents/:id
+ * Hapus data dokumen (admin/semiadmin)
+ */
+export async function deleteDocument(req, res) {
   try {
-    const id = req.params.id;
-    const fields = [
-      "receive_date",
-      "send_date",
-      "guest_name",
-      "passport_visa",
-      "process_type",
-      "booking_code_dms",
-      "invoice_number",
-      "guest_phone",
-      "estimate_finish",
-      "staff_name",
-      "tour_code",
-    ];
-
-    const updates = [];
-    const values = [];
-    let idx = 1;
-
-    for (const key in req.body) {
-      const dbField = fields.find((f) => f.replace(/_/, "") === key.toLowerCase());
-      if (dbField) {
-        updates.push(`${dbField} = $${idx++}`);
-        values.push(req.body[key]);
-      }
+    const role = req.user.role;
+    if (!["admin", "semiadmin"].includes(role)) {
+      return res.status(403).json({ message: "Hanya Admin atau SemiAdmin yang dapat menghapus data" });
     }
 
-    if (!updates.length) return res.status(400).json({ message: "Tidak ada data yang diperbarui" });
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: "ID tidak valid" });
 
-    values.push(id);
-    await pool.query(`UPDATE documents SET ${updates.join(", ")} WHERE id = $${idx}`, values);
-    res.json({ message: "✅ Data dokumen berhasil diperbarui" });
+    await pool.query(`DELETE FROM documents WHERE id = $1;`, [id]);
+    res.json({ message: "Data dokumen berhasil dihapus" });
   } catch (err) {
-    console.error("❌ updateDocument error:", err.message);
-    res.status(500).json({ message: "Gagal memperbarui data dokumen" });
-  }
-};
-
-// ❌ Delete Document
-export const deleteDocument = async (req, res) => {
-  try {
-    const id = req.params.id;
-    await pool.query("DELETE FROM documents WHERE id = $1", [id]);
-    res.json({ message: "✅ Data dokumen berhasil dihapus" });
-  } catch (err) {
-    console.error("❌ deleteDocument error:", err.message);
+    console.error("❌ DELETE /api/documents error:", err);
     res.status(500).json({ message: "Gagal menghapus data dokumen" });
   }
-};
+}
