@@ -85,4 +85,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Export CSV
   document.getElementById("exportDocument").addEventListener("click", () => {
     const rows = [["Tgl Terima", "Tamu", "Booking DMS", "Negara", "Proses", "Staff", "Estimasi"]];
-    document
+    document.querySelectorAll("#documentTable tbody tr").forEach((tr) => {
+      const cols = Array.from(tr.children).map((td) => td.innerText);
+      rows.push(cols.slice(0, 7));
+    });
+
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `document-report-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+  });
+
+  loadDocuments();
+});
