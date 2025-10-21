@@ -10,17 +10,16 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <aside id="sidebar" class="sidebar collapsed">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
-      <nav class="sidebar-nav" role="navigation">
+      <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
           <li class="expandable">
             <button class="expand-toggle">📊 Reports</button>
             <ul class="submenu">
@@ -29,7 +28,6 @@
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
-
           <li class="expandable">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu">
@@ -37,7 +35,6 @@
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
-
           <li><a href="/executive-dashboard.html" class="active">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -45,54 +42,34 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer"><small>v5.3.2 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Executive Dashboard</h2>
-        <div id="userBadge" class="user-badge">executive</div>
+        <h2>Executive Performance Dashboard</h2>
+        <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- KPI SUMMARY -->
-        <section class="cards-grid" id="summaryCards">
-          <div class="card"><h3>Total Sales</h3><p id="totalSales">Rp 0</p></div>
-          <div class="card"><h3>Total Profit</h3><p id="totalProfit">Rp 0</p></div>
-          <div class="card"><h3>Total Tours</h3><p id="totalTours">0</p></div>
-          <div class="card"><h3>Total Pax</h3><p id="totalPax">0</p></div>
-          <div class="card"><h3>Target Achieved</h3><p id="targetAchieved">0%</p></div>
+        <!-- Monthly Performance Chart -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>📆 Monthly Performance (Sales vs Profit)</h4>
+          </div>
+          <div class="panel-body" style="padding: 20px;">
+            <canvas id="monthlyChart" height="120"></canvas>
+          </div>
         </section>
 
-        <!-- CHARTS SECTION -->
-        <section class="panel" style="margin-top:20px;">
-          <h4>📈 Sales vs Target (12 Bulan Terakhir)</h4>
-          <canvas id="monthlyChart" height="100"></canvas>
-        </section>
-
-        <section class="panel" style="margin-top:20px;">
-          <h4>🌍 Distribusi Tour per Region</h4>
-          <canvas id="regionChart" height="100"></canvas>
-        </section>
-
-        <!-- TOP STAFF -->
-        <section class="panel" style="margin-top:20px;">
-          <h4>🏅 Top 5 Staff by Profit</h4>
-          <div class="table-container">
-            <table class="data-table" id="topStaffTable">
-              <thead>
-                <tr>
-                  <th>Staff</th>
-                  <th>Total Sales</th>
-                  <th>Total Profit</th>
-                  <th>Transaksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
-              </tbody>
-            </table>
+        <!-- Region Distribution Chart -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>🌍 Tour Distribution by Region</h4>
+          </div>
+          <div class="panel-body" style="padding: 20px;">
+            <canvas id="regionChart" height="120"></canvas>
           </div>
         </section>
       </main>
@@ -105,102 +82,115 @@
     <!-- UNIVERSAL UI SCRIPT -->
     <script src="/js/ui.js"></script>
 
-    <!-- EXECUTIVE DASHBOARD LOGIC -->
     <script type="module">
       document.getElementById("year").textContent = new Date().getFullYear();
 
-      async function loadSummary() {
-        const res = await fetch("/api/executive/summary");
-        const data = await res.json();
-        document.getElementById("totalSales").textContent = "Rp " + Number(data.totalSales).toLocaleString("id-ID");
-        document.getElementById("totalProfit").textContent = "Rp " + Number(data.totalProfit).toLocaleString("id-ID");
-        document.getElementById("totalTours").textContent = data.totalTours;
-        document.getElementById("totalPax").textContent = data.totalPax;
-        document.getElementById("targetAchieved").textContent = data.targetAchieved + "%";
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user && user.username) {
+        document.getElementById("activeUser").textContent =
+          (user.staff_name || user.username) + " (" + user.role + ")";
       }
 
-      async function loadMonthlyChart() {
-        const res = await fetch("/api/executive/monthly-performance");
+      // 🔐 Redirect if not logged in
+      if (!localStorage.getItem("token")) {
+        window.location.href = "/login.html";
+      }
+
+      const token = localStorage.getItem("token");
+
+      // 📊 Fetch Monthly Performance Data
+      async function loadMonthlyPerformance() {
+        const res = await fetch("/api/executive/monthly-performance", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          console.warn("Gagal memuat monthly performance");
+          return;
+        }
         const data = await res.json();
+        renderMonthlyChart(data);
+      }
+
+      // 🌍 Fetch Region Data
+      async function loadRegionData() {
+        const res = await fetch("/api/dashboard/tour-region", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          console.warn("Gagal memuat region data");
+          return;
+        }
+        const data = await res.json();
+        renderRegionChart(data);
+      }
+
+      // 📈 Monthly Performance Chart (Line)
+      function renderMonthlyChart(data) {
         const ctx = document.getElementById("monthlyChart");
         new Chart(ctx, {
           type: "line",
           data: {
-            labels: data.labels,
+            labels: data.map((d) => d.month),
             datasets: [
               {
                 label: "Sales",
-                data: data.actualSales,
-                borderColor: "#0b74de",
-                fill: false,
-              },
-              {
-                label: "Target Sales",
-                data: data.targetSales,
-                borderColor: "#ffc107",
-                borderDash: [5, 5],
+                data: data.map((d) => d.total_sales),
+                borderColor: "#004b99",
+                tension: 0.3,
                 fill: false,
               },
               {
                 label: "Profit",
-                data: data.actualProfit,
+                data: data.map((d) => d.total_profit),
                 borderColor: "#28a745",
+                tension: 0.3,
                 fill: false,
               },
             ],
           },
           options: {
             responsive: true,
+            scales: {
+              y: { beginAtZero: true, title: { display: true, text: "Nominal (Rp)" } },
+              x: { title: { display: true, text: "Periode" } },
+            },
             plugins: { legend: { position: "bottom" } },
-            scales: { y: { beginAtZero: true } },
           },
         });
       }
 
-      async function loadRegionChart() {
-        const res = await fetch("/api/executive/region-performance");
-        const data = await res.json();
+      // 🍩 Region Chart (Doughnut)
+      function renderRegionChart(data) {
         const ctx = document.getElementById("regionChart");
         new Chart(ctx, {
           type: "doughnut",
           data: {
-            labels: data.regions,
+            labels: data.labels,
             datasets: [
               {
-                data: data.totalTours,
-                backgroundColor: ["#0b74de", "#28a745", "#ffc107", "#dc3545", "#17a2b8"],
+                data: data.counts,
+                backgroundColor: [
+                  "#004b99",
+                  "#0a66c2",
+                  "#007bff",
+                  "#17a2b8",
+                  "#ffc107",
+                  "#28a745",
+                  "#dc3545",
+                  "#6f42c1",
+                ],
               },
             ],
           },
           options: {
-            responsive: true,
             plugins: { legend: { position: "bottom" } },
           },
         });
       }
 
-      async function loadTopStaff() {
-        const res = await fetch("/api/executive/top-staff");
-        const data = await res.json();
-        const tbody = document.querySelector("#topStaffTable tbody");
-        tbody.innerHTML = "";
-        if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`);
-        data.forEach((s) => {
-          const row = `<tr>
-            <td>${s.staff_name}</td>
-            <td>Rp ${Number(s.total_sales_amount).toLocaleString("id-ID")}</td>
-            <td>Rp ${Number(s.total_profit).toLocaleString("id-ID")}</td>
-            <td>${s.total_sales}</td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-
-      loadSummary();
-      loadMonthlyChart();
-      loadRegionChart();
-      loadTopStaff();
+      // 🚀 Load Data
+      loadMonthlyPerformance();
+      loadRegionData();
     </script>
   </body>
 </html>
