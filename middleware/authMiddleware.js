@@ -1,32 +1,33 @@
 // ==========================================================
-// 🔐 Auth Middleware v5.3.6 (Render + NeonDB Ready)
+// 🔐 Auth Middleware — Travel Dashboard Enterprise v5.4.0
+// ==========================================================
+// Fully ESM compatible for Render deployment
+// Provides:
+//  - authenticate() main middleware
+//  - authMiddleware (alias for backward compatibility)
+//  - authorizeAdmin() for admin-only access
+//  - authorizeManagement() for admin + semiadmin
 // ==========================================================
 
 import jwt from "jsonwebtoken";
 
 // ==========================================================
-// 🧩 Middleware Utama: Authenticate
-// ----------------------------------------------------------
-// Verifikasi token JWT dari header Authorization.
+// 🧩 Middleware: Authenticate (verifikasi JWT)
 // ==========================================================
 export function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization || "";
-
-  // Pastikan format Bearer token
-  if (!authHeader.startsWith("Bearer ")) {
-    console.warn("⚠️ Tidak ada Bearer token di header Authorization.");
-    return res.status(401).json({ message: "Token tidak ditemukan" });
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token) {
-    console.warn("⚠️ Header Authorization kosong.");
-    return res.status(401).json({ message: "Token kosong" });
-  }
-
   try {
-    // Verifikasi token JWT
+    const authHeader = req.headers.authorization || "";
+
+    if (!authHeader.startsWith("Bearer ")) {
+      console.warn("⚠️ Authorization header tidak valid atau kosong");
+      return res.status(401).json({ message: "Token tidak ditemukan" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     req.user = {
       id: decoded.id,
       username: decoded.username,
@@ -47,32 +48,28 @@ export function authenticate(req, res, next) {
 }
 
 // ==========================================================
-// 🧩 Alias Export untuk Kompatibilitas Lama
-// ----------------------------------------------------------
-// Beberapa route lama masih memakai "authMiddleware"
-// Jadi kita ekspor ulang untuk mencegah error:
-// "does not provide an export named 'authMiddleware'"
+// 🧩 Alias Export untuk kompatibilitas lama
 // ==========================================================
 export { authenticate as authMiddleware };
 
 // ==========================================================
-// 🧩 Role-Based Middleware
-// ----------------------------------------------------------
-// authorizeAdmin        → Hanya Admin
-// authorizeManagement   → Admin + SemiAdmin
+// 🧩 Role-Based Access Middleware
 // ==========================================================
+
+// 🔹 Hanya untuk admin
 export function authorizeAdmin(req, res, next) {
   if (!req.user || req.user.role !== "admin") {
-    console.warn("🚫 Akses ditolak — hanya Admin.");
+    console.warn("🚫 Akses ditolak — hanya Admin");
     return res.status(403).json({ message: "Akses ditolak. Hanya Admin." });
   }
   next();
 }
 
+// 🔹 Untuk admin dan semiadmin
 export function authorizeManagement(req, res, next) {
   const allowed = ["admin", "semiadmin"];
   if (!req.user || !allowed.includes(req.user.role)) {
-    console.warn("🚫 Akses ditolak — hanya Admin atau SemiAdmin.");
+    console.warn("🚫 Akses ditolak — hanya Admin atau SemiAdmin");
     return res
       .status(403)
       .json({ message: "Akses ditolak. Hanya Admin atau SemiAdmin." });
