@@ -1,90 +1,69 @@
-/**
- * ==========================================================
- * 📁 public/js/profile.js
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Fitur:
- * - Menampilkan data user aktif
- * - Ganti password
- * ==========================================================
- */
+// ==========================================================
+// 👤 User Profile v5.3.4
+// Update profile & password for logged-in user
+// ==========================================================
+document.addEventListener("DOMContentLoaded", async () => {
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  if (!token || token === "undefined") return (window.location.href = "/login.html");
 
-const usernameEl = document.getElementById("username");
-const staffNameEl = document.getElementById("staffName");
-const roleEl = document.getElementById("role");
-const createdAtEl = document.getElementById("createdAt");
-const passwordForm = document.getElementById("passwordForm");
-const yearSpan = document.getElementById("year");
-if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  document.getElementById("year").textContent = new Date().getFullYear();
+  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
 
-// ===== LOAD PROFILE =====
-async function loadProfile() {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Sesi login berakhir. Silakan login ulang.");
-      window.location.href = "/login.html";
-      return;
+  const form = document.getElementById("profileForm");
+  const msg = document.getElementById("statusMsg");
+
+  // Load current profile data
+  async function loadProfile() {
+    try {
+      const res = await fetch("/api/profile", { headers });
+      const data = await res.json();
+
+      form.username.value = data.username;
+      form.staffName.value = data.staff_name;
+      form.role.value = data.role;
+    } catch (err) {
+      console.error("❌ Error load profile:", err);
+      msg.textContent = "Gagal memuat data profil.";
     }
-
-    const res = await fetch("/api/profile/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Gagal memuat profil user.");
-
-    const data = await res.json();
-    usernameEl.textContent = data.username || "—";
-    staffNameEl.textContent = data.staff_name || "—";
-    roleEl.textContent = data.role || "—";
-    createdAtEl.textContent = formatDate(data.created_at);
-  } catch (err) {
-    console.error("❌", err.message);
-    alert("Gagal memuat profil.");
-  }
-}
-
-// ===== CHANGE PASSWORD =====
-passwordForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const formData = Object.fromEntries(new FormData(passwordForm).entries());
-
-  if (formData.newPassword !== formData.confirmPassword) {
-    return alert("❌ Password baru dan konfirmasi tidak sama!");
   }
 
-  try {
-    const token = localStorage.getItem("token");
-    const res = await fetch("/api/profile/password", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        oldPassword: formData.oldPassword,
-        newPassword: formData.newPassword,
-      }),
-    });
+  // Update profile
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-    if (!res.ok) throw new Error("Gagal memperbarui password.");
+    const payload = {
+      staff_name: form.staffName.value,
+      newPassword: form.newPassword.value.trim() || undefined,
+    };
 
-    alert("✅ Password berhasil diubah!");
-    passwordForm.reset();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Terjadi kesalahan saat mengubah password.");
-  }
-});
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(payload),
+      });
 
-// ===== HELPERS =====
-function formatDate(d) {
-  if (!d) return "-";
-  return new Date(d).toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || "Update gagal");
+
+      msg.textContent = "✅ Profil berhasil diperbarui!";
+      msg.style.color = "#28a745";
+
+      // Update cache user
+      const updatedUser = { ...user, staff_name: payload.staff_name };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      // Reset field password
+      form.newPassword.value = "";
+    } catch (err) {
+      console.error("❌ Update error:", err);
+      msg.textContent = "Gagal memperbarui profil.";
+      msg.style.color = "#dc3545";
+    }
   });
-}
 
-// ===== INIT =====
-loadProfile();
+  loadProfile();
+});
