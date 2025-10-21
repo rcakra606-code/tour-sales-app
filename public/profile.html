@@ -2,14 +2,18 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>User Profile - Travel Dashboard Enterprise</title>
+    <title>Profile - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="/favicon.ico" />
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
+    <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
         <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
@@ -19,21 +23,24 @@
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-          <li class="expandable">
+
+          <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu">
+            <ul class="submenu open">
               <li><a href="/report_tour.html">Report Tour</a></li>
               <li><a href="/report_sales.html">Report Sales</a></li>
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
-          <li class="expandable">
+
+          <li class="expandable open">
             <button class="expand-toggle">⚙️ Management</button>
-            <ul class="submenu">
+            <ul class="submenu open">
               <li><a href="/region_management.html">Region Management</a></li>
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
+
           <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html" class="active">👤 Profile</a></li>
@@ -41,61 +48,58 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
+      <div class="sidebar-footer">
+        <small>v5.3.4 • Travel Dashboard</small>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Profile</h2>
+        <h2>User Profile</h2>
         <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- PROFILE SECTION -->
-        <section class="form-section">
-          <h4>Informasi Akun</h4>
-          <form id="profileForm">
-            <div class="form-grid">
+        <!-- USER PROFILE INFO -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>👤 Informasi Akun</h4>
+          </div>
+          <div class="panel-body">
+            <form id="profileForm" class="form-grid">
               <div class="form-group">
                 <label>Username</label>
                 <input type="text" id="username" readonly />
               </div>
+
               <div class="form-group">
                 <label>Nama Staff</label>
-                <input type="text" id="staffName" readonly />
+                <input type="text" id="staffName" required />
               </div>
+
               <div class="form-group">
                 <label>Role</label>
                 <input type="text" id="role" readonly />
               </div>
-            </div>
-          </form>
-        </section>
 
-        <!-- PASSWORD SECTION -->
-        <section class="form-section" style="margin-top:20px;">
-          <h4>Ganti Password</h4>
-          <form id="passwordForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Password Lama</label>
-                <input type="password" id="oldPassword" required />
-              </div>
               <div class="form-group">
                 <label>Password Baru</label>
-                <input type="password" id="newPassword" required />
+                <input type="password" id="newPassword" placeholder="Opsional..." />
               </div>
-              <div class="form-group">
-                <label>Konfirmasi Password Baru</label>
-                <input type="password" id="confirmPassword" required />
+
+              <div class="form-group" style="grid-column: span 2;">
+                <button type="submit" class="btn">💾 Simpan Perubahan</button>
               </div>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn">🔐 Ubah Password</button>
-              <button type="reset" class="btn gray">↺ Reset</button>
-            </div>
-          </form>
+            </form>
+          </div>
+        </section>
+
+        <!-- STATUS -->
+        <section class="panel">
+          <div class="panel-body">
+            <p id="statusMsg" class="status-text"></p>
+          </div>
         </section>
       </main>
 
@@ -104,49 +108,8 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL UI SCRIPT -->
+    <!-- SCRIPTS -->
     <script src="/js/ui.js"></script>
-
-    <!-- PROFILE LOGIC -->
-    <script type="module">
-      document.getElementById("year").textContent = new Date().getFullYear();
-
-      // Ambil data user dari localStorage
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user && user.username) {
-        document.getElementById("activeUser").textContent =
-          (user.staff_name || user.username) + " (" + user.role + ")";
-        document.getElementById("username").value = user.username;
-        document.getElementById("staffName").value = user.staff_name || "-";
-        document.getElementById("role").value = user.role || "-";
-      }
-
-      // Ganti Password
-      document.getElementById("passwordForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const f = e.target;
-        const oldPassword = f.oldPassword.value;
-        const newPassword = f.newPassword.value;
-        const confirmPassword = f.confirmPassword.value;
-
-        if (newPassword !== confirmPassword) {
-          return alert("❌ Password baru dan konfirmasi tidak sama!");
-        }
-
-        const res = await fetch("/api/profile/password", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldPassword, newPassword }),
-        });
-
-        if (res.ok) {
-          alert("✅ Password berhasil diperbarui!");
-          f.reset();
-        } else {
-          const err = await res.json();
-          alert("❌ Gagal mengubah password: " + (err.message || "Terjadi kesalahan"));
-        }
-      });
-    </script>
+    <script src="/js/profile.js" defer></script>
   </body>
 </html>
