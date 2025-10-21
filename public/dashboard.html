@@ -2,28 +2,31 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="/favicon.ico" />
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
+    <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html" class="active">🏠 Dashboard</a></li>
 
-          <li class="expandable open">
+          <li class="expandable">
             <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu open">
+            <ul class="submenu">
               <li><a href="/report_tour.html">Report Tour</a></li>
               <li><a href="/report_sales.html">Report Sales</a></li>
               <li><a href="/report_document.html">Report Document</a></li>
@@ -45,7 +48,9 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
+      <div class="sidebar-footer">
+        <small>v5.3.4 • Travel Dashboard</small>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
@@ -56,25 +61,32 @@
       </header>
 
       <main class="container">
-        <!-- KPI CARDS -->
-        <section class="cards-grid" id="summaryCards">
-          <div class="card"><h3>Total Sales</h3><p id="totalSales">Rp 0</p></div>
-          <div class="card"><h3>Total Profit</h3><p id="totalProfit">Rp 0</p></div>
-          <div class="card"><h3>Total Tours</h3><p id="totalTours">0</p></div>
-          <div class="card"><h3>Total Pax</h3><p id="totalPax">0</p></div>
-          <div class="card"><h3>Target Achieved</h3><p id="targetAchieved">0%</p></div>
+        <!-- Summary Section -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>📊 Summary Overview</h4>
+          </div>
+          <div class="panel-body table-container">
+            <table class="data-table" id="summaryTable">
+              <thead>
+                <tr>
+                  <th>Kategori</th>
+                  <th>Jumlah</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </section>
 
-        <!-- CHART 1 -->
-        <section class="panel" style="margin-top:20px;">
-          <h4>📊 Sales & Profit Trend</h4>
-          <canvas id="salesProfitChart" height="100"></canvas>
-        </section>
-
-        <!-- CHART 2 -->
-        <section class="panel" style="margin-top:20px;">
-          <h4>🌍 Tour Distribution by Region</h4>
-          <canvas id="tourRegionChart" height="100"></canvas>
+        <!-- Region Report -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>🌍 Tour Distribution by Region</h4>
+          </div>
+          <div class="panel-body">
+            <canvas id="regionChart" height="100"></canvas>
+          </div>
         </section>
       </main>
 
@@ -83,102 +95,9 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL UI SCRIPT -->
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/js/ui.js"></script>
-
-    <!-- DASHBOARD LOGIC -->
-    <script>
-      document.getElementById("year").textContent = new Date().getFullYear();
-
-      // tampilkan user aktif
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user && user.username) {
-        document.getElementById("activeUser").textContent =
-          (user.staff_name || user.username) + " (" + user.role + ")";
-      }
-
-      async function loadSummary() {
-        try {
-          const res = await fetch("/api/dashboard/summary");
-          const data = await res.json();
-
-          document.getElementById("totalSales").textContent =
-            "Rp " + Number(data.totalSales || 0).toLocaleString("id-ID");
-          document.getElementById("totalProfit").textContent =
-            "Rp " + Number(data.totalProfit || 0).toLocaleString("id-ID");
-          document.getElementById("totalTours").textContent = data.totalTours || 0;
-          document.getElementById("totalPax").textContent = data.totalPax || 0;
-          document.getElementById("targetAchieved").textContent =
-            (data.targetAchieved || 0) + "%";
-        } catch (err) {
-          console.error("❌ Gagal memuat summary:", err);
-        }
-      }
-
-      async function loadSalesProfitChart() {
-        try {
-          const res = await fetch("/api/dashboard/sales-profit-trend");
-          const data = await res.json();
-          const ctx = document.getElementById("salesProfitChart");
-          new Chart(ctx, {
-            type: "line",
-            data: {
-              labels: data.labels || [],
-              datasets: [
-                {
-                  label: "Sales",
-                  data: data.sales,
-                  borderColor: "#0b74de",
-                  fill: false
-                },
-                {
-                  label: "Profit",
-                  data: data.profit,
-                  borderColor: "#28a745",
-                  fill: false
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { position: "bottom" } },
-              scales: { y: { beginAtZero: true } }
-            }
-          });
-        } catch (err) {
-          console.error("❌ Gagal memuat chart sales-profit:", err);
-        }
-      }
-
-      async function loadTourRegionChart() {
-        try {
-          const res = await fetch("/api/dashboard/tour-region");
-          const data = await res.json();
-          const ctx = document.getElementById("tourRegionChart");
-          new Chart(ctx, {
-            type: "doughnut",
-            data: {
-              labels: data.labels || [],
-              datasets: [
-                {
-                  data: data.counts,
-                  backgroundColor: ["#0b74de", "#28a745", "#ffc107", "#dc3545", "#17a2b8"]
-                }
-              ]
-            },
-            options: {
-              responsive: true,
-              plugins: { legend: { position: "bottom" } }
-            }
-          });
-        } catch (err) {
-          console.error("❌ Gagal memuat chart region:", err);
-        }
-      }
-
-      loadSummary();
-      loadSalesProfitChart();
-      loadTourRegionChart();
-    </script>
+    <script src="/js/dashboard.js" defer></script>
   </body>
 </html>
