@@ -2,10 +2,14 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="icon" href="/favicon.ico" />
+
     <style>
       body {
         display: flex;
@@ -18,15 +22,18 @@
         font-family: "Inter", sans-serif;
         margin: 0;
       }
+
       .logo {
         font-size: 1.8rem;
         font-weight: 600;
         letter-spacing: 0.5px;
         margin-bottom: 10px;
       }
+
       .desc {
         opacity: 0.9;
       }
+
       .loader {
         width: 42px;
         height: 42px;
@@ -36,6 +43,7 @@
         animation: spin 1s linear infinite;
         margin-top: 25px;
       }
+
       @keyframes spin {
         to {
           transform: rotate(360deg);
@@ -49,7 +57,7 @@
     <div class="desc">Memuat sistem, harap tunggu sebentar...</div>
     <div class="loader"></div>
 
-    <!-- external script agar lolos CSP Render -->
-    <script src="/js/loader.js"></script>
+    <!-- External JS Loader to bypass CSP Render -->
+    <script src="/js/loader.js" defer></script>
   </body>
 </html>
