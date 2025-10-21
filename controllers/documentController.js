@@ -1,83 +1,128 @@
-/**
- * ==========================================================
- * 📁 controllers/documentController.js (ESM version)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Controller untuk modul Document Management:
- * - Ambil semua data dokumen
- * - Tambah data dokumen baru
- * - Hapus dokumen berdasarkan ID
- * ==========================================================
- */
-
+// ==========================================================
+// 📄 Travel Dashboard Enterprise v5.3
+// Document Controller (CRUD + Secure + PostgreSQL)
+// ==========================================================
 import pkg from "pg";
-import dotenv from "dotenv";
-
-dotenv.config();
 const { Pool } = pkg;
+import dotenv from "dotenv";
+dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-/**
- * 📋 Ambil semua data dokumen
- */
-export const getDocuments = async (req, res) => {
+// 📋 Get All Documents
+export const getAllDocuments = async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        id, received_date, guest_name, booking_code, tour_code, remarks, created_at
-      FROM documents
-      ORDER BY received_date DESC, created_at DESC
-    `);
+    const result = await pool.query("SELECT * FROM documents ORDER BY id DESC");
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Gagal memuat data dokumen:", err.message);
-    res.status(500).json({ message: "Gagal memuat data dokumen." });
+    console.error("❌ getAllDocuments error:", err.message);
+    res.status(500).json({ message: "Gagal memuat data dokumen" });
   }
 };
 
-/**
- * 💾 Tambah data dokumen baru
- */
+// ➕ Create Document
 export const createDocument = async (req, res) => {
   try {
-    const { received_date, guest_name, booking_code, tour_code, remarks } = req.body;
+    const {
+      receiveDate,
+      sendDate,
+      guestName,
+      passportVisa,
+      processType,
+      bookingCodeDMS,
+      invoiceNumber,
+      guestPhone,
+      estimateFinish,
+      staffName,
+      tourCode,
+    } = req.body;
 
-    if (!received_date || !guest_name) {
-      return res.status(400).json({ message: "Tanggal terima dan nama tamu wajib diisi." });
-    }
+    if (!guestName || !receiveDate)
+      return res.status(400).json({ message: "Nama tamu dan tanggal terima wajib diisi" });
 
-    await pool.query(
-      `INSERT INTO documents (received_date, guest_name, booking_code, tour_code, remarks, created_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())`,
-      [received_date, guest_name, booking_code || "", tour_code || "", remarks || ""]
-    );
+    const q = `
+      INSERT INTO documents (
+        receive_date, send_date, guest_name, passport_visa, process_type,
+        booking_code_dms, invoice_number, guest_phone, estimate_finish,
+        staff_name, tour_code
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    `;
 
-    res.status(201).json({ message: "Data dokumen berhasil ditambahkan." });
+    const values = [
+      receiveDate,
+      sendDate,
+      guestName,
+      passportVisa,
+      processType,
+      bookingCodeDMS,
+      invoiceNumber,
+      guestPhone,
+      estimateFinish,
+      staffName,
+      tourCode,
+    ];
+
+    await pool.query(q, values);
+    res.status(201).json({ message: "✅ Data dokumen berhasil disimpan" });
   } catch (err) {
-    console.error("❌ Gagal menambah data dokumen:", err.message);
-    res.status(500).json({ message: "Gagal menambah data dokumen." });
+    console.error("❌ createDocument error:", err.message);
+    res.status(500).json({ message: "Gagal menyimpan data dokumen" });
   }
 };
 
-/**
- * ❌ Hapus data dokumen berdasarkan ID
- */
+// ✏️ Update Document
+export const updateDocument = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const fields = [
+      "receive_date",
+      "send_date",
+      "guest_name",
+      "passport_visa",
+      "process_type",
+      "booking_code_dms",
+      "invoice_number",
+      "guest_phone",
+      "estimate_finish",
+      "staff_name",
+      "tour_code",
+    ];
+
+    const updates = [];
+    const values = [];
+    let idx = 1;
+
+    for (const key in req.body) {
+      const dbField = fields.find((f) => f.replace(/_/, "") === key.toLowerCase());
+      if (dbField) {
+        updates.push(`${dbField} = $${idx++}`);
+        values.push(req.body[key]);
+      }
+    }
+
+    if (!updates.length) return res.status(400).json({ message: "Tidak ada data yang diperbarui" });
+
+    values.push(id);
+    await pool.query(`UPDATE documents SET ${updates.join(", ")} WHERE id = $${idx}`, values);
+    res.json({ message: "✅ Data dokumen berhasil diperbarui" });
+  } catch (err) {
+    console.error("❌ updateDocument error:", err.message);
+    res.status(500).json({ message: "Gagal memperbarui data dokumen" });
+  }
+};
+
+// ❌ Delete Document
 export const deleteDocument = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!id) return res.status(400).json({ message: "ID dokumen tidak ditemukan." });
-
-    const result = await pool.query("DELETE FROM documents WHERE id = $1", [id]);
-    if (result.rowCount === 0)
-      return res.status(404).json({ message: "Data dokumen tidak ditemukan." });
-
-    res.json({ message: "Data dokumen berhasil dihapus." });
+    const id = req.params.id;
+    await pool.query("DELETE FROM documents WHERE id = $1", [id]);
+    res.json({ message: "✅ Data dokumen berhasil dihapus" });
   } catch (err) {
-    console.error("❌ Gagal menghapus data dokumen:", err.message);
-    res.status(500).json({ message: "Gagal menghapus data dokumen." });
+    console.error("❌ deleteDocument error:", err.message);
+    res.status(500).json({ message: "Gagal menghapus data dokumen" });
   }
 };
