@@ -9,6 +9,7 @@
     <title>Dashboard - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
     <link rel="icon" href="/favicon.ico" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
 
   <body class="theme-light">
@@ -24,9 +25,9 @@
         <ul>
           <li><a href="/dashboard.html" class="active">🏠 Dashboard</a></li>
 
-          <li class="expandable">
+          <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu">
+            <ul class="submenu open">
               <li><a href="/report_tour.html">Report Tour</a></li>
               <li><a href="/report_sales.html">Report Sales</a></li>
               <li><a href="/report_document.html">Report Document</a></li>
@@ -49,43 +50,60 @@
       </nav>
 
       <div class="sidebar-footer">
-        <small>v5.3.4 • Travel Dashboard</small>
+        <small>v5.3.6 • Travel Dashboard</small>
       </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Dashboard Overview</h2>
+        <h2>Welcome Back 👋</h2>
         <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- Summary Section -->
+        <!-- KPI SUMMARY -->
         <section class="panel">
           <div class="panel-header">
-            <h4>📊 Summary Overview</h4>
+            <h4>📊 Dashboard Summary</h4>
           </div>
-          <div class="panel-body table-container">
-            <table class="data-table" id="summaryTable">
-              <thead>
-                <tr>
-                  <th>Kategori</th>
-                  <th>Jumlah</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <div class="panel-body kpi-grid">
+            <div class="kpi-card">
+              <h5>Total Sales</h5>
+              <p id="totalSales">0</p>
+            </div>
+            <div class="kpi-card">
+              <h5>Total Profit</h5>
+              <p id="totalProfit">0</p>
+            </div>
+            <div class="kpi-card">
+              <h5>Total Tours</h5>
+              <p id="totalTours">0</p>
+            </div>
+            <div class="kpi-card">
+              <h5>Total Regions</h5>
+              <p id="totalRegions">0</p>
+            </div>
           </div>
         </section>
 
-        <!-- Region Report -->
+        <!-- PROGRESS ACHIEVEMENT -->
         <section class="panel">
           <div class="panel-header">
-            <h4>🌍 Tour Distribution by Region</h4>
+            <h4>🎯 Progress Achievement Sales & Profit</h4>
           </div>
           <div class="panel-body">
-            <canvas id="regionChart" height="100"></canvas>
+            <div id="achievementContainer"></div>
+          </div>
+        </section>
+
+        <!-- SALES CHART -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>📈 Sales Trend (12 Bulan)</h4>
+          </div>
+          <div class="panel-body">
+            <canvas id="salesChart" height="100"></canvas>
           </div>
         </section>
       </main>
@@ -95,8 +113,7 @@
       </footer>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SCRIPTS -->
     <script src="/js/ui.js"></script>
     <script src="/js/dashboard.js" defer></script>
   </body>
