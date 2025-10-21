@@ -1,12 +1,12 @@
 // ==========================================================
-// 🔐 Auth Controller — Travel Dashboard v5.3.8
+// 🔐 Auth Controller — Travel Dashboard v5.3.9 (Render Safe)
 // ==========================================================
 
-import bcrypt from "bcryptjs"; // ✅ FIX: gunakan bcrypt dari bcryptjs
+import bcrypt from "bcryptjs"; // ✅ gunakan bcrypt dari bcryptjs
 import jwt from "jsonwebtoken";
 import pkg from "pg";
-
 const { Pool } = pkg;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -17,7 +17,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 
 // ==========================================================
-// 🧠 Helper: Generate Tokens
+// 🔹 Generate JWT tokens
 // ==========================================================
 function generateTokens(user) {
   const accessToken = jwt.sign(
@@ -51,16 +51,13 @@ export async function login(req, res) {
 
     const q = `SELECT id, username, staff_name, role, password_hash FROM users WHERE username = $1 LIMIT 1;`;
     const { rows } = await pool.query(q, [username]);
-
-    if (rows.length === 0) {
+    if (rows.length === 0)
       return res.status(401).json({ message: "User tidak ditemukan" });
-    }
 
     const user = rows[0];
-    const valid = await bcrypt.compare(password, user.password_hash); // ✅ gunakan bcrypt
-    if (!valid) {
+    const valid = await bcrypt.compare(password, user.password_hash); // ✅ gunakan bcrypt (bukan bcryptjs)
+    if (!valid)
       return res.status(401).json({ message: "Password salah" });
-    }
 
     const { accessToken, refreshToken } = generateTokens(user);
 
@@ -88,9 +85,8 @@ export async function register(req, res) {
   try {
     const { username, staff_name, password, role } = req.body;
 
-    if (!username || !password || !role) {
+    if (!username || !password || !role)
       return res.status(400).json({ message: "Data tidak lengkap" });
-    }
 
     const hashed = await bcrypt.hash(password, 10); // ✅ gunakan bcrypt
     const q = `
@@ -121,9 +117,8 @@ export async function refreshToken(req, res) {
       return res.status(400).json({ message: "Refresh token wajib diisi" });
 
     jwt.verify(refreshToken, JWT_SECRET, (err, decoded) => {
-      if (err) {
+      if (err)
         return res.status(401).json({ message: "Refresh token tidak valid" });
-      }
 
       const newAccessToken = jwt.sign(
         { id: decoded.id, username: decoded.username },
@@ -145,9 +140,12 @@ export async function refreshToken(req, res) {
 export async function verify(req, res) {
   try {
     const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
 
-    if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
+    if (!token)
+      return res.status(401).json({ message: "Token tidak ditemukan" });
 
     const decoded = jwt.verify(token, JWT_SECRET);
     res.json({ valid: true, decoded });
