@@ -9,17 +9,16 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <aside id="sidebar" class="sidebar collapsed">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
-      <nav class="sidebar-nav" role="navigation">
+      <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
           <li class="expandable">
             <button class="expand-toggle">📊 Reports</button>
             <ul class="submenu">
@@ -28,7 +27,6 @@
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
-
           <li class="expandable open">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu open">
@@ -36,7 +34,6 @@
               <li><a href="/user-management.html" class="active">User Management</a></li>
             </ul>
           </li>
-
           <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -44,19 +41,19 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>User Management</h2>
-        <div id="userBadge" class="user-badge">admin</div>
+        <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- FORM INPUT USER -->
-        <section class="form-section">
+        <!-- FORM USER -->
+        <section class="form-section admin-only">
           <h4>Tambah / Edit User</h4>
           <form id="userForm">
             <div class="form-grid">
@@ -74,14 +71,13 @@
               </div>
               <div class="form-group">
                 <label>Role</label>
-                <select id="role">
+                <select id="role" required>
                   <option value="staff">Staff</option>
+                  <option value="semiadmin">Semi Admin</option>
                   <option value="admin">Admin</option>
-                  <option value="superadmin">Superadmin</option>
                 </select>
               </div>
             </div>
-
             <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
               <button type="reset" class="btn gray">↺ Reset</button>
@@ -92,12 +88,10 @@
         <!-- TABLE USERS -->
         <section class="panel" style="margin-top:20px;">
           <div class="panel-header">
-            <h4>Daftar User</h4>
+            <h4>Daftar Pengguna</h4>
             <div class="filter-bar">
-              <input type="text" id="searchUser" placeholder="Cari username / staff..." />
+              <input type="text" id="searchUser" placeholder="Cari username / nama staff..." />
               <button id="btnSearch" class="btn">🔍 Cari</button>
-              <button id="btnExportExcel" class="btn">📤 Excel</button>
-              <button id="btnExportCSV" class="btn">📄 CSV</button>
             </div>
           </div>
 
@@ -109,10 +103,11 @@
                   <th>Nama Staff</th>
                   <th>Role</th>
                   <th>Tanggal Dibuat</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -127,9 +122,15 @@
     <!-- UNIVERSAL UI SCRIPT -->
     <script src="/js/ui.js"></script>
 
-    <!-- USER LOGIC -->
+    <!-- USER MANAGEMENT LOGIC -->
     <script type="module">
       document.getElementById("year").textContent = new Date().getFullYear();
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user && user.username) {
+        document.getElementById("activeUser").textContent =
+          (user.staff_name || user.username) + " (" + user.role + ")";
+      }
 
       async function loadUsers() {
         const res = await fetch("/api/users");
@@ -137,18 +138,23 @@
         const tbody = document.querySelector("#userTable tbody");
         tbody.innerHTML = "";
         if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`);
+          return (tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data</td></tr>`);
         data.forEach((u) => {
           const row = `<tr>
             <td>${u.username}</td>
-            <td>${u.staff_name}</td>
+            <td>${u.staff_name || "-"}</td>
             <td>${u.role}</td>
-            <td>${u.created_at ? new Date(u.created_at).toLocaleDateString("id-ID") : "-"}</td>
+            <td>${new Date(u.created_at).toLocaleDateString("id-ID")}</td>
+            <td>
+              <button class="btn small edit-btn admin-only" data-id="${u.id}">✏️</button>
+              <button class="btn small danger btn-delete admin-only" data-id="${u.id}">🗑️</button>
+            </td>
           </tr>`;
           tbody.innerHTML += row;
         });
       }
 
+      // Tambah User
       document.getElementById("userForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const f = e.target;
@@ -167,26 +173,39 @@
           alert("✅ User berhasil disimpan!");
           f.reset();
           loadUsers();
-        } else {
-          const err = await res.json();
-          alert("❌ " + (err.message || "Gagal menyimpan user"));
+        } else alert("❌ Gagal menyimpan user");
+      });
+
+      // Hapus User
+      document.addEventListener("click", async (e) => {
+        if (e.target.classList.contains("btn-delete")) {
+          const id = e.target.dataset.id;
+          if (confirm("Yakin ingin menghapus user ini?")) {
+            await fetch(`/api/users/${id}`, { method: "DELETE" });
+            loadUsers();
+          }
         }
       });
 
+      // Cari User
       document.getElementById("btnSearch").addEventListener("click", async () => {
-        const search = document.getElementById("searchUser").value;
+        const search = document.getElementById("searchUser").value.trim();
         const res = await fetch(`/api/users?search=${encodeURIComponent(search)}`);
         const data = await res.json();
         const tbody = document.querySelector("#userTable tbody");
         tbody.innerHTML = "";
         if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada hasil</td></tr>`);
+          return (tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada hasil</td></tr>`);
         data.forEach((u) => {
           const row = `<tr>
             <td>${u.username}</td>
-            <td>${u.staff_name}</td>
+            <td>${u.staff_name || "-"}</td>
             <td>${u.role}</td>
-            <td>${u.created_at ? new Date(u.created_at).toLocaleDateString("id-ID") : "-"}</td>
+            <td>${new Date(u.created_at).toLocaleDateString("id-ID")}</td>
+            <td>
+              <button class="btn small edit-btn admin-only" data-id="${u.id}">✏️</button>
+              <button class="btn small danger btn-delete admin-only" data-id="${u.id}">🗑️</button>
+            </td>
           </tr>`;
           tbody.innerHTML += row;
         });
