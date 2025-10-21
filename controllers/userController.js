@@ -1,70 +1,85 @@
-// ==========================================================
-// 👥 Travel Dashboard Enterprise v5.3
-// User Controller (CRUD + Secure + Bcrypt + PostgreSQL)
-// ==========================================================
+// controllers/userController.js
+import bcrypt from "bcrypt";
 import pkg from "pg";
 const { Pool } = pkg;
-import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
-dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// 📋 Get All Users (Admin Only)
-export const getAllUsers = async (req, res) => {
+/**
+ * GET /api/users
+ * List all users (Admin only)
+ */
+export async function getUsers(req, res) {
   try {
-    const result = await pool.query(
-      "SELECT id, username, staff_name, role, created_at FROM users ORDER BY id DESC"
-    );
-    res.json(result.rows);
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Akses hanya untuk Admin" });
+    }
+
+    const q = `SELECT id, username, staff_name, role, created_at FROM users ORDER BY id ASC;`;
+    const { rows } = await pool.query(q);
+    res.json(rows);
   } catch (err) {
-    console.error("❌ getAllUsers error:", err.message);
+    console.error("❌ getUsers error:", err);
     res.status(500).json({ message: "Gagal memuat data user" });
   }
-};
+}
 
-// ➕ Create New User
-export const createUser = async (req, res) => {
+/**
+ * POST /api/users
+ * Create new user (Admin only)
+ */
+export async function createUser(req, res) {
   try {
-    const { username, staffName, password, role } = req.body;
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Akses hanya untuk Admin" });
+    }
 
-    if (!username || !password || !role)
-      return res.status(400).json({ message: "Username, password, dan role wajib diisi" });
+    const { username, staff_name, password, role } = req.body;
 
-    const existing = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
-    if (existing.rows.length > 0)
-      return res.status(400).json({ message: "Username sudah digunakan" });
+    if (!username || !password || !role) {
+      return res.status(400).json({ message: "Data tidak lengkap" });
+    }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash password
+    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10);
+    const hashed = await bcrypt.hash(password, saltRounds);
 
-    await pool.query(
-      "INSERT INTO users (username, staff_name, password, role) VALUES ($1, $2, $3, $4)",
-      [username, staffName || null, hashedPassword, role]
-    );
+    const insertQ = `
+      INSERT INTO users (username, staff_name, password_hash, role)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, username, staff_name, role;
+    `;
+    const values = [username, staff_name || username, hashed, role];
+    const { rows } = await pool.query(insertQ, values);
 
-    res.status(201).json({ message: "✅ User berhasil ditambahkan" });
+    res.status(201).json({
+      message: "User berhasil dibuat",
+      user: rows[0],
+    });
   } catch (err) {
-    console.error("❌ createUser error:", err.message);
-    res.status(500).json({ message: "Gagal menambahkan user" });
+    console.error("❌ createUser error:", err);
+    res.status(500).json({ message: "Gagal membuat user" });
   }
-};
+}
 
-// ❌ Delete User (Admin Only)
-export const deleteUser = async (req, res) => {
+/**
+ * DELETE /api/users/:id
+ * Delete user (Admin only)
+ */
+export async function deleteUser(req, res) {
   try {
-    const id = req.params.id;
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Akses hanya untuk Admin" });
+    }
 
-    const check = await pool.query("SELECT id FROM users WHERE id = $1", [id]);
-    if (check.rows.length === 0)
-      return res.status(404).json({ message: "User tidak ditemukan" });
-
-    await pool.query("DELETE FROM users WHERE id = $1", [id]);
-    res.json({ message: "✅ User berhasil dihapus" });
+    const { id } = req.params;
+    await pool.query(`DELETE FROM users WHERE id = $1;`, [id]);
+    res.json({ message: "User berhasil dihapus" });
   } catch (err) {
-    console.error("❌ deleteUser error:", err.message);
+    console.error("❌ deleteUser error:", err);
     res.status(500).json({ message: "Gagal menghapus user" });
   }
-};
+}
