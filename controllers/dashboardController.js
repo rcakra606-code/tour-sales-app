@@ -1,93 +1,101 @@
-// ==========================================================
-// 📊 Travel Dashboard Enterprise v5.3
-// Dashboard Controller (Summary + Charts + PostgreSQL)
-// ==========================================================
+// controllers/dashboardController.js
 import pkg from "pg";
 const { Pool } = pkg;
-import dotenv from "dotenv";
-dotenv.config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// 📈 Dashboard Summary (Total KPI)
-export const getDashboardSummary = async (req, res) => {
+/**
+ * GET /api/dashboard/summary
+ * Return main summary numbers (sales, profit, tours, regions)
+ */
+export async function getDashboardSummary(req, res) {
   try {
-    const [sales, profit, tours, pax, targets] = await Promise.all([
-      pool.query("SELECT COALESCE(SUM(sales_amount),0) AS total_sales FROM sales"),
-      pool.query("SELECT COALESCE(SUM(profit_amount),0) AS total_profit FROM sales"),
-      pool.query("SELECT COUNT(*) AS total_tours FROM tours"),
-      pool.query("SELECT COALESCE(SUM(ARRAY_LENGTH(string_to_array(all_passengers, ','),1)),0) AS total_pax FROM tours"),
-      pool.query("SELECT COALESCE(AVG(target_sales),0) AS avg_target_sales, COALESCE(AVG(target_profit),0) AS avg_target_profit FROM targets")
+    const userRole = req.user.role;
+    const staffName = req.user.staff_name || req.user.username;
+
+    let where = "";
+    if (userRole === "staff") where = `WHERE s.staff_name = '${staffName}'`;
+
+    const totalSalesQ = `SELECT COALESCE(SUM(sales_amount),0) AS total_sales, COALESCE(SUM(profit_amount),0) AS total_profit FROM sales s ${where}`;
+    const totalToursQ = `SELECT COUNT(*) AS total_tours FROM tours ${where ? `WHERE staff = '${staffName}'` : ""}`;
+    const totalRegionsQ = `SELECT COUNT(*) AS total_regions FROM regions`;
+
+    const [salesR, toursR, regionR] = await Promise.all([
+      pool.query(totalSalesQ),
+      pool.query(totalToursQ),
+      pool.query(totalRegionsQ),
     ]);
 
-    // Hitung target achieved (rata-rata pencapaian)
-    const totalSales = Number(sales.rows[0].total_sales);
-    const totalProfit = Number(profit.rows[0].total_profit);
-    const targetSales = Number(targets.rows[0].avg_target_sales);
-    const targetProfit = Number(targets.rows[0].avg_target_profit);
-
-    const targetAchieved =
-      targetSales > 0
-        ? Math.round(((totalSales / targetSales) * 100 + (totalProfit / targetProfit) * 100) / 2)
-        : 0;
-
-    res.json({
-      totalSales,
-      totalProfit,
-      totalTours: Number(tours.rows[0].total_tours),
-      totalPax: Number(pax.rows[0].total_pax),
-      targetAchieved
+    return res.json({
+      totalSales: parseFloat(salesR.rows[0].total_sales) || 0,
+      totalProfit: parseFloat(salesR.rows[0].total_profit) || 0,
+      totalTours: parseInt(toursR.rows[0].total_tours) || 0,
+      totalRegions: parseInt(regionR.rows[0].total_regions) || 0,
     });
   } catch (err) {
-    console.error("❌ Dashboard summary error:", err.message);
-    res.status(500).json({ message: "Gagal memuat data dashboard" });
+    console.error("❌ Dashboard summary error:", err);
+    res.status(500).json({ message: "Gagal memuat summary" });
   }
-};
+}
 
-// 📉 Sales & Profit Trend (Monthly)
-export const getSalesProfitTrend = async (req, res) => {
+/**
+ * GET /api/dashboard/staff-progress
+ * Return progress comparison for each staff (sales & profit)
+ */
+export async function getStaffProgress(req, res) {
   try {
-    const result = await pool.query(`
-      SELECT
-        TO_CHAR(transaction_date, 'YYYY-MM') AS month,
-        SUM(sales_amount) AS total_sales,
-        SUM(profit_amount) AS total_profit
-      FROM sales
-      GROUP BY 1
-      ORDER BY 1 ASC
-    `);
+    const role = req.user.role;
+    const staffName = req.user.staff_name || req.user.username;
 
-    const labels = result.rows.map(r => r.month);
-    const sales = result.rows.map(r => Number(r.total_sales));
-    const profit = result.rows.map(r => Number(r.total_profit));
+    let filter = "";
+    if (role === "staff") filter = `WHERE s.staff_name = '${staffName}'`;
 
-    res.json({ labels, sales, profit });
+    const q = `
+      SELECT 
+        s.staff_name,
+        DATE_TRUNC('month', s.transaction_date)::date AS month,
+        COALESCE(SUM(s.sales_amount),0) AS total_sales,
+        COALESCE(SUM(s.profit_amount),0) AS total_profit,
+        COALESCE(t.target_sales,0) AS target_sales,
+        COALESCE(t.target_profit,0) AS target_profit
+      FROM sales s
+      LEFT JOIN targets t 
+        ON LOWER(s.staff_name) = LOWER(t.staff_name)
+        AND DATE_TRUNC('month', s.transaction_date) = DATE_TRUNC('month', t.month)
+      ${filter}
+      GROUP BY s.staff_name, t.target_sales, t.target_profit, month
+      ORDER BY month DESC
+      LIMIT 12;
+    `;
+
+    const { rows } = await pool.query(q);
+    return res.json(rows);
   } catch (err) {
-    console.error("❌ getSalesProfitTrend error:", err.message);
-    res.status(500).json({ message: "Gagal memuat data grafik sales/profit" });
+    console.error("❌ Staff progress error:", err);
+    res.status(500).json({ message: "Gagal memuat progress staff" });
   }
-};
+}
 
-// 🌍 Tour Distribution by Region
-export const getTourRegionData = async (req, res) => {
+/**
+ * GET /api/dashboard/tour-region
+ * Return total pax per region (for chart)
+ */
+export async function getTourRegion(req, res) {
   try {
-    const result = await pool.query(`
-      SELECT region, COUNT(*) AS total_tours
-      FROM tours
-      WHERE region IS NOT NULL AND region <> ''
-      GROUP BY region
-      ORDER BY total_tours DESC
-    `);
-
-    const labels = result.rows.map(r => r.region);
-    const counts = result.rows.map(r => Number(r.total_tours));
-
-    res.json({ labels, counts });
+    const q = `
+      SELECT r.name AS region, COUNT(t.id) AS total_tours
+      FROM tours t
+      LEFT JOIN regions r ON r.name = t.region
+      GROUP BY r.name
+      ORDER BY total_tours DESC;
+    `;
+    const { rows } = await pool.query(q);
+    res.json(rows);
   } catch (err) {
-    console.error("❌ getTourRegionData error:", err.message);
-    res.status(500).json({ message: "Gagal memuat distribusi tour region" });
+    console.error("❌ GET regions error:", err);
+    res.status(500).json({ message: "Gagal memuat data region" });
   }
-};
+}
