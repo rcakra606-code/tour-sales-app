@@ -1,194 +1,122 @@
-import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
+// ==========================================================
+// ✈️ Report Tour Logic v5.3.4
+// CRUD + Search + Export + Region Data Integration
+// ==========================================================
+document.addEventListener("DOMContentLoaded", async () => {
+  const token = localStorage.getItem("token");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  if (!token || token === "undefined") return (window.location.href = "/login.html");
 
-const form = document.getElementById("tourForm");
-const btnReset = document.getElementById("btnResetForm");
-const btnDelete = document.getElementById("btnDelete");
-const tableBody = document.querySelector("#tourTable tbody");
-const regionSelect = document.getElementById("region");
-const searchInput = document.getElementById("searchInput");
-const filterMonth = document.getElementById("filterMonth");
-const btnExcel = document.getElementById("btnExportExcel");
-const btnCSV = document.getElementById("btnExportCSV");
-const yearSpan = document.getElementById("year");
-if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  document.getElementById("year").textContent = new Date().getFullYear();
+  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
 
-let tours = [];
-let regions = [];
+  const form = document.getElementById("tourForm");
+  const tableBody = document.querySelector("#tourTable tbody");
+  const searchInput = document.getElementById("searchInput");
+  const regionList = document.getElementById("regionList");
 
-// ===== UTIL =====
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString("id-ID") : "-");
-const fmtRp = (n) => "Rp " + (Number(n || 0)).toLocaleString("id-ID");
-const escapeHtml = (str) =>
-  String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
-// ===== LOAD REGIONS =====
-async function loadRegions() {
+  // Load region list
   try {
-    const res = await fetch("/api/regions");
-    if (!res.ok) throw new Error("Gagal memuat data region");
-    regions = await res.json();
-    regionSelect.innerHTML =
-      '<option value="">Pilih Region</option>' +
-      regions.map((r) => `<option value="${r.name}">${r.name}</option>`).join("");
-  } catch (err) {
-    console.error(err);
-    regionSelect.innerHTML = "<option value=''>Gagal memuat region</option>";
-  }
-}
-
-// ===== LOAD TOURS =====
-async function loadTours() {
-  try {
-    const res = await fetch("/api/report/tour");
-    if (!res.ok) throw new Error("Gagal memuat data tour");
-    tours = await res.json();
-    renderTable(tours);
-  } catch (err) {
-    console.error(err);
-    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Gagal memuat data</td></tr>`;
-  }
-}
-
-// ===== RENDER TABLE =====
-function renderTable(data) {
-  if (!data || !data.length) {
-    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Tidak ada data</td></tr>`;
-    return;
+    const res = await fetch("/api/regions", { headers });
+    const regions = await res.json();
+    regionList.innerHTML = regions.map(r => `<option value="${r.name}">`).join("");
+  } catch {
+    console.warn("⚠️ Gagal memuat region list");
   }
 
-  tableBody.innerHTML = data
-    .map(
-      (t) => `
-      <tr data-id="${t.id}">
-        <td><button class="btn-link view-tour" data-id="${t.id}">${escapeHtml(t.lead_passenger)}</button></td>
-        <td>${escapeHtml(t.region || "-")}</td>
-        <td>${fmtDate(t.departure_date)}</td>
-        <td style="text-align:right">${fmtRp(t.tour_price)}</td>
-        <td style="text-align:right">${fmtRp(t.sales_amount)}</td>
-        <td style="text-align:right">${fmtRp(t.profit_amount)}</td>
-        <td>${escapeHtml(t.departure_status)}</td>
-      </tr>`
-    )
-    .join("");
+  // Load tour data
+  async function loadTours() {
+    const res = await fetch("/api/tours", { headers });
+    const data = await res.json();
+    renderTable(data);
+  }
 
-  document.querySelectorAll(".view-tour").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const item = tours.find((x) => String(x.id) === String(btn.dataset.id));
-      if (item) populateForm(item);
+  function renderTable(data) {
+    tableBody.innerHTML = "";
+    data.forEach((t) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${t.registrationDate || "-"}</td>
+        <td>${t.leadPassenger || "-"}</td>
+        <td>${t.tourCode || "-"}</td>
+        <td>${t.region || "-"}</td>
+        <td>${t.staff || "-"}</td>
+        <td>${t.departureStatus || "-"}</td>
+        <td>
+          <button class="btn small" data-id="${t.id}" data-action="edit">✏️</button>
+          <button class="btn small danger" data-id="${t.id}" data-action="delete">🗑️</button>
+        </td>`;
+      tableBody.appendChild(tr);
+    });
+  }
+
+  // Simpan data baru
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = {
+      registrationDate: form.registrationDate.value,
+      leadPassenger: form.leadPassenger.value,
+      allPassengers: form.allPassengers.value,
+      tourCode: form.tourCode.value,
+      region: form.region.value,
+      departureDate: form.departureDate.value,
+      bookingCode: form.bookingCode.value,
+      tourPrice: parseFloat(form.tourPrice.value) || 0,
+      staff: form.staff.value,
+      departureStatus: form.departureStatus.value,
+    };
+
+    await fetch("/api/tours", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(formData),
+    });
+
+    form.reset();
+    loadTours();
+  });
+
+  // Search filter
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase();
+    const rows = tableBody.querySelectorAll("tr");
+    rows.forEach((r) => {
+      r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none";
     });
   });
-}
 
-// ===== POPULATE FORM =====
-function populateForm(t) {
-  Object.entries(t).forEach(([key, val]) => {
-    const el = document.getElementById(key);
-    if (el) el.value = val || "";
+  // Delete / Edit
+  tableBody.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    if (action === "delete") {
+      if (!confirm("Hapus data ini?")) return;
+      await fetch(`/api/tours/${id}`, { method: "DELETE", headers });
+      loadTours();
+    }
   });
-  form.dataset.id = t.id;
-  btnDelete.style.display = "inline-block";
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
 
-// ===== RESET =====
-btnReset.addEventListener("click", () => {
-  form.reset();
-  delete form.dataset.id;
-  btnDelete.style.display = "none";
-});
-
-// ===== SUBMIT =====
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(form).entries());
-  const id = form.dataset.id;
-  const method = id ? "PUT" : "POST";
-  const url = id ? `/api/report/tour/${id}` : `/api/report/tour`;
-
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+  // Export CSV
+  document.getElementById("exportCSV").addEventListener("click", () => {
+    const rows = [["Tanggal", "Lead Passenger", "Tour Code", "Region", "Staff", "Status"]];
+    document.querySelectorAll("#tourTable tbody tr").forEach((tr) => {
+      const cols = Array.from(tr.children).map((td) => td.innerText);
+      rows.push(cols.slice(0, 6));
     });
-    if (!res.ok) throw new Error("Gagal menyimpan data tour");
-    alert("✅ Data tour tersimpan!");
-    form.reset();
-    btnDelete.style.display = "none";
-    loadTours();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Gagal menyimpan data");
-  }
+
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tour-report-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+  });
+
+  loadTours();
 });
-
-// ===== DELETE =====
-btnDelete.addEventListener("click", async () => {
-  const id = form.dataset.id;
-  if (!id) return;
-  if (!confirm("Yakin ingin menghapus data ini?")) return;
-  try {
-    const res = await fetch(`/api/report/tour/${id}`, { method: "DELETE" });
-    if (!res.ok) throw new Error("Gagal menghapus data");
-    alert("✅ Data dihapus!");
-    form.reset();
-    btnDelete.style.display = "none";
-    loadTours();
-  } catch (err) {
-    console.error(err);
-    alert("❌ Gagal menghapus data");
-  }
-});
-
-// ===== FILTER =====
-searchInput.addEventListener("input", applyFilters);
-filterMonth.addEventListener("change", applyFilters);
-
-function applyFilters() {
-  const q = searchInput.value.trim().toLowerCase();
-  const m = filterMonth.value;
-  let filtered = tours.slice();
-
-  if (q) {
-    filtered = filtered.filter(
-      (t) =>
-        t.lead_passenger.toLowerCase().includes(q) ||
-        (t.region && t.region.toLowerCase().includes(q)) ||
-        (t.staff && t.staff.toLowerCase().includes(q))
-    );
-  }
-
-  if (m) {
-    const [y, month] = m.split("-");
-    filtered = filtered.filter((t) => {
-      const d = new Date(t.departure_date);
-      return (
-        d.getFullYear() === parseInt(y) && d.getMonth() + 1 === parseInt(month)
-      );
-    });
-  }
-
-  renderTable(filtered);
-}
-
-// ===== EXPORT =====
-btnExcel.addEventListener("click", () => exportFile("xlsx"));
-btnCSV.addEventListener("click", () => exportFile("csv"));
-
-function exportFile(type) {
-  if (!tours.length) return alert("Tidak ada data untuk diekspor");
-  const ws = XLSX.utils.json_to_sheet(tours);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Tours");
-  const filename = `Tours_${new Date().toISOString().slice(0, 10)}.${type}`;
-  XLSX.writeFile(wb, filename, { bookType: type });
-}
-
-// INIT
-await loadRegions();
-await loadTours();
