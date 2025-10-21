@@ -9,17 +9,16 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <aside id="sidebar" class="sidebar collapsed">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
-      <nav class="sidebar-nav" role="navigation">
+      <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
           <li class="expandable">
             <button class="expand-toggle">📊 Reports</button>
             <ul class="submenu">
@@ -28,7 +27,6 @@
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
-
           <li class="expandable open">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu open">
@@ -36,7 +34,6 @@
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
-
           <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -44,18 +41,18 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Region Management</h2>
-        <div id="userBadge" class="user-badge">admin</div>
+        <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- FORM INPUT REGION -->
+        <!-- FORM REGION -->
         <section class="form-section">
           <h4>Tambah / Edit Region</h4>
           <form id="regionForm">
@@ -69,7 +66,6 @@
                 <input type="text" id="regionCode" />
               </div>
             </div>
-
             <div class="form-actions">
               <button type="submit" class="btn">💾 Simpan</button>
               <button type="reset" class="btn gray">↺ Reset</button>
@@ -77,7 +73,7 @@
           </form>
         </section>
 
-        <!-- FILTER + TABLE -->
+        <!-- TABEL REGION -->
         <section class="panel" style="margin-top:20px;">
           <div class="panel-header">
             <h4>Daftar Region</h4>
@@ -95,11 +91,12 @@
                 <tr>
                   <th>Nama Region</th>
                   <th>Kode</th>
-                  <th>Dibuat Pada</th>
+                  <th>Tanggal Dibuat</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="3" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -118,23 +115,33 @@
     <script type="module">
       document.getElementById("year").textContent = new Date().getFullYear();
 
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user && user.username) {
+        document.getElementById("activeUser").textContent =
+          (user.staff_name || user.username) + " (" + user.role + ")";
+      }
+
       async function loadRegions() {
         const res = await fetch("/api/regions");
         const data = await res.json();
         const tbody = document.querySelector("#regionTable tbody");
         tbody.innerHTML = "";
         if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Tidak ada data</td></tr>`);
+          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`);
         data.forEach((r) => {
           const row = `<tr>
             <td>${r.name}</td>
             <td>${r.code || "-"}</td>
             <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("id-ID") : "-"}</td>
+            <td>
+              <button class="btn small danger btn-delete admin-only" data-id="${r.id}">🗑️</button>
+            </td>
           </tr>`;
           tbody.innerHTML += row;
         });
       }
 
+      // Tambah region
       document.getElementById("regionForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const name = document.getElementById("regionName").value.trim();
@@ -151,19 +158,34 @@
         } else alert("❌ Gagal menambahkan region");
       });
 
+      // Hapus region (admin only)
+      document.addEventListener("click", async (e) => {
+        if (e.target.classList.contains("btn-delete")) {
+          const id = e.target.dataset.id;
+          if (confirm("Yakin ingin menghapus region ini?")) {
+            await fetch(`/api/regions/${id}`, { method: "DELETE" });
+            loadRegions();
+          }
+        }
+      });
+
+      // Cari region
       document.getElementById("btnSearch").addEventListener("click", async () => {
-        const search = document.getElementById("searchRegion").value;
+        const search = document.getElementById("searchRegion").value.trim();
         const res = await fetch(`/api/regions?search=${encodeURIComponent(search)}`);
         const data = await res.json();
         const tbody = document.querySelector("#regionTable tbody");
         tbody.innerHTML = "";
         if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Tidak ada hasil</td></tr>`);
+          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada hasil</td></tr>`);
         data.forEach((r) => {
           const row = `<tr>
             <td>${r.name}</td>
             <td>${r.code || "-"}</td>
             <td>${r.created_at ? new Date(r.created_at).toLocaleDateString("id-ID") : "-"}</td>
+            <td>
+              <button class="btn small danger btn-delete admin-only" data-id="${r.id}">🗑️</button>
+            </td>
           </tr>`;
           tbody.innerHTML += row;
         });
