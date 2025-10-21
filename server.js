@@ -8,8 +8,8 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import pkg from "pg";
 import dotenv from "dotenv";
+import pkg from "pg";
 
 dotenv.config();
 
@@ -33,10 +33,12 @@ const pool = new Pool({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-app.use(helmet({
-  crossOriginResourcePolicy: false,
-  contentSecurityPolicy: false,
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    contentSecurityPolicy: false,
+  })
+);
 app.use(compression());
 
 // ==========================================================
@@ -44,33 +46,33 @@ app.use(compression());
 // ==========================================================
 app.use(express.static(path.join(__dirname, "public")));
 
-// Favicon fallback (menghindari 404)
+// Favicon fallback (hindari error 404)
 app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 // ==========================================================
-// 🧩 Routes Import
+// 🧩 Import Routes
 // ==========================================================
 import authRoutes from "./routes/auth.js";
+import userRoutes from "./routes/users.js";
 import dashboardRoutes from "./routes/dashboard.js";
-import salesRoutes from "./routes/sales.js";
 import tourRoutes from "./routes/tours.js";
+import salesRoutes from "./routes/sales.js";
 import documentRoutes from "./routes/documents.js";
 import regionRoutes from "./routes/regions.js";
-import userRoutes from "./routes/users.js";
 import profileRoutes from "./routes/profile.js";
 import executiveRoutes from "./routes/executiveReport.js";
 import logsRoutes from "./routes/logs.js";
 
 // ==========================================================
-// 🧭 API Routes
+// 🧭 Register API Routes
 // ==========================================================
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/sales", salesRoutes);
 app.use("/api/tours", tourRoutes);
+app.use("/api/sales", salesRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/regions", regionRoutes);
-app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/executive", executiveRoutes);
 app.use("/api/logs", logsRoutes);
@@ -93,13 +95,13 @@ app.get("/api/health", async (req, res) => {
 });
 
 // ==========================================================
-// 🧭 Frontend Fallback (Redirect ke login atau dashboard)
+// 🧭 Frontend Fallback & Redirect
 // ==========================================================
 app.get("/", (req, res) => {
   res.redirect("/login.html");
 });
 
-// Handle unknown routes → redirect ke login
+// Jika route tidak ditemukan (non-API), arahkan ke login
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) {
     return res.status(404).json({ message: "Endpoint tidak ditemukan" });
@@ -108,7 +110,7 @@ app.use((req, res, next) => {
 });
 
 // ==========================================================
-// 🧱 Database Initialization Check
+// 🧱 Database Connection Check (Retry System)
 // ==========================================================
 async function verifyConnection(retries = 5) {
   for (let i = 0; i < retries; i++) {
@@ -132,5 +134,5 @@ await verifyConnection();
 
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🌐 http://localhost:${PORT}`);
+  console.log(`🌐 Visit: http://localhost:${PORT}`);
 });
