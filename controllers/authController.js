@@ -1,5 +1,5 @@
 // controllers/authController.js
-import bcrypt from "bcryptjs";
+import bcrypt from "bcryptjs"; // ✅ FIXED
 import jwt from "jsonwebtoken";
 import pkg from "pg";
 const { Pool } = pkg;
@@ -38,21 +38,18 @@ function generateTokens(user) {
 export async function login(req, res) {
   try {
     const { username, password } = req.body;
-
     if (!username || !password)
       return res.status(400).json({ message: "Username dan password wajib diisi" });
 
     const q = `SELECT id, username, staff_name, role, password_hash FROM users WHERE username = $1 LIMIT 1;`;
     const { rows } = await pool.query(q, [username]);
-
     if (rows.length === 0) return res.status(401).json({ message: "User tidak ditemukan" });
 
     const user = rows[0];
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(password, user.password_hash); // ✅ bcryptjs fixed
     if (!valid) return res.status(401).json({ message: "Password salah" });
 
     const { accessToken, refreshToken } = generateTokens(user);
-
     res.json({
       message: "Login berhasil",
       token: accessToken,
@@ -76,11 +73,10 @@ export async function login(req, res) {
 export async function register(req, res) {
   try {
     const { username, staff_name, password, role } = req.body;
-
     if (!username || !password || !role)
       return res.status(400).json({ message: "Data tidak lengkap" });
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10); // ✅ bcryptjs fixed
     const q = `
       INSERT INTO users (username, staff_name, password_hash, role)
       VALUES ($1, $2, $3, $4)
