@@ -1,8 +1,9 @@
 // ==========================================================
-// 🗄️ initDatabase.js — Travel Dashboard Enterprise v5.3.9
+// 🗄️ initDatabase.js — Travel Dashboard Enterprise v5.4.1
 // ==========================================================
-// Script ini otomatis membuat semua tabel utama:
-// users, sales, tours, documents, regions, targets, logs
+// - Membuat struktur database jika belum ada
+// - Memperbaiki tabel lama otomatis (mis. menambahkan password_hash)
+// - Membuat akun admin default jika belum ada
 // ==========================================================
 
 import pkg from "pg";
@@ -14,22 +15,41 @@ const pool = new Pool({
 });
 
 async function initDatabase() {
-  console.log("🚀 Inisialisasi struktur database...");
+  console.log("🚀 Inisialisasi dan perbaikan struktur database...");
 
   try {
     // ======================================================
-    // USERS TABLE
+    // USERS TABLE (Auto-Repair)
     // ======================================================
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         staff_name TEXT,
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL CHECK (role IN ('admin', 'semiadmin', 'staff')),
+        password_hash TEXT,
+        role TEXT CHECK (role IN ('admin', 'semiadmin', 'staff')),
         created_at TIMESTAMP DEFAULT NOW()
       );
     `);
+
+    // Tambahkan kolom jika belum ada
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS staff_name TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'staff';`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();`);
+
+    // Cek apakah ada kolom lama bernama 'password'
+    const checkOldPass = await pool.query(`
+      SELECT column_name FROM information_schema.columns 
+      WHERE table_name='users' AND column_name='password';
+    `);
+    if (checkOldPass.rows.length > 0) {
+      console.log("⚙️  Memigrasi kolom lama 'password' ke 'password_hash'...");
+      await pool.query(`
+        UPDATE users SET password_hash = password WHERE password_hash IS NULL;
+        ALTER TABLE users DROP COLUMN IF EXISTS password;
+      `);
+    }
 
     // ======================================================
     // SALES TABLE
@@ -135,21 +155,21 @@ async function initDatabase() {
     `);
 
     // ======================================================
-    // DEFAULT ADMIN ACCOUNT
+    // ADMIN DEFAULT ACCOUNT
     // ======================================================
-    const defaultAdmin = await pool.query(
+    const checkAdmin = await pool.query(
       `SELECT * FROM users WHERE username = 'admin' LIMIT 1;`
     );
 
-    if (defaultAdmin.rows.length === 0) {
+    if (checkAdmin.rows.length === 0) {
       const adminPassword =
-        "$2a$10$5OqZLJ1kXj7DkCOgQGLfeOe7qMx3E5uU5t5ZRxV93V3eAjchjO7dG"; // hash untuk 'admin123'
+        "$2a$10$5OqZLJ1kXj7DkCOgQGLfeOe7qMx3E5uU5t5ZRxV93V3eAjchjO7dG"; // hash 'admin123'
       await pool.query(
         `INSERT INTO users (username, staff_name, password_hash, role)
          VALUES ('admin', 'Administrator', $1, 'admin');`,
         [adminPassword]
       );
-      console.log("✅ Akun admin default dibuat (username: admin, password: admin123)");
+      console.log("✅ Akun admin default dibuat (admin / admin123)");
     } else {
       console.log("ℹ️ Akun admin sudah ada — tidak dibuat ulang");
     }
