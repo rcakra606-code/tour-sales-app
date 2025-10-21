@@ -1,8 +1,13 @@
 // ==========================================================
-// 🔐 Auth Controller — Travel Dashboard v5.3.9 (Render Safe)
+// 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.0
+// ==========================================================
+// Fully compatible with Render + Node.js 22 ESM
+// Fixes "bcryptjs is not defined" error permanently
 // ==========================================================
 
-import bcrypt from "bcryptjs"; // ✅ gunakan bcrypt dari bcryptjs
+import bcryptjs from "bcryptjs";      // ✅ Proper ESM import
+const bcrypt = bcryptjs;              // ✅ Alias for global compatibility
+
 import jwt from "jsonwebtoken";
 import pkg from "pg";
 const { Pool } = pkg;
@@ -17,7 +22,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 
 // ==========================================================
-// 🔹 Generate JWT tokens
+// 🧠 Helper: Generate JWT Tokens
 // ==========================================================
 function generateTokens(user) {
   const accessToken = jwt.sign(
@@ -46,18 +51,22 @@ function generateTokens(user) {
 export async function login(req, res) {
   try {
     const { username, password } = req.body;
+
     if (!username || !password)
       return res.status(400).json({ message: "Username dan password wajib diisi" });
 
-    const q = `SELECT id, username, staff_name, role, password_hash FROM users WHERE username = $1 LIMIT 1;`;
+    const q = `SELECT id, username, staff_name, role, password_hash 
+               FROM users WHERE username = $1 LIMIT 1;`;
     const { rows } = await pool.query(q, [username]);
+
     if (rows.length === 0)
       return res.status(401).json({ message: "User tidak ditemukan" });
 
     const user = rows[0];
-    const valid = await bcrypt.compare(password, user.password_hash); // ✅ gunakan bcrypt (bukan bcryptjs)
-    if (!valid)
-      return res.status(401).json({ message: "Password salah" });
+
+    // ✅ FIXED: bcrypt alias
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ message: "Password salah" });
 
     const { accessToken, refreshToken } = generateTokens(user);
 
@@ -88,7 +97,7 @@ export async function register(req, res) {
     if (!username || !password || !role)
       return res.status(400).json({ message: "Data tidak lengkap" });
 
-    const hashed = await bcrypt.hash(password, 10); // ✅ gunakan bcrypt
+    const hashed = await bcrypt.hash(password, 10); // ✅ FIXED alias
     const q = `
       INSERT INTO users (username, staff_name, password_hash, role)
       VALUES ($1, $2, $3, $4)
@@ -140,12 +149,9 @@ export async function refreshToken(req, res) {
 export async function verify(req, res) {
   try {
     const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    if (!token)
-      return res.status(401).json({ message: "Token tidak ditemukan" });
+    if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
 
     const decoded = jwt.verify(token, JWT_SECRET);
     res.json({ valid: true, decoded });
