@@ -1,94 +1,88 @@
 // ==========================================================
-// 🌍 Region Management v5.3.4
-// CRUD + Search + Export CSV
+// 🌍 Region Management — v5.3.6
 // ==========================================================
-document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (!token || token === "undefined") return (window.location.href = "/login.html");
-
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  document.getElementById("year").textContent = new Date().getFullYear();
-  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
-
+document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("regionForm");
   const tableBody = document.querySelector("#regionTable tbody");
   const searchInput = document.getElementById("searchRegion");
 
+  const token = localStorage.getItem("token");
+  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+
   async function loadRegions() {
-    const res = await fetch("/api/regions", { headers });
-    const data = await res.json();
-    renderTable(data);
+    try {
+      const res = await fetch("/api/regions", { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Gagal memuat data region");
+      renderTable(data);
+    } catch (err) {
+      console.error("❌ loadRegions error:", err);
+    }
   }
 
   function renderTable(data) {
+    const query = searchInput.value.toLowerCase();
+    const filtered = data.filter(r => r.name.toLowerCase().includes(query));
+
     tableBody.innerHTML = "";
-    data.forEach((r) => {
+    filtered.forEach((r) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${r.code || "-"}</td>
-        <td>${r.name || "-"}</td>
+        <td>${r.id}</td>
+        <td>${r.name}</td>
+        <td>${r.description || "-"}</td>
         <td>
-          <button class="btn small danger" data-id="${r.id}" data-action="delete">🗑️</button>
-        </td>`;
+          <button class="btn danger small" data-id="${r.id}">🗑️ Hapus</button>
+        </td>
+      `;
       tableBody.appendChild(tr);
+    });
+
+    // Tambahkan event delete
+    tableBody.querySelectorAll(".btn.danger").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.dataset.id;
+        if (!confirm("Yakin ingin menghapus region ini?")) return;
+        try {
+          const res = await fetch(`/api/regions/${id}`, {
+            method: "DELETE",
+            headers,
+          });
+          const result = await res.json();
+          if (!res.ok) throw new Error(result.message);
+          alert("✅ Region berhasil dihapus");
+          loadRegions();
+        } catch (err) {
+          alert("❌ Gagal menghapus region: " + err.message);
+        }
+      });
     });
   }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const name = document.getElementById("regionName").value.trim();
+    const description = document.getElementById("regionDesc").value.trim();
 
-    const region = {
-      code: form.regionCode.value,
-      name: form.regionName.value,
-    };
+    if (!name) return alert("Nama region wajib diisi");
 
-    await fetch("/api/regions", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(region),
-    });
-
-    form.reset();
-    loadRegions();
-  });
-
-  // Delete region
-  tableBody.addEventListener("click", async (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    const id = btn.dataset.id;
-    if (btn.dataset.action === "delete" && confirm("Hapus region ini?")) {
-      await fetch(`/api/regions/${id}`, { method: "DELETE", headers });
+    try {
+      const res = await fetch("/api/regions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ name, description }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message);
+      alert("✅ Region berhasil ditambahkan");
+      form.reset();
       loadRegions();
+    } catch (err) {
+      alert("❌ Gagal menambahkan region: " + err.message);
     }
   });
 
-  // Search filter
-  searchInput.addEventListener("input", () => {
-    const q = searchInput.value.toLowerCase();
-    const rows = tableBody.querySelectorAll("tr");
-    rows.forEach((r) => {
-      r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none";
-    });
-  });
-
-  // Export CSV
-  document.getElementById("exportRegion").addEventListener("click", () => {
-    const rows = [["Kode", "Nama Region"]];
-    document.querySelectorAll("#regionTable tbody tr").forEach((tr) => {
-      const cols = Array.from(tr.children).map((td) => td.innerText);
-      rows.push(cols.slice(0, 2));
-    });
-
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `region-data-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-  });
+  searchInput.addEventListener("input", loadRegions);
 
   loadRegions();
 });
