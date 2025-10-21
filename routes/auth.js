@@ -65,7 +65,7 @@ router.post("/login", async (req, res) => {
     if (!user)
       return res.status(404).json({ message: "User tidak ditemukan" });
 
-    const match = await bcrypt.compare(password, user.password);
+    const match = await bcryptjs.compare(password, user.password);
     if (!match)
       return res.status(401).json({ message: "Password salah" });
 
