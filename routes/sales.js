@@ -1,33 +1,13 @@
-// ==========================================================
-// 💰 Travel Dashboard Enterprise v5.3
-// Sales Routes (JWT + Role-Based Access Control)
-// ==========================================================
+// routes/sales.js
 import express from "express";
-import {
-  getAllSales,
-  createSale,
-  deleteSale,
-  getAllTargets,
-  createTarget,
-} from "../controllers/salesController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import { roleCheck } from "../middleware/roleCheck.js";
+import { authenticate } from "../middleware/authMiddleware.js";
+import { getSales, createSale, deleteSale } from "../controllers/salesController.js";
 
 const router = express.Router();
 
-// 📊 Get all sales
-router.get("/", authMiddleware, roleCheck(["staff", "semiadmin", "admin"]), getAllSales);
-
-// ➕ Create sales record
-router.post("/", authMiddleware, roleCheck(["semiadmin", "admin"]), createSale);
-
-// ❌ Delete sales (admin only)
-router.delete("/:id", authMiddleware, roleCheck(["admin"]), deleteSale);
-
-// 🎯 Get all targets (semiadmin & admin)
-router.get("/targets", authMiddleware, roleCheck(["semiadmin", "admin"]), getAllTargets);
-
-// ➕ Create target
-router.post("/targets", authMiddleware, roleCheck(["semiadmin", "admin"]), createTarget);
+// Semua route sales butuh autentikasi
+router.get("/", authenticate, getSales);
+router.post("/", authenticate, createSale);
+router.delete("/:id", authenticate, deleteSale);
 
 export default router;
