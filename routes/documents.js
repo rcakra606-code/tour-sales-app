@@ -1,25 +1,17 @@
-// ==========================================================
-// 📄 Travel Dashboard Enterprise v5.3
-// Documents Routes (JWT + Role-Based Access Control)
-// ==========================================================
+// routes/documents.js
 import express from "express";
+import { authenticate } from "../middleware/authMiddleware.js";
 import {
-  getAllDocuments,
+  getDocuments,
   createDocument,
   deleteDocument,
 } from "../controllers/documentController.js";
-import { authMiddleware } from "../middleware/authMiddleware.js";
-import { roleCheck } from "../middleware/roleCheck.js";
 
 const router = express.Router();
 
-// 📋 Get all documents
-router.get("/", authMiddleware, roleCheck(["staff", "semiadmin", "admin"]), getAllDocuments);
-
-// ➕ Create new document
-router.post("/", authMiddleware, roleCheck(["staff", "semiadmin", "admin"]), createDocument);
-
-// ❌ Delete document (admin only)
-router.delete("/:id", authMiddleware, roleCheck(["admin"]), deleteDocument);
+// Semua route documents butuh autentikasi
+router.get("/", authenticate, getDocuments);
+router.post("/", authenticate, createDocument);
+router.delete("/:id", authenticate, deleteDocument);
 
 export default router;
