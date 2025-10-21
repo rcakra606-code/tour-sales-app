@@ -8,34 +8,29 @@
     <style>
       body {
         display: flex;
-        align-items: center;
         justify-content: center;
+        align-items: center;
         height: 100vh;
         background: linear-gradient(135deg, #0b74de, #004b99);
-        color: #fff;
+        color: white;
         font-family: "Inter", sans-serif;
-        text-align: center;
-      }
-      .loading-container {
-        display: flex;
         flex-direction: column;
-        align-items: center;
+        text-align: center;
         animation: fadeIn 0.8s ease;
       }
       h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
         margin-bottom: 10px;
       }
       p {
-        font-size: 1rem;
-        color: rgba(255, 255, 255, 0.85);
+        opacity: 0.9;
       }
       .loader {
-        margin: 20px auto;
-        width: 48px;
-        height: 48px;
+        margin-top: 20px;
+        width: 42px;
+        height: 42px;
         border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid #fff;
+        border-top: 4px solid white;
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
@@ -58,19 +53,20 @@
   </head>
 
   <body>
-    <div class="loading-container">
-      <h1>Travel Dashboard Enterprise</h1>
-      <p>Mengarahkan Anda ke halaman utama...</p>
-      <div class="loader"></div>
-    </div>
+    <h1>Travel Dashboard Enterprise</h1>
+    <p>Memuat sistem, mohon tunggu sebentar...</p>
+    <div class="loader"></div>
 
-    <script src="/js/ui.js"></script>
     <script>
-      const token = localStorage.getItem("token");
+      // Tunggu 1 detik agar UX smooth
       setTimeout(() => {
-        if (token) window.location.href = "/dashboard.html";
-        else window.location.href = "/login.html";
-      }, 1200);
+        const token = localStorage.getItem("token");
+        if (token && token !== "undefined") {
+          window.location.href = "/dashboard.html";
+        } else {
+          window.location.href = "/login.html";
+        }
+      }, 1000);
     </script>
   </body>
 </html>
