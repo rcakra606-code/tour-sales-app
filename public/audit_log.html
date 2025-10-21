@@ -2,27 +2,31 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Audit Log - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="/favicon.ico" />
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
-      <nav class="sidebar-nav" role="navigation">
+      <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
 
-          <li class="expandable">
+          <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu">
+            <ul class="submenu open">
               <li><a href="/report_tour.html">Report Tour</a></li>
               <li><a href="/report_sales.html">Report Sales</a></li>
               <li><a href="/report_document.html">Report Document</a></li>
@@ -44,51 +48,42 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer">
+        <small>v5.3.4 • Travel Dashboard</small>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Audit Log</h2>
-        <div id="userBadge" class="user-badge">admin</div>
+        <h2>Audit Log Activity</h2>
+        <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
-        <!-- FILTER -->
+        <!-- TABLE AUDIT LOG -->
         <section class="panel">
           <div class="panel-header">
-            <h4>Filter Log Aktivitas</h4>
+            <h4>🧾 Riwayat Aktivitas Pengguna</h4>
             <div class="filter-bar">
-              <input type="text" id="filterUser" placeholder="Cari username..." />
-              <input type="date" id="filterDate" />
-              <button id="btnFilter" class="btn">🔍 Filter</button>
-              <button id="btnReset" class="btn gray">↺ Reset</button>
+              <input type="text" id="searchAudit" placeholder="🔍 Cari user atau aksi..." />
+              <button id="exportAudit" class="btn small">⬇️ Export CSV</button>
             </div>
-          </div>
-        </section>
-
-        <!-- TABLE -->
-        <section class="panel" style="margin-top:10px;">
-          <div class="panel-header">
-            <h4>Log Aktivitas Sistem</h4>
-            <button id="btnExportCSV" class="btn">📄 Export CSV</button>
           </div>
 
           <div class="table-container">
-            <table class="data-table" id="logTable">
+            <table class="data-table" id="auditTable">
               <thead>
                 <tr>
                   <th>Waktu</th>
                   <th>Username</th>
+                  <th>Role</th>
                   <th>Aksi</th>
+                  <th>Modul</th>
                   <th>Deskripsi</th>
-                  <th>IP Address</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </section>
@@ -99,67 +94,8 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL UI SCRIPT -->
+    <!-- SCRIPTS -->
     <script src="/js/ui.js"></script>
-
-    <!-- LOGIC -->
-    <script type="module">
-      document.getElementById("year").textContent = new Date().getFullYear();
-
-      async function loadLogs(params = "") {
-        const res = await fetch("/api/logs" + params);
-        const data = await res.json();
-        const tbody = document.querySelector("#logTable tbody");
-        tbody.innerHTML = "";
-        if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data</td></tr>`);
-
-        data.forEach((log) => {
-          const row = `<tr>
-            <td>${new Date(log.timestamp).toLocaleString("id-ID")}</td>
-            <td>${log.username || "-"}</td>
-            <td>${log.action}</td>
-            <td>${log.description || "-"}</td>
-            <td>${log.ip || "-"}</td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-
-      document.getElementById("btnFilter").addEventListener("click", () => {
-        const user = document.getElementById("filterUser").value.trim();
-        const date = document.getElementById("filterDate").value;
-        let params = "?";
-        if (user) params += `user=${encodeURIComponent(user)}&`;
-        if (date) params += `date=${encodeURIComponent(date)}&`;
-        loadLogs(params);
-      });
-
-      document.getElementById("btnReset").addEventListener("click", () => {
-        document.getElementById("filterUser").value = "";
-        document.getElementById("filterDate").value = "";
-        loadLogs();
-      });
-
-      // Export CSV
-      document.getElementById("btnExportCSV").addEventListener("click", () => {
-        const rows = Array.from(document.querySelectorAll("#logTable tr"));
-        const csv = rows
-          .map((r) =>
-            Array.from(r.children)
-              .map((td) => `"${td.innerText.replace(/"/g, '""')}"`)
-              .join(",")
-          )
-          .join("\n");
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "audit_log.csv";
-        a.click();
-      });
-
-      loadLogs();
-    </script>
+    <script src="/js/audit_log.js" defer></script>
   </body>
 </html>
