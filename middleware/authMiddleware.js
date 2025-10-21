@@ -1,35 +1,58 @@
-/**
- * ==========================================================
- * 📁 middleware/authMiddleware.js (ESM version)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Middleware untuk autentikasi berbasis JWT:
- * - Mengecek token JWT
- * - Melanjutkan request jika token valid
- * ==========================================================
- */
-
+// middleware/authMiddleware.js
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 /**
- * 🔐 Middleware Autentikasi
- * Menolak akses jika token tidak ada atau tidak valid.
+ * Middleware autentikasi utama
+ * Memverifikasi JWT dari header Authorization.
+ * Jika valid, lanjutkan ke handler berikutnya.
  */
-export const authMiddleware = (req, res, next) => {
+export function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization || "";
+
+  // Pastikan ada token Bearer
+  if (!authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Token tidak ditemukan" });
+  }
+
+  const token = authHeader.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Token kosong" });
+
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ message: "Token tidak ditemukan." });
-
-    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = decoded;
+    req.user = {
+      id: decoded.id,
+      username: decoded.username,
+      role: decoded.role,
+    };
     next();
   } catch (err) {
     console.error("❌ Auth middleware error:", err.message);
-    res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
+
+    // Deteksi error JWT spesifik
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "jwt expired" });
+    }
+
+    return res.status(401).json({ message: "Token tidak valid" });
   }
-};
+}
+
+/**
+ * Middleware untuk memastikan hanya Admin
+ */
+export function authorizeAdmin(req, res, next) {
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "Akses khusus Admin" });
+  }
+  next();
+}
+
+/**
+ * Middleware untuk Admin dan SemiAdmin
+ */
+export function authorizeManagement(req, res, next) {
+  if (!["admin", "semiadmin"].includes(req.user.role)) {
+    return res.status(403).json({ message: "Akses khusus Admin atau SemiAdmin" });
+  }
+  next();
+}
