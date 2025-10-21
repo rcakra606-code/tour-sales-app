@@ -2,14 +2,18 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Report Tour - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="/favicon.ico" />
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
+    <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
         <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
@@ -19,6 +23,7 @@
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+
           <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
             <ul class="submenu open">
@@ -27,6 +32,7 @@
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
+
           <li class="expandable">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu">
@@ -34,6 +40,7 @@
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
+
           <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -41,116 +48,92 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
+      <div class="sidebar-footer">
+        <small>v5.3.4 • Travel Dashboard</small>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Report Tour</h2>
+        <h2>Tour Report & Management</h2>
         <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
         <!-- FORM INPUT TOUR -->
         <section class="form-section">
-          <h4>Tambah / Edit Data Tour</h4>
-          <form id="tourForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Tanggal Registrasi</label>
-                <input type="date" id="registrationDate" required />
-              </div>
-              <div class="form-group">
-                <label>Nama Lead Passenger</label>
-                <input type="text" id="leadPassenger" required />
-              </div>
-              <div class="form-group">
-                <label>Nama Semua Passenger</label>
-                <textarea id="allPassengers" rows="2" placeholder="Pisahkan dengan koma"></textarea>
-              </div>
-              <div class="form-group">
-                <label>Tour Code</label>
-                <input type="text" id="tourCode" required />
-              </div>
-              <div class="form-group">
-                <label>Region</label>
-                <input type="text" id="region" placeholder="Cari region..." />
-              </div>
-              <div class="form-group">
-                <label>Tanggal Keberangkatan</label>
-                <input type="date" id="departureDate" required />
-              </div>
-              <div class="form-group">
-                <label>Booking Code</label>
-                <input type="text" id="bookingCode" />
-              </div>
-              <div class="form-group">
-                <label>Harga Tour (Rp)</label>
-                <input type="number" id="tourPrice" />
-              </div>
-              <div class="form-group">
-                <label>Diskon / Remarks</label>
-                <input type="text" id="discountRemarks" />
-              </div>
-              <div class="form-group">
-                <label>Bukti Pembayaran</label>
-                <input type="text" id="paymentProof" />
-              </div>
-              <div class="form-group">
-                <label>Dokumen Diterima</label>
-                <input type="date" id="documentReceived" />
-              </div>
-              <div class="form-group">
-                <label>Proses Visa Mulai</label>
-                <input type="date" id="visaProcessStart" />
-              </div>
-              <div class="form-group">
-                <label>Proses Visa Selesai</label>
-                <input type="date" id="visaProcessEnd" />
-              </div>
-              <div class="form-group">
-                <label>Remarks Dokumen</label>
-                <input type="text" id="documentRemarks" />
-              </div>
-              <div class="form-group">
-                <label>Nama Staff</label>
-                <input type="text" id="staff" />
-              </div>
-              <div class="form-group">
-                <label>Sales Amount</label>
-                <input type="number" id="salesAmount" />
-              </div>
-              <div class="form-group">
-                <label>Profit Amount</label>
-                <input type="number" id="profitAmount" />
-              </div>
-              <div class="form-group">
-                <label>Status Keberangkatan</label>
-                <select id="departureStatus">
-                  <option value="PENDING">PENDING</option>
-                  <option value="CONFIRMED">CONFIRMED</option>
-                  <option value="CANCELLED">CANCELLED</option>
-                </select>
-              </div>
+          <h4>✏️ Input / Edit Data Tour</h4>
+          <form id="tourForm" class="form-grid">
+            <div class="form-group">
+              <label>Tanggal Registrasi</label>
+              <input type="date" id="registrationDate" required />
             </div>
 
-            <div class="form-actions">
+            <div class="form-group">
+              <label>Nama Lead Passenger</label>
+              <input type="text" id="leadPassenger" required />
+            </div>
+
+            <div class="form-group">
+              <label>Nama Semua Passenger</label>
+              <textarea id="allPassengers" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Tour Code</label>
+              <input type="text" id="tourCode" />
+            </div>
+
+            <div class="form-group">
+              <label>Region</label>
+              <input type="text" id="region" placeholder="Cari region..." list="regionList" />
+              <datalist id="regionList"></datalist>
+            </div>
+
+            <div class="form-group">
+              <label>Tanggal Keberangkatan</label>
+              <input type="date" id="departureDate" />
+            </div>
+
+            <div class="form-group">
+              <label>Kode Booking</label>
+              <input type="text" id="bookingCode" />
+            </div>
+
+            <div class="form-group">
+              <label>Harga Tour</label>
+              <input type="number" id="tourPrice" />
+            </div>
+
+            <div class="form-group">
+              <label>Staff Penanggung Jawab</label>
+              <input type="text" id="staff" />
+            </div>
+
+            <div class="form-group">
+              <label>Status Keberangkatan</label>
+              <select id="departureStatus">
+                <option value="PENDING">PENDING</option>
+                <option value="CONFIRMED">CONFIRMED</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="grid-column: span 2;">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" class="btn gray">↺ Reset</button>
+              <button type="reset" class="btn gray">🔄 Reset</button>
             </div>
           </form>
         </section>
 
-        <!-- TABLE DATA TOUR -->
-        <section class="panel" style="margin-top:20px;">
+        <!-- TABLE LIST -->
+        <section class="panel">
           <div class="panel-header">
-            <h4>Data Tour</h4>
+            <h4>📋 Daftar Data Tour</h4>
             <div class="filter-bar">
-              <input type="text" id="searchTour" placeholder="Cari nama / kode tour..." />
-              <button id="btnFilter" class="btn">🔍 Filter</button>
-              <button id="btnExportExcel" class="btn">📤 Excel</button>
-              <button id="btnExportCSV" class="btn">📄 CSV</button>
+              <input type="text" id="searchInput" placeholder="🔍 Cari nama atau kode..." />
+              <button id="exportCSV" class="btn small">⬇️ Export CSV</button>
             </div>
           </div>
 
@@ -159,19 +142,15 @@
               <thead>
                 <tr>
                   <th>Tanggal</th>
-                  <th>Tour Code</th>
                   <th>Lead Passenger</th>
+                  <th>Tour Code</th>
                   <th>Region</th>
                   <th>Staff</th>
-                  <th>Sales</th>
-                  <th>Profit</th>
                   <th>Status</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr><td colspan="9" style="text-align:center;">Loading...</td></tr>
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </section>
@@ -182,94 +161,8 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL UI SCRIPT -->
+    <!-- SCRIPTS -->
     <script src="/js/ui.js"></script>
-
-    <!-- TOUR LOGIC -->
-    <script type="module">
-      document.getElementById("year").textContent = new Date().getFullYear();
-
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user && user.username) {
-        document.getElementById("activeUser").textContent =
-          (user.staff_name || user.username) + " (" + user.role + ")";
-      }
-
-      async function loadTours() {
-        const res = await fetch("/api/tours");
-        const data = await res.json();
-        const tbody = document.querySelector("#tourTable tbody");
-        tbody.innerHTML = "";
-        if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">Tidak ada data</td></tr>`);
-        data.forEach((t) => {
-          const row = `
-            <tr>
-              <td>${t.registration_date || "-"}</td>
-              <td>${t.tour_code}</td>
-              <td>${t.lead_passenger}</td>
-              <td>${t.region || "-"}</td>
-              <td>${t.staff || "-"}</td>
-              <td>Rp ${Number(t.sales_amount || 0).toLocaleString("id-ID")}</td>
-              <td>Rp ${Number(t.profit_amount || 0).toLocaleString("id-ID")}</td>
-              <td>${t.departure_status}</td>
-              <td>
-                <button class="btn small edit-btn semiadmin-only" data-id="${t.id}">✏️</button>
-                <button class="btn small danger btn-delete admin-only" data-id="${t.id}">🗑️</button>
-              </td>
-            </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-
-      // Add new tour
-      document.getElementById("tourForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const f = e.target;
-        const data = {
-          registrationDate: f.registrationDate.value,
-          leadPassenger: f.leadPassenger.value,
-          allPassengers: f.allPassengers.value,
-          tourCode: f.tourCode.value,
-          region: f.region.value,
-          departureDate: f.departureDate.value,
-          bookingCode: f.bookingCode.value,
-          tourPrice: f.tourPrice.value,
-          discountRemarks: f.discountRemarks.value,
-          paymentProof: f.paymentProof.value,
-          documentReceived: f.documentReceived.value,
-          visaProcessStart: f.visaProcessStart.value,
-          visaProcessEnd: f.visaProcessEnd.value,
-          documentRemarks: f.documentRemarks.value,
-          staff: f.staff.value,
-          salesAmount: f.salesAmount.value,
-          profitAmount: f.profitAmount.value,
-          departureStatus: f.departureStatus.value
-        };
-        const res = await fetch("/api/tours", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          alert("✅ Data tour berhasil disimpan!");
-          f.reset();
-          loadTours();
-        } else alert("❌ Gagal menyimpan data tour");
-      });
-
-      // Delete tour
-      document.addEventListener("click", async (e) => {
-        if (e.target.classList.contains("btn-delete")) {
-          const id = e.target.dataset.id;
-          if (confirm("Yakin ingin menghapus data ini?")) {
-            await fetch(`/api/tours/${id}`, { method: "DELETE" });
-            loadTours();
-          }
-        }
-      });
-
-      loadTours();
-    </script>
+    <script src="/js/report_tour.js" defer></script>
   </body>
 </html>
