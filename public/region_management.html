@@ -1,119 +1,108 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Region Management - Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="icon" href="/favicon.ico" />
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Region Management — Travel Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="/favicon.ico" />
+</head>
+<body class="theme-light">
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-top">
+      <button id="sidebarToggle" class="btn-icon">☰</button>
+      <h1 class="brand">TravelDash</h1>
+      <button id="themeToggle" class="btn-icon">🌓</button>
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+        <li class="expandable">
+          <button class="expand-toggle">📊 Reports</button>
+          <ul class="submenu">
+            <li><a href="/report_tour.html">Report Tour</a></li>
+            <li><a href="/report_sales.html">Report Sales</a></li>
+            <li><a href="/report_document.html">Report Document</a></li>
+          </ul>
+        </li>
+        <li class="expandable open">
+          <button class="expand-toggle">⚙️ Management</button>
+          <ul class="submenu open">
+            <li><a href="/region_management.html" class="active">Region Management</a></li>
+            <li><a href="/user-management.html">User Management</a></li>
+          </ul>
+        </li>
+        <li><a href="/executive-dashboard.html">📈 Executive</a></li>
+        <li><a href="/audit_log.html">🪵 Audit Log</a></li>
+        <li><a href="/profile.html">👤 Profile</a></li>
+        <li><a href="/logout.html">🚪 Logout</a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer"><small>v5.3.6 • Travel Dashboard</small></div>
+  </aside>
 
-  <body class="theme-light">
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon">☰</button>
-        <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon">🌓</button>
-      </div>
+  <!-- MAIN -->
+  <div id="main" class="main-content">
+    <header class="topbar">
+      <h2>Region Management</h2>
+      <div class="user-info"><span id="activeUser">Loading...</span></div>
+    </header>
 
-      <nav class="sidebar-nav">
-        <ul>
-          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
-          <li class="expandable open">
-            <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu open">
-              <li><a href="/report_tour.html">Report Tour</a></li>
-              <li><a href="/report_sales.html">Report Sales</a></li>
-              <li><a href="/report_document.html">Report Document</a></li>
-            </ul>
-          </li>
-
-          <li class="expandable open">
-            <button class="expand-toggle">⚙️ Management</button>
-            <ul class="submenu open">
-              <li><a href="/region_management.html" class="active">Region Management</a></li>
-              <li><a href="/user-management.html">User Management</a></li>
-            </ul>
-          </li>
-
-          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-          <li><a href="/profile.html">👤 Profile</a></li>
-          <li><a href="/logout.html">🚪 Logout</a></li>
-        </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-        <small>v5.3.4 • Travel Dashboard</small>
-      </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <div id="main" class="main-content">
-      <header class="topbar">
-        <h2>Region Management</h2>
-        <div class="user-info"><span id="activeUser">Loading...</span></div>
-      </header>
-
-      <main class="container">
-        <!-- FORM INPUT REGION -->
-        <section class="form-section">
-          <h4>🌍 Tambah / Edit Region</h4>
+    <main class="container">
+      <section class="panel form-panel">
+        <div class="panel-header">
+          <h4>✚ Tambah Region Baru</h4>
+        </div>
+        <div class="panel-body">
           <form id="regionForm" class="form-grid">
-            <div class="form-group">
-              <label>Kode Region</label>
-              <input type="text" id="regionCode" required />
-            </div>
-
             <div class="form-group">
               <label>Nama Region</label>
               <input type="text" id="regionName" required />
             </div>
-
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group">
+              <label>Deskripsi</label>
+              <input type="text" id="regionDesc" />
+            </div>
+            <div class="form-actions" style="grid-column: 1 / -1;">
               <button type="submit" class="btn">💾 Simpan</button>
               <button type="reset" class="btn gray">🔄 Reset</button>
             </div>
           </form>
-        </section>
+        </div>
+      </section>
 
-        <!-- DAFTAR REGION -->
-        <section class="panel">
-          <div class="panel-header">
-            <h4>📋 Daftar Region</h4>
-            <div class="filter-bar">
-              <input type="text" id="searchRegion" placeholder="🔍 Cari nama region..." />
-              <button id="exportRegion" class="btn small">⬇️ Export CSV</button>
-            </div>
+      <section class="panel list-panel">
+        <div class="panel-header">
+          <h4>📋 Daftar Region</h4>
+          <div class="filter-bar">
+            <input id="searchRegion" type="text" placeholder="🔍 Cari region..." />
           </div>
+        </div>
 
-          <div class="table-container">
-            <table class="data-table" id="regionTable">
-              <thead>
-                <tr>
-                  <th>Kode</th>
-                  <th>Nama Region</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+        <div class="panel-body table-wrap">
+          <table class="data-table" id="regionTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nama Region</th>
+                <th>Deskripsi</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
 
-      <footer class="footer">
-        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-      </footer>
-    </div>
+    <footer class="footer">
+      <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
+    </footer>
+  </div>
 
-    <!-- SCRIPTS -->
-    <script src="/js/ui.js"></script>
-    <script src="/js/region_management.js" defer></script>
-  </body>
+  <script src="/js/ui.js"></script>
+  <script src="/js/region_management.js" defer></script>
+</body>
 </html>
