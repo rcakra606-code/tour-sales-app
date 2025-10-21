@@ -2,14 +2,18 @@
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Report Sales - Travel Dashboard Enterprise</title>
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="icon" href="/favicon.ico" />
   </head>
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed">
+    <aside id="sidebar" class="sidebar">
       <div class="sidebar-top">
         <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
@@ -19,6 +23,7 @@
       <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
+
           <li class="expandable open">
             <button class="expand-toggle">📊 Reports</button>
             <ul class="submenu open">
@@ -27,6 +32,7 @@
               <li><a href="/report_document.html">Report Document</a></li>
             </ul>
           </li>
+
           <li class="expandable">
             <button class="expand-toggle">⚙️ Management</button>
             <ul class="submenu">
@@ -34,6 +40,7 @@
               <li><a href="/user-management.html">User Management</a></li>
             </ul>
           </li>
+
           <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
           <li><a href="/audit_log.html">🪵 Audit Log</a></li>
           <li><a href="/profile.html">👤 Profile</a></li>
@@ -41,91 +48,87 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
+      <div class="sidebar-footer">
+        <small>v5.3.4 • Travel Dashboard</small>
+      </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
-        <h2>Report Sales</h2>
+        <h2>Sales Report & Management</h2>
         <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
         <!-- FORM INPUT SALES -->
         <section class="form-section">
-          <h4>Tambah / Edit Transaksi Sales</h4>
-          <form id="salesForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Tanggal Transaksi</label>
-                <input type="date" id="transactionDate" required />
-              </div>
-              <div class="form-group">
-                <label>Nomor Invoice</label>
-                <input type="text" id="invoiceNumber" required />
-              </div>
-              <div class="form-group">
-                <label>Nama Staff</label>
-                <input type="text" id="staffName" required />
-              </div>
-              <div class="form-group">
-                <label>Sales Amount (Rp)</label>
-                <input type="number" id="salesAmount" required />
-              </div>
-              <div class="form-group">
-                <label>Profit (Rp)</label>
-                <input type="number" id="profitAmount" required />
-              </div>
+          <h4>💼 Input / Edit Data Sales</h4>
+          <form id="salesForm" class="form-grid">
+            <div class="form-group">
+              <label>Tanggal Transaksi</label>
+              <input type="date" id="transactionDate" required />
             </div>
 
-            <div class="form-actions">
+            <div class="form-group">
+              <label>Nama Staff</label>
+              <input type="text" id="staffName" required />
+            </div>
+
+            <div class="form-group">
+              <label>Nomor Invoice</label>
+              <input type="text" id="invoiceNumber" required />
+            </div>
+
+            <div class="form-group">
+              <label>Nominal Sales</label>
+              <input type="number" id="salesAmount" required />
+            </div>
+
+            <div class="form-group">
+              <label>Nominal Profit</label>
+              <input type="number" id="profitAmount" required />
+            </div>
+
+            <div class="form-group">
+              <label>Keterangan</label>
+              <textarea id="remarks" rows="2"></textarea>
+            </div>
+
+            <div class="form-group" style="grid-column: span 2;">
               <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" class="btn gray">↺ Reset</button>
+              <button type="reset" class="btn gray">🔄 Reset</button>
             </div>
           </form>
         </section>
 
-        <!-- FORM TARGET BULANAN -->
-        <section class="form-section" style="margin-top:20px;">
-          <h4>Target Bulanan per Staff</h4>
-          <form id="targetForm">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Nama Staff</label>
-                <input type="text" id="targetStaff" required />
-              </div>
-              <div class="form-group">
-                <label>Bulan Target</label>
-                <input type="month" id="targetMonth" required />
-              </div>
-              <div class="form-group">
-                <label>Target Sales (Rp)</label>
-                <input type="number" id="targetSales" required />
-              </div>
-              <div class="form-group">
-                <label>Target Profit (Rp)</label>
-                <input type="number" id="targetProfit" required />
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn">📈 Simpan Target</button>
-              <button type="reset" class="btn gray">↺ Reset</button>
-            </div>
-          </form>
-        </section>
-
-        <!-- TABLE SALES -->
-        <section class="panel" style="margin-top:20px;">
+        <!-- TARGET PER STAFF -->
+        <section class="panel">
           <div class="panel-header">
-            <h4>Daftar Transaksi Sales</h4>
+            <h4>🎯 Target Bulanan per Staff</h4>
+          </div>
+          <div class="panel-body table-container">
+            <table class="data-table" id="targetTable">
+              <thead>
+                <tr>
+                  <th>Staff</th>
+                  <th>Target Sales</th>
+                  <th>Target Profit</th>
+                  <th>Bulan</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- DATA SALES -->
+        <section class="panel">
+          <div class="panel-header">
+            <h4>📋 Daftar Data Sales</h4>
             <div class="filter-bar">
-              <input type="month" id="filterMonth" />
-              <input type="text" id="searchSales" placeholder="Cari staff / invoice..." />
-              <button id="btnFilter" class="btn">🔍 Filter</button>
-              <button id="btnExportExcel" class="btn">📤 Excel</button>
-              <button id="btnExportCSV" class="btn">📄 CSV</button>
+              <input type="text" id="searchSales" placeholder="🔍 Cari staff atau invoice..." />
+              <button id="exportSales" class="btn small">⬇️ Export CSV</button>
             </div>
           </div>
 
@@ -134,38 +137,15 @@
               <thead>
                 <tr>
                   <th>Tanggal</th>
-                  <th>Invoice</th>
                   <th>Staff</th>
+                  <th>Invoice</th>
                   <th>Sales</th>
                   <th>Profit</th>
+                  <th>Keterangan</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- TABLE TARGET -->
-        <section class="panel" style="margin-top:20px;">
-          <div class="panel-header">
-            <h4>Daftar Target Bulanan</h4>
-          </div>
-          <div class="table-container">
-            <table class="data-table" id="targetTable">
-              <thead>
-                <tr>
-                  <th>Staff</th>
-                  <th>Bulan</th>
-                  <th>Target Sales</th>
-                  <th>Target Profit</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
-              </tbody>
+              <tbody></tbody>
             </table>
           </div>
         </section>
@@ -176,119 +156,8 @@
       </footer>
     </div>
 
-    <!-- UNIVERSAL UI SCRIPT -->
+    <!-- SCRIPTS -->
     <script src="/js/ui.js"></script>
-
-    <!-- SALES LOGIC -->
-    <script type="module">
-      document.getElementById("year").textContent = new Date().getFullYear();
-
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (user && user.username) {
-        document.getElementById("activeUser").textContent =
-          (user.staff_name || user.username) + " (" + user.role + ")";
-      }
-
-      async function loadSales() {
-        const res = await fetch("/api/sales");
-        const data = await res.json();
-        const tbody = document.querySelector("#salesTable tbody");
-        tbody.innerHTML = "";
-        if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data</td></tr>`);
-        data.forEach((s) => {
-          const row = `
-            <tr>
-              <td>${new Date(s.transaction_date).toLocaleDateString("id-ID")}</td>
-              <td>${s.invoice_number}</td>
-              <td>${s.staff_name}</td>
-              <td>Rp ${Number(s.sales_amount).toLocaleString("id-ID")}</td>
-              <td>Rp ${Number(s.profit_amount).toLocaleString("id-ID")}</td>
-              <td>
-                <button class="btn small edit-btn semiadmin-only" data-id="${s.id}">✏️</button>
-                <button class="btn small danger btn-delete admin-only" data-id="${s.id}">🗑️</button>
-              </td>
-            </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-
-      async function loadTargets() {
-        const res = await fetch("/api/sales/targets");
-        const data = await res.json();
-        const tbody = document.querySelector("#targetTable tbody");
-        tbody.innerHTML = "";
-        if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada data</td></tr>`);
-        data.forEach((t) => {
-          const row = `<tr>
-            <td>${t.staff_name}</td>
-            <td>${new Date(t.target_month).toLocaleDateString("id-ID", { month: "long", year: "numeric" })}</td>
-            <td>Rp ${Number(t.target_sales).toLocaleString("id-ID")}</td>
-            <td>Rp ${Number(t.target_profit).toLocaleString("id-ID")}</td>
-          </tr>`;
-          tbody.innerHTML += row;
-        });
-      }
-
-      // Submit Sales
-      document.getElementById("salesForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const f = e.target;
-        const data = {
-          transactionDate: f.transactionDate.value,
-          invoiceNumber: f.invoiceNumber.value,
-          staffName: f.staffName.value,
-          salesAmount: f.salesAmount.value,
-          profitAmount: f.profitAmount.value
-        };
-        const res = await fetch("/api/sales", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          alert("✅ Transaksi sales berhasil disimpan!");
-          f.reset();
-          loadSales();
-        } else alert("❌ Gagal menyimpan data sales");
-      });
-
-      // Submit Target
-      document.getElementById("targetForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const f = e.target;
-        const data = {
-          targetStaff: f.targetStaff.value,
-          targetMonth: f.targetMonth.value + "-01",
-          targetSales: f.targetSales.value,
-          targetProfit: f.targetProfit.value
-        };
-        const res = await fetch("/api/sales/targets", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          alert("✅ Target berhasil disimpan!");
-          f.reset();
-          loadTargets();
-        } else alert("❌ Gagal menyimpan target");
-      });
-
-      // Delete
-      document.addEventListener("click", async (e) => {
-        if (e.target.classList.contains("btn-delete")) {
-          const id = e.target.dataset.id;
-          if (confirm("Yakin ingin menghapus data ini?")) {
-            await fetch(`/api/sales/${id}`, { method: "DELETE" });
-            loadSales();
-          }
-        }
-      });
-
-      loadSales();
-      loadTargets();
-    </script>
+    <script src="/js/report_sales.js" defer></script>
   </body>
 </html>
