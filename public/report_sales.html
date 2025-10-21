@@ -9,14 +9,14 @@
 
   <body class="theme-light">
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar collapsed" aria-label="Sidebar utama">
+    <aside id="sidebar" class="sidebar collapsed">
       <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon" aria-label="Toggle sidebar">☰</button>
+        <button id="sidebarToggle" class="btn-icon">☰</button>
         <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon" aria-label="Toggle theme">🌓</button>
+        <button id="themeToggle" class="btn-icon">🌓</button>
       </div>
 
-      <nav class="sidebar-nav" role="navigation">
+      <nav class="sidebar-nav">
         <ul>
           <li><a href="/dashboard.html">🏠 Dashboard</a></li>
           <li class="expandable open">
@@ -41,14 +41,14 @@
         </ul>
       </nav>
 
-      <div class="sidebar-footer"><small>v5.2 • Travel Dashboard</small></div>
+      <div class="sidebar-footer"><small>v5.3 • Travel Dashboard</small></div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <div id="main" class="main-content">
       <header class="topbar">
         <h2>Report Sales</h2>
-        <div id="userBadge" class="user-badge">staff</div>
+        <div class="user-info"><span id="activeUser">Loading...</span></div>
       </header>
 
       <main class="container">
@@ -63,11 +63,11 @@
               </div>
               <div class="form-group">
                 <label>Nomor Invoice</label>
-                <input type="text" id="invoiceNumber" placeholder="INV/2025/001" required />
+                <input type="text" id="invoiceNumber" required />
               </div>
               <div class="form-group">
                 <label>Nama Staff</label>
-                <input type="text" id="staffName" placeholder="Nama staff" required />
+                <input type="text" id="staffName" required />
               </div>
               <div class="form-group">
                 <label>Sales Amount (Rp)</label>
@@ -93,7 +93,7 @@
             <div class="form-grid">
               <div class="form-group">
                 <label>Nama Staff</label>
-                <input type="text" id="targetStaff" placeholder="Nama staff" required />
+                <input type="text" id="targetStaff" required />
               </div>
               <div class="form-group">
                 <label>Bulan Target</label>
@@ -138,10 +138,11 @@
                   <th>Staff</th>
                   <th>Sales</th>
                   <th>Profit</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+                <tr><td colspan="6" style="text-align:center;">Loading...</td></tr>
               </tbody>
             </table>
           </div>
@@ -152,7 +153,6 @@
           <div class="panel-header">
             <h4>Daftar Target Bulanan</h4>
           </div>
-
           <div class="table-container">
             <table class="data-table" id="targetTable">
               <thead>
@@ -183,27 +183,36 @@
     <script type="module">
       document.getElementById("year").textContent = new Date().getFullYear();
 
-      // Load data sales
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user && user.username) {
+        document.getElementById("activeUser").textContent =
+          (user.staff_name || user.username) + " (" + user.role + ")";
+      }
+
       async function loadSales() {
         const res = await fetch("/api/sales");
         const data = await res.json();
         const tbody = document.querySelector("#salesTable tbody");
         tbody.innerHTML = "";
         if (!data.length)
-          return (tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Tidak ada data</td></tr>`);
+          return (tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data</td></tr>`);
         data.forEach((s) => {
-          const row = `<tr>
-            <td>${new Date(s.transaction_date).toLocaleDateString("id-ID")}</td>
-            <td>${s.invoice_number}</td>
-            <td>${s.staff_name}</td>
-            <td>Rp ${Number(s.sales_amount).toLocaleString("id-ID")}</td>
-            <td>Rp ${Number(s.profit_amount).toLocaleString("id-ID")}</td>
-          </tr>`;
+          const row = `
+            <tr>
+              <td>${new Date(s.transaction_date).toLocaleDateString("id-ID")}</td>
+              <td>${s.invoice_number}</td>
+              <td>${s.staff_name}</td>
+              <td>Rp ${Number(s.sales_amount).toLocaleString("id-ID")}</td>
+              <td>Rp ${Number(s.profit_amount).toLocaleString("id-ID")}</td>
+              <td>
+                <button class="btn small edit-btn semiadmin-only" data-id="${s.id}">✏️</button>
+                <button class="btn small danger btn-delete admin-only" data-id="${s.id}">🗑️</button>
+              </td>
+            </tr>`;
           tbody.innerHTML += row;
         });
       }
 
-      // Load target
       async function loadTargets() {
         const res = await fetch("/api/sales/targets");
         const data = await res.json();
@@ -222,7 +231,7 @@
         });
       }
 
-      // Submit sales
+      // Submit Sales
       document.getElementById("salesForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const f = e.target;
@@ -231,12 +240,12 @@
           invoiceNumber: f.invoiceNumber.value,
           staffName: f.staffName.value,
           salesAmount: f.salesAmount.value,
-          profitAmount: f.profitAmount.value,
+          profitAmount: f.profitAmount.value
         };
         const res = await fetch("/api/sales", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(data)
         });
         if (res.ok) {
           alert("✅ Transaksi sales berhasil disimpan!");
@@ -245,7 +254,7 @@
         } else alert("❌ Gagal menyimpan data sales");
       });
 
-      // Submit target
+      // Submit Target
       document.getElementById("targetForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const f = e.target;
@@ -253,18 +262,29 @@
           targetStaff: f.targetStaff.value,
           targetMonth: f.targetMonth.value + "-01",
           targetSales: f.targetSales.value,
-          targetProfit: f.targetProfit.value,
+          targetProfit: f.targetProfit.value
         };
         const res = await fetch("/api/sales/targets", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(data)
         });
         if (res.ok) {
           alert("✅ Target berhasil disimpan!");
           f.reset();
           loadTargets();
         } else alert("❌ Gagal menyimpan target");
+      });
+
+      // Delete
+      document.addEventListener("click", async (e) => {
+        if (e.target.classList.contains("btn-delete")) {
+          const id = e.target.dataset.id;
+          if (confirm("Yakin ingin menghapus data ini?")) {
+            await fetch(`/api/sales/${id}`, { method: "DELETE" });
+            loadSales();
+          }
+        }
       });
 
       loadSales();
