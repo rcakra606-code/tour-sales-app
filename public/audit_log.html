@@ -1,101 +1,158 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Audit Log - Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="icon" href="/favicon.ico" />
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit Log | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script defer src="./js/ui.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
 
-  <body class="theme-light">
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon">☰</button>
-        <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon">🌓</button>
-      </div>
-
-      <nav class="sidebar-nav">
-        <ul>
-          <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-
-          <li class="expandable open">
-            <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu open">
-              <li><a href="/report_tour.html">Report Tour</a></li>
-              <li><a href="/report_sales.html">Report Sales</a></li>
-              <li><a href="/report_document.html">Report Document</a></li>
-            </ul>
-          </li>
-
-          <li class="expandable">
-            <button class="expand-toggle">⚙️ Management</button>
-            <ul class="submenu">
-              <li><a href="/region_management.html">Region Management</a></li>
-              <li><a href="/user-management.html">User Management</a></li>
-            </ul>
-          </li>
-
-          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-          <li><a href="/audit_log.html" class="active">🪵 Audit Log</a></li>
-          <li><a href="/profile.html">👤 Profile</a></li>
-          <li><a href="/logout.html">🚪 Logout</a></li>
-        </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-        <small>v5.3.4 • Travel Dashboard</small>
-      </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <div id="main" class="main-content">
-      <header class="topbar">
-        <h2>Audit Log Activity</h2>
-        <div class="user-info"><span id="activeUser">Loading...</span></div>
-      </header>
-
-      <main class="container">
-        <!-- TABLE AUDIT LOG -->
-        <section class="panel">
-          <div class="panel-header">
-            <h4>🧾 Riwayat Aktivitas Pengguna</h4>
-            <div class="filter-bar">
-              <input type="text" id="searchAudit" placeholder="🔍 Cari user atau aksi..." />
-              <button id="exportAudit" class="btn small">⬇️ Export CSV</button>
-            </div>
-          </div>
-
-          <div class="table-container">
-            <table class="data-table" id="auditTable">
-              <thead>
-                <tr>
-                  <th>Waktu</th>
-                  <th>Username</th>
-                  <th>Role</th>
-                  <th>Aksi</th>
-                  <th>Modul</th>
-                  <th>Deskripsi</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-      </footer>
+<body class="light-mode">
+  <!-- ===================================================== -->
+  <!-- 🧭 SIDEBAR -->
+  <!-- ===================================================== -->
+  <aside id="sidebar" class="sidebar expanded">
+    <div class="sidebar-header">
+      <h2>Travel Dashboard</h2>
+      <button id="toggleSidebar">☰</button>
     </div>
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
+      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
+      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
+      <li><a href="region_management.html">🌍 Region Management</a></li>
+      <li><a href="user-management.html">👥 User Management</a></li>
+      <li class="active"><a href="audit_log.html">🧾 Audit Log</a></li>
+      <li><a href="profile.html">👤 Profil</a></li>
+      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span>🌞</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" />
+        <span class="slider round"></span>
+      </label>
+      <span>🌙</span>
+    </div>
+  </aside>
 
-    <!-- SCRIPTS -->
-    <script src="/js/ui.js"></script>
-    <script src="/js/audit_log.js" defer></script>
-  </body>
+  <!-- ===================================================== -->
+  <!-- 📋 MAIN CONTENT -->
+  <!-- ===================================================== -->
+  <main id="main-content">
+    <header>
+      <h1>🧾 Audit Log Aktivitas</h1>
+      <p>Pantau semua aktivitas pengguna di sistem ini.</p>
+    </header>
+
+    <!-- 🔹 FILTER -->
+    <section class="filter-section">
+      <div class="filter-grid">
+        <input type="text" id="filterStaff" placeholder="Nama Staff..." />
+        <input type="text" id="filterModule" placeholder="Modul (misal: Sales, Tour, User...)" />
+        <input type="date" id="filterStart" />
+        <input type="date" id="filterEnd" />
+        <button id="filterBtn">🔍 Filter</button>
+        <button id="exportBtn">📦 Export Excel</button>
+      </div>
+    </section>
+
+    <!-- 🔹 TABEL LOG -->
+    <section class="table-section">
+      <h3>Daftar Aktivitas</h3>
+      <table id="logTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Staff</th>
+            <th>Aksi</th>
+            <th>Deskripsi</th>
+            <th>Modul</th>
+            <th>Tanggal & Waktu</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <!-- ===================================================== -->
+  <!-- ⚙️ SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    if (!token || (role !== "admin" && role !== "semiadmin")) {
+      window.location.href = "login.html";
+    }
+
+    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+    const logTable = document.querySelector("#logTable tbody");
+    const filterBtn = document.getElementById("filterBtn");
+    const exportBtn = document.getElementById("exportBtn");
+
+    // =====================================================
+    // 📋 LOAD LOGS
+    // =====================================================
+    async function loadLogs(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      const res = await fetch("/api/logs?" + params, { headers });
+      const data = await res.json();
+
+      logTable.innerHTML = data.map(l => `
+        <tr>
+          <td>${l.id}</td>
+          <td>${l.staff_name}</td>
+          <td>${l.action}</td>
+          <td>${l.description || "-"}</td>
+          <td>${l.module || "-"}</td>
+          <td>${new Date(l.created_at).toLocaleString("id-ID")}</td>
+          <td>
+            ${role === "admin" ? `<button class="danger" onclick="deleteLog(${l.id})">🗑️</button>` : ""}
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    // =====================================================
+    // 🗑️ DELETE LOG
+    // =====================================================
+    window.deleteLog = async function(id) {
+      if (!confirm("Yakin ingin menghapus log ini?")) return;
+      const res = await fetch(`/api/logs/${id}`, { method: "DELETE", headers });
+      if (res.ok) loadLogs();
+    };
+
+    // =====================================================
+    // 🔍 FILTER
+    // =====================================================
+    filterBtn.addEventListener("click", () => {
+      loadLogs({
+        staff: filterStaff.value,
+        module: filterModule.value,
+        start: filterStart.value,
+        end: filterEnd.value
+      });
+    });
+
+    // =====================================================
+    // 📦 EXPORT TO EXCEL
+    // =====================================================
+    exportBtn.addEventListener("click", () => {
+      const table = document.getElementById("logTable");
+      const wb = XLSX.utils.table_to_book(table, { sheet: "Audit Log" });
+      XLSX.writeFile(wb, "audit_log.xlsx");
+    });
+
+    // =====================================================
+    // 🚀 INIT
+    // =====================================================
+    loadLogs();
+  </script>
+</body>
 </html>
