@@ -1,132 +1,96 @@
 // ==========================================================
-// 🧭 UI Global Script — Travel Dashboard Enterprise v5.3.6
+// 🎨 UI Controller — Travel Dashboard Enterprise v5.4.5
 // ==========================================================
+// Fitur:
+// - Sidebar toggle (expand/collapse)
+// - Mode terang/gelap sinkron di semua halaman
+// - Transisi animasi smooth antar halaman
+// ==========================================================
+
 document.addEventListener("DOMContentLoaded", () => {
   const body = document.body;
   const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  const themeToggle = document.getElementById("themeToggle");
-  const currentYear = document.getElementById("year");
-  const expandButtons = document.querySelectorAll(".expand-toggle");
-  const activeLinks = document.querySelectorAll(".sidebar-nav a");
+  const toggleSidebarBtn = document.getElementById("toggleSidebar");
+  const themeSwitch = document.getElementById("themeSwitch");
 
-  // ==========================================================
-  // 📅 Year Footer
-  // ==========================================================
-  if (currentYear) currentYear.textContent = new Date().getFullYear();
-
-  // ==========================================================
-  // 🌗 Theme Mode (Dark / Light)
-  // ==========================================================
-  const savedTheme = localStorage.getItem("theme");
-  if (savedTheme === "dark") {
-    body.classList.remove("theme-light");
-    body.classList.add("theme-dark");
+  // ======================================================
+  // ☀️🌙 THEME MODE HANDLER
+  // ======================================================
+  const currentTheme = localStorage.getItem("theme") || "light";
+  if (currentTheme === "dark") {
+    body.classList.remove("light-mode");
+    body.classList.add("dark-mode");
+    if (themeSwitch) themeSwitch.checked = true;
   }
 
-  if (themeToggle) {
-    themeToggle.addEventListener("click", () => {
-      if (body.classList.contains("theme-dark")) {
-        body.classList.remove("theme-dark");
-        body.classList.add("theme-light");
-        localStorage.setItem("theme", "light");
-      } else {
-        body.classList.remove("theme-light");
-        body.classList.add("theme-dark");
+  if (themeSwitch) {
+    themeSwitch.addEventListener("change", () => {
+      if (themeSwitch.checked) {
+        body.classList.add("dark-mode");
+        body.classList.remove("light-mode");
         localStorage.setItem("theme", "dark");
+      } else {
+        body.classList.add("light-mode");
+        body.classList.remove("dark-mode");
+        localStorage.setItem("theme", "light");
       }
     });
   }
 
-  // ==========================================================
-  // 📂 Sidebar Expand / Collapse Sections
-  // ==========================================================
-  expandButtons.forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const parent = e.target.closest(".expandable");
-      const submenu = parent.querySelector(".submenu");
-      const isOpen = parent.classList.contains("open");
-
-      if (isOpen) {
-        parent.classList.remove("open");
-        submenu.classList.remove("open");
-      } else {
-        parent.classList.add("open");
-        submenu.classList.add("open");
-      }
-
-      // Simpan status ke localStorage
-      const expandedMenus = Array.from(document.querySelectorAll(".expandable.open")).map(
-        (x) => x.querySelector(".expand-toggle").textContent.trim()
-      );
-      localStorage.setItem("expandedMenus", JSON.stringify(expandedMenus));
-    });
-  });
-
-  // Restore expand state
-  const storedMenus = JSON.parse(localStorage.getItem("expandedMenus") || "[]");
-  storedMenus.forEach((menuText) => {
-    expandButtons.forEach((btn) => {
-      if (btn.textContent.trim() === menuText) {
-        const parent = btn.closest(".expandable");
-        const submenu = parent.querySelector(".submenu");
-        parent.classList.add("open");
-        submenu.classList.add("open");
-      }
-    });
-  });
-
-  // ==========================================================
-  // 📱 Sidebar Collapse (Full)
-  // ==========================================================
-  if (sidebarToggle) {
-    sidebarToggle.addEventListener("click", () => {
+  // ======================================================
+  // 🧭 SIDEBAR COLLAPSE
+  // ======================================================
+  if (toggleSidebarBtn && sidebar) {
+    toggleSidebarBtn.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
+      body.classList.toggle("sidebar-collapsed");
 
-      if (sidebar.classList.contains("collapsed")) {
-        localStorage.setItem("sidebarCollapsed", "true");
-      } else {
-        localStorage.setItem("sidebarCollapsed", "false");
-      }
+      // Simpan status sidebar di localStorage
+      const collapsed = sidebar.classList.contains("collapsed");
+      localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false");
     });
 
-    // Restore collapsed state
-    if (localStorage.getItem("sidebarCollapsed") === "true") {
+    // Pulihkan status sidebar dari localStorage
+    const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    if (isCollapsed) {
       sidebar.classList.add("collapsed");
+      body.classList.add("sidebar-collapsed");
     }
   }
 
-  // ==========================================================
-  // 🧭 Active Menu Highlight
-  // ==========================================================
-  const currentPath = window.location.pathname.split("/").pop();
-  activeLinks.forEach((link) => {
-    const linkPath = link.getAttribute("href").split("/").pop();
-    if (currentPath === linkPath) {
-      link.classList.add("active");
-      const parentMenu = link.closest(".submenu");
-      if (parentMenu) {
-        parentMenu.classList.add("open");
-        const expandable = parentMenu.closest(".expandable");
-        if (expandable) expandable.classList.add("open");
+  // ======================================================
+  // 💫 PAGE TRANSITION ANIMATION
+  // ======================================================
+  document.querySelectorAll('a[href$=".html"]').forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const href = link.getAttribute("href");
+      if (!href.startsWith("#") && href.endsWith(".html")) {
+        e.preventDefault();
+        body.classList.add("fade-out");
+        setTimeout(() => {
+          window.location.href = href;
+        }, 200);
       }
-    }
-  });
-
-  // ==========================================================
-  // 💡 Smooth Sidebar Animation
-  // ==========================================================
-  sidebar.addEventListener("transitionend", () => {
-    document.querySelectorAll(".submenu.open").forEach((el) => {
-      el.style.maxHeight = sidebar.classList.contains("collapsed") ? "0" : el.scrollHeight + "px";
     });
   });
 
-  // ==========================================================
-  // 🧹 Fallback Prevent Flash (in case dark mode applies late)
-  // ==========================================================
-  setTimeout(() => {
-    body.style.visibility = "visible";
-    body.style.opacity = "1";
-  }, 100);
+  // Tambahkan efek fade-in setiap kali halaman dimuat
+  body.classList.add("fade-in");
 });
+
+// ==========================================================
+// ✨ CSS class tambahan (light/dark)
+// ==========================================================
+// Gunakan di file CSS (style.css):
+//
+// body.light-mode { background: #f4f6f9; color: #222; }
+// body.dark-mode { background: #181a1b; color: #eee; }
+//
+// .sidebar.collapsed { width: 80px; }
+// .sidebar-collapsed main { margin-left: 90px; transition: all 0.3s ease; }
+//
+// .fade-in { opacity: 0; animation: fadeIn 0.3s forwards; }
+// .fade-out { opacity: 1; animation: fadeOut 0.2s forwards; }
+//
+// @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+// @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
