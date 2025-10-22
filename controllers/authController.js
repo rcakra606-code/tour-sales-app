@@ -1,72 +1,57 @@
 // ==========================================================
-// 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
-// Fitur:
-// - Login user (JWT)
-// - Verify token
-// - Auto refresh role dan staff name
+// 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.7
 // ==========================================================
 
-import pkg from "pg";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-const { Pool } = pkg;
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from "../server.js";
 
 // ==========================================================
-// 🧠 Helper: Generate JWT Token
-// ==========================================================
-function generateToken(user) {
-  return jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      staff_name: user.staff_name,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
-  );
-}
-
-// ==========================================================
-// 🔹 POST /api/auth/login
+// 🔹 LOGIN USER
 // ==========================================================
 export async function login(req, res) {
-  const { username, password } = req.body;
-
   try {
-    // 1️⃣ Cari user di database
+    const { username, password } = req.body;
+
+    if (!username || !password)
+      return res.status(400).json({ message: "Username dan password wajib diisi." });
+
     const userQuery = await pool.query(
-      "SELECT id, username, password_hash, staff_name, role FROM users WHERE username = $1",
+      "SELECT id, username, password_hash, role, staff_name FROM users WHERE LOWER(username) = LOWER($1)",
       [username]
     );
 
-    if (userQuery.rows.length === 0) {
-      return res.status(401).json({ message: "Username atau password salah." });
-    }
+    if (userQuery.rows.length === 0)
+      return res.status(401).json({ message: "Username tidak ditemukan." });
 
     const user = userQuery.rows[0];
 
-    // 2️⃣ Verifikasi password
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Username atau password salah." });
-    }
+    // ✅ Pastikan password_hash adalah string
+    const hash = typeof user.password_hash === "string" ? user.password_hash : String(user.password_hash);
 
-    // 3️⃣ Buat JWT token
-    const token = generateToken(user);
+    // ✅ Bandingkan password secara aman
+    const isMatch = await bcrypt.compare(String(password), hash);
 
-    // 4️⃣ Kirim response ke frontend
+    if (!isMatch)
+      return res.status(401).json({ message: "Password salah." });
+
+    // ✅ Generate JWT
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        staff_name: user.staff_name,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
+    );
+
     res.json({
+      message: "Login berhasil.",
       token,
-      username: user.username,
-      staff_name: user.staff_name,
       role: user.role,
+      staff_name: user.staff_name,
     });
   } catch (err) {
     console.error("❌ Auth login error:", err);
@@ -75,59 +60,25 @@ export async function login(req, res) {
 }
 
 // ==========================================================
-// 🔹 GET /api/auth/verify
-// ==========================================================
-export async function verifyToken(req, res) {
-  try {
-    const authHeader = req.headers["authorization"];
-    if (!authHeader) return res.status(401).json({ message: "Token tidak ditemukan." });
-
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const userCheck = await pool.query(
-      "SELECT id, username, role, staff_name FROM users WHERE id = $1",
-      [decoded.id]
-    );
-
-    if (userCheck.rows.length === 0) {
-      return res.status(401).json({ message: "User tidak ditemukan." });
-    }
-
-    res.json({
-      valid: true,
-      user: userCheck.rows[0],
-    });
-  } catch (err) {
-    console.error("❌ Verify token error:", err);
-    res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
-  }
-}
-
-// ==========================================================
-// 🔹 POST /api/auth/register (Opsional: admin only)
+// 🔹 REGISTER USER (optional untuk admin)
 // ==========================================================
 export async function register(req, res) {
   try {
-    const { username, password, role = "staff", staff_name } = req.body;
+    const { username, password, role, staff_name } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username dan password wajib diisi." });
-    }
+    if (!username || !password || !role)
+      return res.status(400).json({ message: "Semua field wajib diisi." });
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash(String(password), 10);
 
     await pool.query(
       "INSERT INTO users (username, password_hash, role, staff_name) VALUES ($1, $2, $3, $4)",
       [username, hash, role, staff_name || ""]
     );
 
-    res.json({ message: "User berhasil didaftarkan." });
+    res.json({ message: "User berhasil dibuat." });
   } catch (err) {
-    console.error("❌ Register user error:", err);
-    if (err.code === "23505") {
-      return res.status(400).json({ message: "Username sudah digunakan." });
-    }
-    res.status(500).json({ message: "Gagal mendaftarkan user." });
+    console.error("❌ Register error:", err);
+    res.status(500).json({ message: "Gagal membuat user baru." });
   }
 }
