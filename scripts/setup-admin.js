@@ -1,17 +1,13 @@
-/**
- * ==========================================================
- * 📁 scripts/setup-admin.js (Fixed)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Script otomatis membuat akun SUPER ADMIN
- * dengan perbaikan koneksi Pool (Render-safe)
- * ==========================================================
- */
+// ==========================================================
+// 👑 Setup Super Admin — Travel Dashboard Enterprise v5.4.8
+// ==========================================================
+// Otomatis membuat akun admin default jika belum ada.
+// ==========================================================
 
-import bcrypt from "bcrypt";
+import dotenv from "dotenv";
+import bcrypt from "bcryptjs";
 import pkg from "pg";
 const { Pool } = pkg;
-import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -21,40 +17,32 @@ const pool = new Pool({
 });
 
 async function setupAdmin() {
-  const username = "admin";
-  const password = "Admin123!";
-  const hashed = await bcrypt.hash(password, 10);
-
   try {
     console.log("🔍 Mengecek akun super admin...");
 
-    const check = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+    const check = await pool.query("SELECT * FROM users WHERE role = 'admin' LIMIT 1");
 
     if (check.rows.length > 0) {
-      console.log("✅ Akun super admin sudah ada:", check.rows[0].username);
-      return; // ❗ STOP di sini tanpa menutup pool
+      console.log(`✅ Akun super admin sudah ada: ${check.rows[0].username}`);
+      await pool.end();
+      return;
     }
 
-    console.log("🚀 Membuat akun super admin baru...");
+    const hash = await bcrypt.hash("admin123", 10);
+
     await pool.query(
-      `INSERT INTO users (username, password, role, created_at)
-       VALUES ($1, $2, $3, NOW())`,
-      [username, hashed, "super"]
+      "INSERT INTO users (username, password_hash, role, staff_name) VALUES ($1, $2, $3, $4)",
+      ["admin", hash, "admin", "Super Admin"]
     );
 
-    console.log("✅ Super Admin berhasil dibuat!");
-    console.log("🔑 Login dengan:");
-    console.log("   Username: admin");
-    console.log("   Password: Admin123!");
+    console.log("✅ Akun super admin berhasil dibuat:");
+    console.log("   👤 Username: admin");
+    console.log("   🔑 Password: admin123");
   } catch (err) {
-    console.error("❌ Gagal membuat akun super admin:", err.message);
+    console.error("❌ Gagal membuat super admin:", err);
   } finally {
-    try {
-      await pool.end();
-      console.log("🔌 Koneksi database ditutup dengan aman.");
-    } catch (e) {
-      console.warn("⚠️ Koneksi sudah ditutup sebelumnya, aman diabaikan.");
-    }
+    await pool.end();
+    console.log("🏁 Setup admin selesai.");
   }
 }
 
