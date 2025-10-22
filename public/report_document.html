@@ -1,162 +1,171 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Report Document — Travel Dashboard</title>
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="icon" href="/favicon.ico" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laporan Dokumen | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script defer src="./js/ui.js"></script>
 </head>
-<body class="theme-light">
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-top">
-      <button id="sidebarToggle" class="btn-icon">☰</button>
-      <h1 class="brand">TravelDash</h1>
-      <button id="themeToggle" class="btn-icon">🌓</button>
+<body class="light-mode">
+  <!-- ===================================================== -->
+  <!-- 🧭 SIDEBAR -->
+  <!-- ===================================================== -->
+  <aside id="sidebar" class="sidebar expanded">
+    <div class="sidebar-header">
+      <h2>Travel Dashboard</h2>
+      <button id="toggleSidebar">☰</button>
     </div>
-    <nav class="sidebar-nav">
-      <ul>
-        <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-        <li class="expandable">
-          <button class="expand-toggle">📊 Reports</button>
-          <ul class="submenu">
-            <li><a href="/report_tour.html">Report Tour</a></li>
-            <li><a href="/report_sales.html">Report Sales</a></li>
-            <li><a href="/report_document.html" class="active">Report Document</a></li>
-          </ul>
-        </li>
-        <li class="expandable">
-          <button class="expand-toggle">⚙️ Management</button>
-          <ul class="submenu">
-            <li><a href="/region_management.html">Region Management</a></li>
-            <li><a href="/user-management.html">User Management</a></li>
-          </ul>
-        </li>
-        <li><a href="/executive-dashboard.html">📈 Executive</a></li>
-        <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-        <li><a href="/profile.html">👤 Profile</a></li>
-        <li><a href="/logout.html">🚪 Logout</a></li>
-      </ul>
-    </nav>
-    <div class="sidebar-footer"><small>v5.3.6 • Travel Dashboard</small></div>
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
+      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
+      <li class="active"><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="user-management.html">👥 User Management</a></li>
+      <li><a href="profile.html">👤 Profil</a></li>
+      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span>🌞</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" />
+        <span class="slider round"></span>
+      </label>
+      <span>🌙</span>
+    </div>
   </aside>
 
-  <div id="main" class="main-content">
-    <header class="topbar">
-      <h2>Report Document</h2>
-      <div class="user-info"><span id="activeUser">Loading...</span></div>
+  <!-- ===================================================== -->
+  <!-- 📊 MAIN CONTENT -->
+  <!-- ===================================================== -->
+  <main id="main-content">
+    <header>
+      <h1>📑 Laporan Dokumen</h1>
+      <p>Data dokumen tamu, proses visa, dan pengiriman</p>
     </header>
 
-    <main class="container">
-      <section class="panel form-panel">
-        <div class="panel-header"><h4>✚ Input Data Dokumen</h4></div>
-        <div class="panel-body">
-          <form id="documentForm" class="form-grid">
-            <div class="form-group">
-              <label>Tanggal Terima</label>
-              <input type="date" id="receivedDate" required />
-            </div>
+    <!-- 🔍 FILTERS -->
+    <section class="filters">
+      <input type="text" id="guestFilter" placeholder="Cari nama tamu..." />
+      <input type="text" id="staffFilter" placeholder="Nama staff..." />
+      <input type="month" id="monthFilter" />
+      <button id="filterBtn">Terapkan Filter</button>
+      <div class="export-buttons">
+        <button id="exportExcel">📘 Export Excel</button>
+        <button id="exportCSV">📄 Export CSV</button>
+      </div>
+    </section>
 
-            <div class="form-group">
-              <label>Tanggal Pengiriman</label>
-              <input type="date" id="sentDate" />
-            </div>
+    <!-- 📋 TABLE -->
+    <section class="table-section">
+      <table id="documentTable">
+        <thead>
+          <tr>
+            <th>No</th>
+            <th>Tanggal Terima</th>
+            <th>Tanggal Kirim</th>
+            <th>Nama Tamu</th>
+            <th>Jenis Dokumen</th>
+            <th>Proses</th>
+            <th>Kode Booking</th>
+            <th>Nomor Invoice</th>
+            <th>Staff</th>
+            <th>Tour Code</th>
+          </tr>
+        </thead>
+        <tbody id="documentTableBody">
+          <tr><td colspan="10" class="center">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
 
-            <div class="form-group">
-              <label>Nama Tamu</label>
-              <input type="text" id="guestName" required />
-            </div>
+  <!-- ===================================================== -->
+  <!-- 📜 SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+    const token = localStorage.getItem("token");
+    const headers = { "Authorization": `Bearer ${token}` };
 
-            <div class="form-group">
-              <label>Paspor / Visa (Negara)</label>
-              <input type="text" id="documentType" />
-            </div>
+    async function fetchDocumentData(guest = "", staff = "", month = "") {
+      try {
+        const response = await fetch("/api/report/document", { headers });
+        const data = await response.json();
 
-            <div class="form-group">
-              <label>Jenis Proses</label>
-              <select id="processType">
-                <option value="Biasa">Biasa</option>
-                <option value="Kilat">Kilat</option>
-              </select>
-            </div>
+        let filtered = data;
+        if (guest) {
+          filtered = filtered.filter((r) =>
+            r.guest_name?.toLowerCase().includes(guest.toLowerCase())
+          );
+        }
+        if (staff) {
+          filtered = filtered.filter((r) =>
+            r.staff_name?.toLowerCase().includes(staff.toLowerCase())
+          );
+        }
+        if (month) {
+          const [year, mon] = month.split("-");
+          filtered = filtered.filter((r) => {
+            const date = new Date(r.received_date);
+            return (
+              date.getFullYear() === parseInt(year) &&
+              date.getMonth() + 1 === parseInt(mon)
+            );
+          });
+        }
 
-            <div class="form-group">
-              <label>Kode Booking DMS</label>
-              <input type="text" id="bookingCode" />
-            </div>
+        const tbody = document.getElementById("documentTableBody");
+        tbody.innerHTML = "";
 
-            <div class="form-group">
-              <label>Nomor Invoice</label>
-              <input type="text" id="invoiceNumber" />
-            </div>
+        if (filtered.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="10" class="center">Tidak ada data ditemukan.</td></tr>';
+          return;
+        }
 
-            <div class="form-group">
-              <label>Nomor Telepon Tamu</label>
-              <input type="text" id="guestPhone" />
-            </div>
+        filtered.forEach((row, i) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${new Date(row.received_date).toLocaleDateString("id-ID")}</td>
+            <td>${row.sent_date ? new Date(row.sent_date).toLocaleDateString("id-ID") : "-"}</td>
+            <td>${row.guest_name || "-"}</td>
+            <td>${row.document_type || "-"}</td>
+            <td>${row.process_type || "-"}</td>
+            <td>${row.booking_code || "-"}</td>
+            <td>${row.invoice_number || "-"}</td>
+            <td>${row.staff_name || "-"}</td>
+            <td>${row.tour_code || "-"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("❌ Error memuat data dokumen:", err);
+      }
+    }
 
-            <div class="form-group">
-              <label>Estimasi Selesai</label>
-              <input type="date" id="estimatedFinish" />
-            </div>
+    document.getElementById("filterBtn").addEventListener("click", () => {
+      const guest = document.getElementById("guestFilter").value;
+      const staff = document.getElementById("staffFilter").value;
+      const month = document.getElementById("monthFilter").value;
+      fetchDocumentData(guest, staff, month);
+    });
 
-            <div class="form-group">
-              <label>Nama Staff</label>
-              <input type="text" id="staffName" required />
-            </div>
+    document.getElementById("exportExcel").addEventListener("click", () => {
+      window.open("/api/report/document/export?format=xlsx", "_blank");
+    });
 
-            <div class="form-group">
-              <label>Tour Code (opsional)</label>
-              <input type="text" id="tourCode" />
-            </div>
+    document.getElementById("exportCSV").addEventListener("click", () => {
+      window.open("/api/report/document/export?format=csv", "_blank");
+    });
 
-            <div class="form-actions" style="grid-column: 1 / -1;">
-              <button type="submit" class="btn">💾 Simpan Dokumen</button>
-              <button type="reset" class="btn gray">🔄 Reset</button>
-              <button id="exportDoc" type="button" class="btn outline">⬇️ Export CSV</button>
-            </div>
-          </form>
-        </div>
-      </section>
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "login.html";
+    });
 
-      <section class="panel list-panel">
-        <div class="panel-header">
-          <h4>📋 Daftar Dokumen</h4>
-          <div class="filter-bar">
-            <input id="searchDoc" type="text" placeholder="🔍 Cari nama tamu, invoice, staff..." />
-            <select id="processFilter">
-              <option value="">Semua</option>
-              <option value="Biasa">Biasa</option>
-              <option value="Kilat">Kilat</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="panel-body table-wrap">
-          <table class="data-table" id="documentTable">
-            <thead>
-              <tr>
-                <th>Tgl Terima</th>
-                <th>Nama Tamu</th>
-                <th>Booking DMS</th>
-                <th>Negara</th>
-                <th>Proses</th>
-                <th>Staff</th>
-                <th>Estimasi</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer"><small>© <span id="year"></span> Travel Dashboard Enterprise</small></footer>
-  </div>
-
-  <script src="/js/ui.js"></script>
-  <script src="/js/report_document.js" defer></script>
+    // Jalankan saat load awal
+    fetchDocumentData();
+  </script>
 </body>
 </html>
