@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Laporan Penjualan | Travel Dashboard</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Report Sales | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
   <script defer src="./js/ui.js"></script>
 </head>
 <body class="light-mode">
-  <!-- ===================================================== -->
-  <!-- 🧭 SIDEBAR -->
-  <!-- ===================================================== -->
+  <!-- SIDEBAR -->
   <aside id="sidebar" class="sidebar expanded">
     <div class="sidebar-header">
       <h2>Travel Dashboard</h2>
@@ -21,138 +19,472 @@
       <li class="active"><a href="report_sales.html">💹 Laporan Sales</a></li>
       <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
       <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
       <li><a href="user-management.html">👥 User Management</a></li>
+      <li><a href="region_management.html">🌍 Region Management</a></li>
       <li><a href="profile.html">👤 Profil</a></li>
       <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
     </ul>
     <div class="theme-toggle">
       <span>🌞</span>
       <label class="switch">
-        <input type="checkbox" id="themeSwitch">
+        <input type="checkbox" id="themeSwitch" />
         <span class="slider round"></span>
       </label>
       <span>🌙</span>
     </div>
   </aside>
 
-  <!-- ===================================================== -->
-  <!-- 📊 MAIN CONTENT -->
-  <!-- ===================================================== -->
+  <!-- MAIN -->
   <main id="main-content">
     <header>
-      <h1>💹 Laporan Penjualan</h1>
-      <p>Data rekap transaksi penjualan dan profit per staff</p>
+      <h1>💹 Laporan Sales</h1>
+      <p>Input, monitor, filter & export data sales serta atur target per staff per bulan.</p>
     </header>
 
-    <!-- 🔍 FILTERS -->
+    <!-- FILTER + EXPORT -->
     <section class="filters">
-      <input type="text" id="staffFilter" placeholder="Cari nama staff..." />
-      <input type="month" id="monthFilter" />
+      <input type="text" id="searchInput" placeholder="🔍 Cari invoice / keterangan..." />
+      <select id="filterStaff">
+        <option value="">👥 Semua Staff</option>
+      </select>
+      <input type="month" id="filterMonth" />
+      <select id="filterCategory">
+        <option value="">📂 Semua Kategori</option>
+        <option value="package">Package</option>
+        <option value="visa">Visa</option>
+        <option value="document">Document</option>
+        <option value="other">Lainnya</option>
+      </select>
       <button id="filterBtn">Terapkan Filter</button>
+
       <div class="export-buttons">
-        <button id="exportExcel">📘 Export Excel</button>
+        <button id="exportExcel">📤 Export Excel</button>
         <button id="exportCSV">📄 Export CSV</button>
       </div>
     </section>
 
-    <!-- 📋 TABLE -->
-    <section class="table-section">
+    <!-- FORM INPUT SALES -->
+    <section class="form-section">
+      <form id="salesForm">
+        <input type="hidden" id="saleId" />
+
+        <div class="form-grid">
+          <div>
+            <label>Tanggal Transaksi</label>
+            <input type="date" id="transactionDate" required />
+          </div>
+          <div>
+            <label>Nomor Invoice</label>
+            <input type="text" id="invoiceNumber" placeholder="Nomor invoice / nota" />
+          </div>
+          <div>
+            <label>Nama Staff</label>
+            <input type="text" id="saleStaff" placeholder="Nama staff (untuk filter nanti)" />
+          </div>
+          <div>
+            <label>Nama/Client</label>
+            <input type="text" id="clientName" placeholder="Nama customer / client" />
+          </div>
+          <div>
+            <label>Sales Amount (Rp)</label>
+            <input type="number" id="saleAmount" step="0.01" />
+          </div>
+          <div>
+            <label>Profit (Rp)</label>
+            <input type="number" id="profitAmount" step="0.01" />
+          </div>
+          <div>
+            <label>Kategori</label>
+            <select id="saleCategory">
+              <option value="package">Package</option>
+              <option value="visa">Visa</option>
+              <option value="document">Document</option>
+              <option value="other">Lainnya</option>
+            </select>
+          </div>
+          <div>
+            <label>Kode Tour (opsional)</label>
+            <input type="text" id="relatedTourCode" placeholder="Tour code jika ada" />
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label>Catatan</label>
+            <input type="text" id="saleNotes" placeholder="Keterangan tambahan" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button type="submit" id="saveSale">💾 Simpan</button>
+          <button type="button" id="resetSale" class="secondary">🔄 Reset</button>
+          <button type="button" id="deleteSale" class="danger" style="display:none">🗑️ Hapus</button>
+          <p id="saleMsg" class="message" style="margin-left:auto"></p>
+        </div>
+      </form>
+    </section>
+
+    <!-- FORM TARGET BULANAN PER STAFF -->
+    <section class="form-section" style="margin-top:18px;">
+      <form id="targetForm">
+        <h3>🎯 Target Bulanan (per staff)</h3>
+        <div class="form-grid">
+          <div>
+            <label>Staff</label>
+            <input type="text" id="targetStaff" placeholder="Nama staff" required />
+          </div>
+          <div>
+            <label>Bulan</label>
+            <input type="month" id="targetMonth" required />
+          </div>
+          <div>
+            <label>Target Sales (Rp)</label>
+            <input type="number" id="targetSales" step="1" />
+          </div>
+          <div>
+            <label>Target Profit (Rp)</label>
+            <input type="number" id="targetProfit" step="1" />
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <button type="submit" id="saveTarget">💾 Simpan Target</button>
+          <button type="button" id="resetTarget" class="secondary">🔄 Reset</button>
+          <p id="targetMsg" class="message" style="margin-left:auto"></p>
+        </div>
+      </form>
+    </section>
+
+    <!-- TABLE DATA SALES -->
+    <section class="table-section" style="margin-top:20px;">
+      <h3>Daftar Sales</h3>
       <table id="salesTable">
         <thead>
           <tr>
-            <th>No</th>
-            <th>Nama Staff</th>
-            <th>Tanggal Transaksi</th>
-            <th>Nomor Invoice</th>
+            <th>ID</th>
+            <th>Tanggal</th>
+            <th>Invoice</th>
+            <th>Staff</th>
+            <th>Client</th>
             <th>Sales (Rp)</th>
             <th>Profit (Rp)</th>
-            <th>Keterangan</th>
+            <th>Kategori</th>
+            <th>Tour Code</th>
+            <th>Notes</th>
+            <th>Aksi</th>
           </tr>
         </thead>
-        <tbody id="salesTableBody">
-          <tr><td colspan="7" class="center">Memuat data...</td></tr>
-        </tbody>
+        <tbody></tbody>
       </table>
     </section>
   </main>
 
-  <!-- ===================================================== -->
-  <!-- 📜 SCRIPT -->
-  <!-- ===================================================== -->
+  <!-- SCRIPT -->
   <script>
+    // Auth + headers
     const token = localStorage.getItem("token");
-    const headers = { "Authorization": \`Bearer \${token}\` };
+    if (!token) window.location.href = "login.html";
+    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
 
-    async function fetchSalesData(staff = "", month = "") {
+    // Elements
+    const salesForm = document.getElementById("salesForm");
+    const saleMsg = document.getElementById("saleMsg");
+    const salesTableBody = document.querySelector("#salesTable tbody");
+    const filterStaff = document.getElementById("filterStaff");
+    const searchInput = document.getElementById("searchInput");
+    const filterMonth = document.getElementById("filterMonth");
+    const filterCategory = document.getElementById("filterCategory");
+    const filterBtn = document.getElementById("filterBtn");
+    const exportExcelBtn = document.getElementById("exportExcel");
+    const exportCSVBtn = document.getElementById("exportCSV");
+
+    // Sales form fields
+    const saleIdEl = document.getElementById("saleId");
+    const transactionDateEl = document.getElementById("transactionDate");
+    const invoiceNumberEl = document.getElementById("invoiceNumber");
+    const saleStaffEl = document.getElementById("saleStaff");
+    const clientNameEl = document.getElementById("clientName");
+    const saleAmountEl = document.getElementById("saleAmount");
+    const profitAmountEl = document.getElementById("profitAmount");
+    const saleCategoryEl = document.getElementById("saleCategory");
+    const relatedTourCodeEl = document.getElementById("relatedTourCode");
+    const saleNotesEl = document.getElementById("saleNotes");
+    const deleteSaleBtn = document.getElementById("deleteSale");
+    const resetSaleBtn = document.getElementById("resetSale");
+
+    // Target form
+    const targetForm = document.getElementById("targetForm");
+    const targetStaffEl = document.getElementById("targetStaff");
+    const targetMonthEl = document.getElementById("targetMonth");
+    const targetSalesEl = document.getElementById("targetSales");
+    const targetProfitEl = document.getElementById("targetProfit");
+    const targetMsg = document.getElementById("targetMsg");
+    const resetTargetBtn = document.getElementById("resetTarget");
+
+    // Utility: show message
+    function showMsg(el, text, ok = true) {
+      el.textContent = text;
+      el.style.color = ok ? "#28a745" : "#e74c3c";
+      setTimeout(() => { el.textContent = ""; }, 3500);
+    }
+
+    // Load initial staff list (unique from users endpoint)
+    async function loadStaffOptions() {
       try {
-        const response = await fetch("/api/report/sales", { headers });
-        const data = await response.json();
-
-        let filtered = data;
-        if (staff) {
-          filtered = filtered.filter((r) =>
-            r.staff_name.toLowerCase().includes(staff.toLowerCase())
-          );
-        }
-        if (month) {
-          const monthYear = month.split("-");
-          filtered = filtered.filter((r) => {
-            const date = new Date(r.transaction_date);
-            return (
-              date.getFullYear() === parseInt(monthYear[0]) &&
-              date.getMonth() + 1 === parseInt(monthYear[1])
-            );
-          });
-        }
-
-        const tbody = document.getElementById("salesTableBody");
-        tbody.innerHTML = "";
-
-        if (filtered.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="7" class="center">Tidak ada data ditemukan.</td></tr>';
-          return;
-        }
-
-        filtered.forEach((row, i) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${row.staff_name || "-"}</td>
-            <td>${new Date(row.transaction_date).toLocaleDateString("id-ID")}</td>
-            <td>${row.invoice_number || "-"}</td>
-            <td>Rp ${Number(row.sales_amount || 0).toLocaleString("id-ID")}</td>
-            <td>Rp ${Number(row.profit_amount || 0).toLocaleString("id-ID")}</td>
-            <td>${row.remarks || "-"}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+        const res = await fetch("/api/users", { headers });
+        if (!res.ok) return;
+        const users = await res.json();
+        const staffNames = users.map(u => u.staff_name || u.username).filter(Boolean);
+        const unique = Array.from(new Set(staffNames)).sort();
+        filterStaff.innerHTML = '<option value="">👥 Semua Staff</option>' +
+          unique.map(s => `<option value="${s}">${s}</option>`).join("");
       } catch (err) {
-        console.error("❌ Error memuat data sales:", err);
+        console.error("Gagal load staff options", err);
       }
     }
 
-    document.getElementById("filterBtn").addEventListener("click", () => {
-      const staff = document.getElementById("staffFilter").value;
-      const month = document.getElementById("monthFilter").value;
-      fetchSalesData(staff, month);
+    // Load sales with filters
+    async function loadSales() {
+      try {
+        const q = new URLSearchParams();
+        const search = searchInput.value.trim();
+        if (search) q.append("q", search);
+        if (filterStaff.value) q.append("staff", filterStaff.value);
+        if (filterMonth.value) q.append("month", filterMonth.value);
+        if (filterCategory.value) q.append("category", filterCategory.value);
+
+        const res = await fetch("/api/report/sales?" + q.toString(), { headers });
+        if (!res.ok) {
+          console.error("Gagal memuat sales:", res.status);
+          return;
+        }
+        const data = await res.json();
+
+        salesTableBody.innerHTML = data.map(s => `
+          <tr>
+            <td>${s.id}</td>
+            <td>${s.transaction_date ? new Date(s.transaction_date).toLocaleDateString("id-ID") : "-"}</td>
+            <td>${s.invoice_number || "-"}</td>
+            <td>${s.staff_name || "-"}</td>
+            <td>${s.client_name || "-"}</td>
+            <td class="center">${Number(s.sales_amount || 0).toLocaleString("id-ID")}</td>
+            <td class="center">${Number(s.profit_amount || 0).toLocaleString("id-ID")}</td>
+            <td>${s.category || "-"}</td>
+            <td>${s.tour_code || "-"}</td>
+            <td>${s.notes || "-"}</td>
+            <td>
+              <button onclick="editSale(${s.id})">✏️</button>
+              <button onclick="deleteSale(${s.id})" class="danger">🗑️</button>
+            </td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        console.error("Gagal load sales:", err);
+      }
+    }
+
+    // Save or update sale
+    salesForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      saleMsg.textContent = "";
+
+      const payload = {
+        transaction_date: transactionDateEl.value || null,
+        invoice_number: invoiceNumberEl.value.trim(),
+        staff_name: saleStaffEl.value.trim(),
+        client_name: clientNameEl.value.trim(),
+        sales_amount: parseFloat(saleAmountEl.value) || 0,
+        profit_amount: parseFloat(profitAmountEl.value) || 0,
+        category: saleCategoryEl.value,
+        tour_code: relatedTourCodeEl.value.trim(),
+        notes: saleNotesEl.value.trim()
+      };
+
+      const id = saleIdEl.value;
+      const method = id ? "PUT" : "POST";
+      const url = id ? `/api/sales/${id}` : "/api/sales";
+
+      try {
+        const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Gagal menyimpan sales.");
+        showMsg(saleMsg, data.message || "Data sales tersimpan");
+        salesForm.reset();
+        saleIdEl.value = "";
+        deleteSaleBtn.style.display = "none";
+        loadSales();
+      } catch (err) {
+        console.error("Gagal simpan sale:", err);
+        showMsg(saleMsg, "Gagal menyimpan data", false);
+      }
     });
 
-    document.getElementById("exportExcel").addEventListener("click", () => {
-      window.open("/api/report/sales/export?format=xlsx", "_blank");
+    // Edit sale (populate form)
+    window.editSale = async function(id) {
+      try {
+        const res = await fetch(`/api/sales/${id}`, { headers });
+        if (!res.ok) throw new Error("Tidak dapat mengambil data sale");
+        const s = await res.json();
+        saleIdEl.value = s.id;
+        transactionDateEl.value = s.transaction_date ? new Date(s.transaction_date).toISOString().slice(0,10) : "";
+        invoiceNumberEl.value = s.invoice_number || "";
+        saleStaffEl.value = s.staff_name || "";
+        clientNameEl.value = s.client_name || "";
+        saleAmountEl.value = s.sales_amount || "";
+        profitAmountEl.value = s.profit_amount || "";
+        saleCategoryEl.value = s.category || "package";
+        relatedTourCodeEl.value = s.tour_code || "";
+        saleNotesEl.value = s.notes || "";
+        deleteSaleBtn.style.display = "inline-block";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        console.error("Gagal edit sale:", err);
+      }
+    };
+
+    // Delete sale
+    window.deleteSale = async function(id) {
+      if (!confirm("Yakin ingin menghapus data ini?")) return;
+      try {
+        const res = await fetch(`/api/sales/${id}`, { method: "DELETE", headers });
+        if (!res.ok) throw new Error("Gagal menghapus");
+        loadSales();
+      } catch (err) {
+        console.error("Gagal delete sale:", err);
+      }
+    };
+
+    deleteSaleBtn.addEventListener("click", () => {
+      const id = saleIdEl.value;
+      if (id) deleteSale(id);
     });
 
-    document.getElementById("exportCSV").addEventListener("click", () => {
-      window.open("/api/report/sales/export?format=csv", "_blank");
+    resetSaleBtn.addEventListener("click", () => {
+      salesForm.reset();
+      saleIdEl.value = "";
+      deleteSaleBtn.style.display = "none";
+      saleMsg.textContent = "";
     });
 
+    // FILTERS
+    filterBtn.addEventListener("click", loadSales);
+    searchInput.addEventListener("keypress", (e) => { if (e.key === "Enter") loadSales(); });
+
+    // EXPORT
+    exportExcelBtn.addEventListener("click", async () => {
+      try {
+        const q = new URLSearchParams();
+        if (filterStaff.value) q.append("staff", filterStaff.value);
+        if (filterMonth.value) q.append("month", filterMonth.value);
+        if (filterCategory.value) q.append("category", filterCategory.value);
+        if (searchInput.value.trim()) q.append("q", searchInput.value.trim());
+
+        const res = await fetch("/api/report/sales/export?format=xlsx&" + q.toString(), { headers });
+        if (!res.ok) {
+          const err = await res.json().catch(()=>({message:'Export failed'}));
+          alert(err.message || 'Export gagal');
+          return;
+        }
+        // stream download
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "sales_report.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (err) {
+        console.error("Export error:", err);
+        alert("Gagal export");
+      }
+    });
+
+    exportCSVBtn.addEventListener("click", async () => {
+      try {
+        const q = new URLSearchParams();
+        if (filterStaff.value) q.append("staff", filterStaff.value);
+        if (filterMonth.value) q.append("month", filterMonth.value);
+        if (filterCategory.value) q.append("category", filterCategory.value);
+        if (searchInput.value.trim()) q.append("q", searchInput.value.trim());
+
+        const res = await fetch("/api/report/sales/export?format=csv&" + q.toString(), { headers });
+        if (!res.ok) {
+          const err = await res.json().catch(()=>({message:'Export failed'}));
+          alert(err.message || 'Export gagal');
+          return;
+        }
+        const csv = await res.text();
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "sales_report.csv";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (err) {
+        console.error("Export CSV error:", err);
+        alert("Gagal export CSV");
+      }
+    });
+
+    // TARGETS: save per staff per month
+    targetForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      targetMsg.textContent = "";
+      const payload = {
+        staff_name: targetStaffEl.value.trim(),
+        month: targetMonthEl.value, // format YYYY-MM
+        target_sales: parseFloat(targetSalesEl.value) || 0,
+        target_profit: parseFloat(targetProfitEl.value) || 0
+      };
+      try {
+        const res = await fetch("/api/targets", { method: "POST", headers, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Gagal menyimpan target");
+        showMsg(targetMsg, data.message || "Target tersimpan");
+        targetForm.reset();
+      } catch (err) {
+        console.error("Gagal simpan target:", err);
+        showMsg(targetMsg, "Gagal menyimpan target", false);
+      }
+    });
+
+    resetTargetBtn.addEventListener("click", () => {
+      targetForm.reset();
+      targetMsg.textContent = "";
+    });
+
+    // INIT
+    (async function init() {
+      await loadStaffOptions();
+      await loadStaffOptions(); // ensure users loaded
+      await loadSales();
+    })();
+
+    // helper: also populate staff input suggestions (simple datalist)
+    async function loadStaffOptions() {
+      try {
+        const res = await fetch("/api/users", { headers });
+        if (!res.ok) return;
+        const users = await res.json();
+        const staffNames = users.map(u => u.staff_name || u.username).filter(Boolean);
+        const unique = Array.from(new Set(staffNames)).sort();
+
+        // populate filter select
+        filterStaff.innerHTML = '<option value="">👥 Semua Staff</option>' +
+          unique.map(s => `<option value="${s}">${s}</option>`).join("");
+
+        // also fill saleStaff input datalist (if want autocomplete)
+        // but since not using <datalist> in markup, set placeholder suggestions by nothing.
+      } catch (err) {
+        console.error("Gagal load staff list", err);
+      }
+    }
+
+    // logout handler
     document.getElementById("logoutBtn").addEventListener("click", () => {
       localStorage.clear();
       window.location.href = "login.html";
     });
-
-    // Jalankan saat load pertama
-    fetchSalesData();
   </script>
 </body>
 </html>
