@@ -1,108 +1,180 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Region Management — Travel Dashboard</title>
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="icon" href="/favicon.ico" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Region Management | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script defer src="./js/ui.js"></script>
 </head>
-<body class="theme-light">
-  <!-- SIDEBAR -->
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-top">
-      <button id="sidebarToggle" class="btn-icon">☰</button>
-      <h1 class="brand">TravelDash</h1>
-      <button id="themeToggle" class="btn-icon">🌓</button>
+
+<body class="light-mode">
+  <!-- ===================================================== -->
+  <!-- 🧭 SIDEBAR -->
+  <!-- ===================================================== -->
+  <aside id="sidebar" class="sidebar expanded">
+    <div class="sidebar-header">
+      <h2>Travel Dashboard</h2>
+      <button id="toggleSidebar">☰</button>
     </div>
-    <nav class="sidebar-nav">
-      <ul>
-        <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-        <li class="expandable">
-          <button class="expand-toggle">📊 Reports</button>
-          <ul class="submenu">
-            <li><a href="/report_tour.html">Report Tour</a></li>
-            <li><a href="/report_sales.html">Report Sales</a></li>
-            <li><a href="/report_document.html">Report Document</a></li>
-          </ul>
-        </li>
-        <li class="expandable open">
-          <button class="expand-toggle">⚙️ Management</button>
-          <ul class="submenu open">
-            <li><a href="/region_management.html" class="active">Region Management</a></li>
-            <li><a href="/user-management.html">User Management</a></li>
-          </ul>
-        </li>
-        <li><a href="/executive-dashboard.html">📈 Executive</a></li>
-        <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-        <li><a href="/profile.html">👤 Profile</a></li>
-        <li><a href="/logout.html">🚪 Logout</a></li>
-      </ul>
-    </nav>
-    <div class="sidebar-footer"><small>v5.3.6 • Travel Dashboard</small></div>
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
+      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
+      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
+      <li><a href="user-management.html">👥 User Management</a></li>
+      <li class="active"><a href="region_management.html">🌍 Region Management</a></li>
+      <li><a href="profile.html">👤 Profil</a></li>
+      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span>🌞</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" />
+        <span class="slider round"></span>
+      </label>
+      <span>🌙</span>
+    </div>
   </aside>
 
-  <!-- MAIN -->
-  <div id="main" class="main-content">
-    <header class="topbar">
-      <h2>Region Management</h2>
-      <div class="user-info"><span id="activeUser">Loading...</span></div>
+  <!-- ===================================================== -->
+  <!-- 🌍 MAIN CONTENT -->
+  <!-- ===================================================== -->
+  <main id="main-content">
+    <header>
+      <h1>🌍 Region Management</h1>
+      <p>Kelola daftar region yang digunakan dalam laporan Tour & penjualan.</p>
     </header>
 
-    <main class="container">
-      <section class="panel form-panel">
-        <div class="panel-header">
-          <h4>✚ Tambah Region Baru</h4>
-        </div>
-        <div class="panel-body">
-          <form id="regionForm" class="form-grid">
-            <div class="form-group">
-              <label>Nama Region</label>
-              <input type="text" id="regionName" required />
-            </div>
-            <div class="form-group">
-              <label>Deskripsi</label>
-              <input type="text" id="regionDesc" />
-            </div>
-            <div class="form-actions" style="grid-column: 1 / -1;">
-              <button type="submit" class="btn">💾 Simpan</button>
-              <button type="reset" class="btn gray">🔄 Reset</button>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      <section class="panel list-panel">
-        <div class="panel-header">
-          <h4>📋 Daftar Region</h4>
-          <div class="filter-bar">
-            <input id="searchRegion" type="text" placeholder="🔍 Cari region..." />
+    <!-- 📋 FORM TAMBAH REGION -->
+    <section class="form-section">
+      <form id="regionForm">
+        <div class="form-grid">
+          <div>
+            <label>Nama Region</label>
+            <input type="text" id="regionName" placeholder="Masukkan nama region baru" required />
           </div>
         </div>
 
-        <div class="panel-body table-wrap">
-          <table class="data-table" id="regionTable">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Nama Region</th>
-                <th>Deskripsi</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+        <button type="submit" id="addBtn">➕ Tambah Region</button>
+        <button type="button" id="resetBtn" class="secondary">🔄 Reset</button>
+        <p id="formMsg" class="message"></p>
+      </form>
+    </section>
 
-    <footer class="footer">
-      <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-    </footer>
-  </div>
+    <!-- 📄 TABEL REGION -->
+    <section class="table-section">
+      <h3>Daftar Region</h3>
+      <table id="regionTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Region</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
 
-  <script src="/js/ui.js"></script>
-  <script src="/js/region_management.js" defer></script>
+  <!-- ===================================================== -->
+  <!-- 📜 SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    if (!token || role !== "admin") {
+      alert("Akses ditolak. Hanya admin yang dapat mengakses halaman ini.");
+      window.location.href = "dashboard.html";
+    }
+
+    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+    const regionForm = document.getElementById("regionForm");
+    const msg = document.getElementById("formMsg");
+    const tableBody = document.querySelector("#regionTable tbody");
+
+    async function loadRegions() {
+      try {
+        const res = await fetch("/api/regions", { headers });
+        if (!res.ok) throw new Error("Gagal memuat data region.");
+        const data = await res.json();
+
+        tableBody.innerHTML = data
+          .map(
+            (r) => `
+            <tr>
+              <td>${r.id}</td>
+              <td>${r.name}</td>
+              <td>
+                <button onclick="deleteRegion(${r.id})" class="danger">🗑️ Hapus</button>
+              </td>
+            </tr>`
+          )
+          .join("");
+      } catch (err) {
+        console.error("❌ Gagal memuat region:", err);
+        msg.textContent = "Gagal memuat data region.";
+        msg.style.color = "#e74c3c";
+      }
+    }
+
+    async function addRegion(e) {
+      e.preventDefault();
+      msg.textContent = "";
+      const name = document.getElementById("regionName").value.trim();
+      if (!name) {
+        msg.textContent = "Nama region wajib diisi.";
+        msg.style.color = "#e67e22";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/regions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ name }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.message || "Gagal menambah region.");
+
+        msg.textContent = "Region berhasil ditambahkan.";
+        msg.style.color = "#28a745";
+        regionForm.reset();
+        loadRegions();
+      } catch (err) {
+        console.error("❌ Gagal tambah region:", err);
+        msg.textContent = "Gagal menambah region.";
+        msg.style.color = "#e74c3c";
+      }
+    }
+
+    async function deleteRegion(id) {
+      if (!confirm("Yakin ingin menghapus region ini?")) return;
+      try {
+        const res = await fetch(`/api/regions/${id}`, { method: "DELETE", headers });
+        if (!res.ok) throw new Error("Gagal menghapus region.");
+        loadRegions();
+      } catch (err) {
+        console.error("❌ Gagal hapus region:", err);
+      }
+    }
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      regionForm.reset();
+      msg.textContent = "";
+    });
+
+    regionForm.addEventListener("submit", addRegion);
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "login.html";
+    });
+
+    loadRegions();
+  </script>
 </body>
 </html>
