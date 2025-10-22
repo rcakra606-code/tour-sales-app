@@ -1,104 +1,160 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Profile — Travel Dashboard</title>
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="icon" href="/favicon.ico" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profil Pengguna | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script defer src="./js/ui.js"></script>
 </head>
-<body class="theme-light">
-  <!-- SIDEBAR -->
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-top">
-      <button id="sidebarToggle" class="btn-icon">☰</button>
-      <h1 class="brand">TravelDash</h1>
-      <button id="themeToggle" class="btn-icon">🌓</button>
+
+<body class="light-mode">
+  <!-- ===================================================== -->
+  <!-- 🧭 SIDEBAR -->
+  <!-- ===================================================== -->
+  <aside id="sidebar" class="sidebar expanded">
+    <div class="sidebar-header">
+      <h2>Travel Dashboard</h2>
+      <button id="toggleSidebar">☰</button>
     </div>
-    <nav class="sidebar-nav">
-      <ul>
-        <li><a href="/dashboard.html">🏠 Dashboard</a></li>
-        <li class="expandable">
-          <button class="expand-toggle">📊 Reports</button>
-          <ul class="submenu">
-            <li><a href="/report_tour.html">Report Tour</a></li>
-            <li><a href="/report_sales.html">Report Sales</a></li>
-            <li><a href="/report_document.html">Report Document</a></li>
-          </ul>
-        </li>
-        <li class="expandable">
-          <button class="expand-toggle">⚙️ Management</button>
-          <ul class="submenu">
-            <li><a href="/region_management.html">Region Management</a></li>
-            <li><a href="/user-management.html">User Management</a></li>
-          </ul>
-        </li>
-        <li><a href="/executive-dashboard.html">📈 Executive</a></li>
-        <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-        <li><a href="/profile.html" class="active">👤 Profile</a></li>
-        <li><a href="/logout.html">🚪 Logout</a></li>
-      </ul>
-    </nav>
-    <div class="sidebar-footer"><small>v5.3.6 • Travel Dashboard</small></div>
+    <ul class="sidebar-menu">
+      <li><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
+      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
+      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
+      <li><a href="user-management.html">👥 User Management</a></li>
+      <li class="active"><a href="profile.html">👤 Profil</a></li>
+      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span>🌞</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" />
+        <span class="slider round"></span>
+      </label>
+      <span>🌙</span>
+    </div>
   </aside>
 
-  <!-- MAIN -->
-  <div id="main" class="main-content">
-    <header class="topbar">
-      <h2>My Profile</h2>
-      <div class="user-info"><span id="activeUser">Loading...</span></div>
+  <!-- ===================================================== -->
+  <!-- 👤 MAIN CONTENT -->
+  <!-- ===================================================== -->
+  <main id="main-content">
+    <header>
+      <h1>👤 Profil Pengguna</h1>
+      <p>Perbarui data profil dan kredensial akun Anda.</p>
     </header>
 
-    <main class="container">
-      <!-- Info User -->
-      <section class="panel form-panel">
-        <div class="panel-header">
-          <h4>👤 Informasi Akun</h4>
+    <section class="profile-section">
+      <div class="profile-card">
+        <h3>Informasi Akun</h3>
+        <div class="profile-info">
+          <p><strong>Username:</strong> <span id="profileUsername">-</span></p>
+          <p><strong>Nama Staff:</strong> <span id="profileStaffName">-</span></p>
+          <p><strong>Role:</strong> <span id="profileRole">-</span></p>
         </div>
-        <div class="panel-body">
-          <form id="profileForm" class="form-grid">
-            <div class="form-group">
-              <label>Username</label>
-              <input type="text" id="username" disabled />
-            </div>
-            <div class="form-group">
-              <label>Nama Staff</label>
-              <input type="text" id="staffName" required />
-            </div>
-            <div class="form-group">
-              <label>Role</label>
-              <input type="text" id="role" disabled />
-            </div>
-            <div class="form-group">
-              <label>Password Baru (opsional)</label>
-              <input type="password" id="newPassword" minlength="6" />
-            </div>
+      </div>
 
-            <div class="form-actions" style="grid-column: 1 / -1;">
-              <button type="submit" class="btn">💾 Simpan Perubahan</button>
-              <button type="reset" class="btn gray">🔄 Reset</button>
-            </div>
-          </form>
-        </div>
-      </section>
+      <div class="profile-card">
+        <h3>Perbarui Profil</h3>
+        <form id="updateProfileForm">
+          <label for="username">Username Baru</label>
+          <input type="text" id="username" placeholder="Masukkan username baru" />
 
-      <!-- Info Created -->
-      <section class="panel">
-        <div class="panel-header"><h4>📅 Info Akun</h4></div>
-        <div class="panel-body">
-          <p><strong>ID:</strong> <span id="userId">-</span></p>
-          <p><strong>Dibuat pada:</strong> <span id="createdAt">-</span></p>
-        </div>
-      </section>
-    </main>
+          <label for="staff_name">Nama Staff Baru</label>
+          <input type="text" id="staff_name" placeholder="Masukkan nama staff baru" />
 
-    <footer class="footer">
-      <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-    </footer>
-  </div>
+          <label for="password">Password Baru</label>
+          <input type="password" id="password" placeholder="Masukkan password baru" />
 
-  <script src="/js/ui.js"></script>
-  <script src="/js/profile.js" defer></script>
+          <button type="submit" id="updateBtn">💾 Simpan Perubahan</button>
+          <p id="message" class="message"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================================================== -->
+  <!-- 📜 SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "login.html";
+
+    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+    const usernameEl = document.getElementById("profileUsername");
+    const staffNameEl = document.getElementById("profileStaffName");
+    const roleEl = document.getElementById("profileRole");
+    const form = document.getElementById("updateProfileForm");
+    const msg = document.getElementById("message");
+
+    // Ambil data profil user
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/profile", { headers });
+        if (!res.ok) throw new Error("Gagal memuat profil");
+        const data = await res.json();
+
+        usernameEl.textContent = data.username;
+        staffNameEl.textContent = data.staff_name || "-";
+        roleEl.textContent = data.role.toUpperCase();
+
+        // Prefill form
+        document.getElementById("username").value = data.username;
+        document.getElementById("staff_name").value = data.staff_name || "";
+      } catch (err) {
+        console.error("❌ Gagal memuat profil:", err);
+        msg.textContent = "Gagal memuat data profil.";
+        msg.style.color = "#e74c3c";
+      }
+    }
+
+    // Update profil
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "";
+
+      const username = document.getElementById("username").value.trim();
+      const staff_name = document.getElementById("staff_name").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (!username && !staff_name && !password) {
+        msg.textContent = "Isi minimal satu data untuk diperbarui.";
+        msg.style.color = "#e67e22";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/profile", {
+          method: "PUT",
+          headers,
+          body: JSON.stringify({ username, staff_name, password }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Gagal memperbarui profil.");
+
+        msg.textContent = data.message || "Profil berhasil diperbarui.";
+        msg.style.color = "#28a745";
+
+        setTimeout(() => {
+          msg.textContent = "";
+          loadProfile();
+        }, 1500);
+      } catch (err) {
+        console.error("❌ Gagal update profil:", err);
+        msg.textContent = "Gagal memperbarui profil.";
+        msg.style.color = "#e74c3c";
+      }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "login.html";
+    });
+
+    loadProfile();
+  </script>
 </body>
 </html>
