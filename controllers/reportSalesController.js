@@ -1,135 +1,156 @@
-/**
- * ==========================================================
- * 📁 controllers/reportSalesController.js (ESM version)
- * Travel Dashboard Enterprise v5.0
- * ==========================================================
- * Controller untuk modul Laporan Sales (Analitik):
- * - Rekap total sales & profit per bulan
- * - Perbandingan dengan target per staff
- * - Filter berdasarkan bulan, tahun, dan staff
- * ==========================================================
- */
+// ==========================================================
+// 💹 Report Sales Controller — Travel Dashboard Enterprise v5.4.5
+// ==========================================================
+// Fitur:
+// - Laporan penjualan per staff dan keseluruhan
+// - Rekap target vs pencapaian
+// - Export Excel / CSV
+// ==========================================================
 
 import pkg from "pg";
-import dotenv from "dotenv";
+import ExcelJS from "exceljs";
+import { parse } from "json2csv";
 
-dotenv.config();
 const { Pool } = pkg;
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-/**
- * 📊 Ambil ringkasan laporan sales bulanan
- */
-export const getSalesSummary = async (req, res) => {
+// ==========================================================
+// 🔹 GET /api/report/sales — Semua laporan sales
+// ==========================================================
+export async function getAllSalesReport(req, res) {
   try {
-    const { month, year, staff_name } = req.query;
-
-    const queryParams = [];
-    let filter = "";
-
-    if (month) {
-      queryParams.push(month);
-      filter += ` AND EXTRACT(MONTH FROM s.transaction_date) = $${queryParams.length}`;
-    }
-
-    if (year) {
-      queryParams.push(year);
-      filter += ` AND EXTRACT(YEAR FROM s.transaction_date) = $${queryParams.length}`;
-    }
-
-    if (staff_name) {
-      queryParams.push(staff_name);
-      filter += ` AND s.staff_name = $${queryParams.length}`;
-    }
-
-    const query = `
-      SELECT 
-        COALESCE(SUM(s.sales_amount), 0) AS total_sales,
-        COALESCE(SUM(s.profit_amount), 0) AS total_profit,
-        COUNT(s.id) AS total_transactions,
-        COALESCE(t.target_sales, 0) AS target_sales,
-        COALESCE(t.target_profit, 0) AS target_profit,
-        (COALESCE(SUM(s.sales_amount), 0) - COALESCE(t.target_sales, 0)) AS variance_sales,
-        (COALESCE(SUM(s.profit_amount), 0) - COALESCE(t.target_profit, 0)) AS variance_profit
-      FROM sales s
-      LEFT JOIN targets t
-        ON t.staff_name = s.staff_name
-       AND EXTRACT(MONTH FROM s.transaction_date) = t.month
-       AND EXTRACT(YEAR FROM s.transaction_date) = t.year
-      WHERE 1=1
-      ${filter};
+    const q = `
+      SELECT id, staff_name, transaction_date, invoice_number, sales_amount, profit_amount, remarks, created_at
+      FROM sales
+      ORDER BY transaction_date DESC;
     `;
-
-    const result = await pool.query(query, queryParams);
-
-    const summary = result.rows[0] || {
-      total_sales: 0,
-      total_profit: 0,
-      total_transactions: 0,
-      target_sales: 0,
-      target_profit: 0,
-      variance_sales: 0,
-      variance_profit: 0,
-    };
-
-    res.json({
-      month: month ? parseInt(month) : null,
-      year: year ? parseInt(year) : null,
-      staff_name: staff_name || "ALL",
-      ...summary,
-    });
+    const { rows } = await pool.query(q);
+    res.json(rows);
   } catch (err) {
-    console.error("❌ Gagal memuat laporan sales summary:", err.message);
-    res.status(500).json({ message: "Gagal memuat laporan sales summary." });
+    console.error("❌ getAllSalesReport error:", err);
+    res.status(500).json({ message: "Gagal memuat laporan penjualan" });
   }
-};
+}
 
-/**
- * 📈 Ambil kinerja seluruh staff (perbandingan target vs realisasi)
- */
-export const getPerformanceByStaff = async (req, res) => {
+// ==========================================================
+// 🔹 GET /api/report/sales/staff/:staff_name — Laporan per staff
+// ==========================================================
+export async function getSalesByStaff(req, res) {
   try {
-    const { month, year } = req.query;
-    const queryParams = [];
-    let filter = "";
+    const { staff_name } = req.params;
+    const q = `
+      SELECT id, transaction_date, invoice_number, sales_amount, profit_amount, remarks
+      FROM sales
+      WHERE LOWER(staff_name) = LOWER($1)
+      ORDER BY transaction_date DESC;
+    `;
+    const { rows } = await pool.query(q, [staff_name]);
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ getSalesByStaff error:", err);
+    res.status(500).json({ message: "Gagal memuat laporan penjualan staff" });
+  }
+}
 
-    if (month) {
-      queryParams.push(month);
-      filter += ` AND EXTRACT(MONTH FROM s.transaction_date) = $${queryParams.length}`;
-    }
-    if (year) {
-      queryParams.push(year);
-      filter += ` AND EXTRACT(YEAR FROM s.transaction_date) = $${queryParams.length}`;
-    }
-
-    const query = `
-      SELECT 
+// ==========================================================
+// 🔹 GET /api/report/sales/summary — Target vs Pencapaian
+// ==========================================================
+export async function getSalesSummary(req, res) {
+  try {
+    const q = `
+      SELECT
         s.staff_name,
         COALESCE(SUM(s.sales_amount), 0) AS total_sales,
         COALESCE(SUM(s.profit_amount), 0) AS total_profit,
         COALESCE(t.target_sales, 0) AS target_sales,
         COALESCE(t.target_profit, 0) AS target_profit,
-        (COALESCE(SUM(s.sales_amount), 0) - COALESCE(t.target_sales, 0)) AS variance_sales,
-        (COALESCE(SUM(s.profit_amount), 0) - COALESCE(t.target_profit, 0)) AS variance_profit
+        CASE 
+          WHEN t.target_sales > 0 THEN ROUND((SUM(s.sales_amount) / t.target_sales) * 100, 2)
+          ELSE 0
+        END AS sales_achievement,
+        CASE 
+          WHEN t.target_profit > 0 THEN ROUND((SUM(s.profit_amount) / t.target_profit) * 100, 2)
+          ELSE 0
+        END AS profit_achievement
       FROM sales s
-      LEFT JOIN targets t
-        ON t.staff_name = s.staff_name
-       AND EXTRACT(MONTH FROM s.transaction_date) = t.month
-       AND EXTRACT(YEAR FROM s.transaction_date) = t.year
-      WHERE 1=1
-      ${filter}
+      LEFT JOIN targets t 
+      ON LOWER(s.staff_name) = LOWER(t.staff_name)
       GROUP BY s.staff_name, t.target_sales, t.target_profit
-      ORDER BY total_sales DESC;
+      ORDER BY s.staff_name ASC;
     `;
 
-    const result = await pool.query(query, queryParams);
-    res.json(result.rows);
+    const { rows } = await pool.query(q);
+    res.json(rows);
   } catch (err) {
-    console.error("❌ Gagal memuat data kinerja staff:", err.message);
-    res.status(500).json({ message: "Gagal memuat data kinerja staff." });
+    console.error("❌ getSalesSummary error:", err);
+    res.status(500).json({ message: "Gagal memuat ringkasan target dan pencapaian" });
   }
-};
+}
+
+// ==========================================================
+// 🔹 GET /api/report/sales/export — Export ke Excel / CSV
+// ==========================================================
+export async function exportSalesReport(req, res) {
+  try {
+    const format = req.query.format || "xlsx";
+
+    const q = `
+      SELECT id, staff_name, transaction_date, invoice_number, sales_amount, profit_amount, remarks
+      FROM sales
+      ORDER BY transaction_date DESC;
+    `;
+    const { rows } = await pool.query(q);
+
+    if (rows.length === 0)
+      return res.status(404).json({ message: "Tidak ada data penjualan untuk diekspor" });
+
+    // ------------------------------------------------------
+    // 📘 Export Excel
+    if (format === "xlsx") {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet("Sales Report");
+
+      sheet.columns = [
+        { header: "No", key: "id", width: 5 },
+        { header: "Nama Staff", key: "staff_name", width: 20 },
+        { header: "Tanggal Transaksi", key: "transaction_date", width: 20 },
+        { header: "Nomor Invoice", key: "invoice_number", width: 20 },
+        { header: "Total Sales", key: "sales_amount", width: 15 },
+        { header: "Profit", key: "profit_amount", width: 15 },
+        { header: "Keterangan", key: "remarks", width: 25 },
+      ];
+
+      rows.forEach((row) => sheet.addRow(row));
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader("Content-Disposition", "attachment; filename=sales_report.xlsx");
+
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+
+    // ------------------------------------------------------
+    // 📄 Export CSV
+    if (format === "csv") {
+      const csv = parse(rows);
+      res.header("Content-Type", "text/csv");
+      res.attachment("sales_report.csv");
+      res.send(csv);
+      return;
+    }
+
+    // ------------------------------------------------------
+    // ❌ Format tidak dikenal
+    return res.status(400).json({ message: "Format tidak dikenali (gunakan xlsx atau csv)" });
+  } catch (err) {
+    console.error("❌ exportSalesReport error:", err);
+    res.status(500).json({ message: "Gagal mengekspor laporan penjualan" });
+  }
+}
