@@ -1,11 +1,12 @@
 // ==========================================================
-// ⚙️ UI Controller — Travel Dashboard Enterprise v5.4.6
+// ⚙️ UI Controller — Travel Dashboard Enterprise v5.4.7
 // ==========================================================
-// Mengatur:
-// - Sidebar expand/collapse
-// - Mode siang/malam (dark/light)
+// Fitur:
+// - Sidebar expand/collapse (dengan localStorage persist)
+// - Dark/Light mode toggle
 // - Logout universal
-// - Responsive sidebar
+// - Highlight menu aktif otomatis
+// - Responsive auto-collapse
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -16,9 +17,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoutBtn = document.getElementById("logoutBtn");
 
   // ======================================================
+  // 🚨 SAFE GUARD
+  // ======================================================
+  if (!sidebar) {
+    console.warn("⚠️ Sidebar not found: skipping UI binding for this page.");
+  }
+
+  // ======================================================
   // 🧭 SIDEBAR TOGGLE
   // ======================================================
-  if (toggleSidebar) {
+  if (toggleSidebar && sidebar) {
     toggleSidebar.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
       localStorage.setItem("sidebar-collapsed", sidebar.classList.contains("collapsed"));
@@ -26,9 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Muat status sidebar dari localStorage
-  const sidebarState = localStorage.getItem("sidebar-collapsed");
-  if (sidebarState === "true") {
-    sidebar.classList.add("collapsed");
+  if (sidebar) {
+    const sidebarState = localStorage.getItem("sidebar-collapsed");
+    if (sidebarState === "true") sidebar.classList.add("collapsed");
   }
 
   // ======================================================
@@ -77,25 +85,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // ======================================================
   // 🌐 MENU ACTIVE STATE
   // ======================================================
-  const menuLinks = document.querySelectorAll(".sidebar-menu a");
-  menuLinks.forEach(link => {
-    if (window.location.pathname.includes(link.getAttribute("href"))) {
-      link.parentElement.classList.add("active");
-    } else {
-      link.parentElement.classList.remove("active");
-    }
-  });
+  if (sidebar) {
+    const menuLinks = document.querySelectorAll(".sidebar-menu a");
+    const currentPath = window.location.pathname.split("/").pop();
+    menuLinks.forEach(link => {
+      if (link.getAttribute("href") === currentPath) {
+        link.parentElement.classList.add("active");
+      } else {
+        link.parentElement.classList.remove("active");
+      }
+    });
+  }
 
   // ======================================================
-  // 📱 RESPONSIVE AUTO COLLAPSE
+  // 📱 RESPONSIVE AUTO COLLAPSE (SAFE VERSION)
   // ======================================================
   function handleResize() {
+    const sidebarEl = document.getElementById("sidebar");
+    if (!sidebarEl) return;
+
     if (window.innerWidth < 900) {
-      sidebar.classList.add("collapsed");
+      sidebarEl.classList.add("collapsed");
     } else if (localStorage.getItem("sidebar-collapsed") === "false") {
-      sidebar.classList.remove("collapsed");
+      sidebarEl.classList.remove("collapsed");
     }
   }
+
   window.addEventListener("resize", handleResize);
   handleResize();
 });
