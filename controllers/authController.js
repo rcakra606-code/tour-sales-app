@@ -2,44 +2,35 @@
 // 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
 // Fitur:
-// - Login user dengan bcryptjs + JWT
-// - Validasi password_hash
-// - Generate access & refresh token
-// - Return role + staff_name ke frontend
-// - Aman untuk Render + NeonDB
+// - Login user (JWT)
+// - Verify token
+// - Auto refresh role dan staff name
 // ==========================================================
 
 import pkg from "pg";
-import bcryptjs from "bcryptjs";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const bcrypt = bcryptjs;
 const { Pool } = pkg;
-
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
-const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
-
 // ==========================================================
-// 🧩 Helper: Token Generator
+// 🧠 Helper: Generate JWT Token
 // ==========================================================
-function generateTokens(user) {
-  const payload = {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    staff_name: user.staff_name,
-  };
-
-  const accessToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-  const refreshToken = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_REFRESH_EXPIRES_IN });
-
-  return { accessToken, refreshToken };
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      staff_name: user.staff_name,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
+  );
 }
 
 // ==========================================================
@@ -48,99 +39,95 @@ function generateTokens(user) {
 export async function login(req, res) {
   const { username, password } = req.body;
 
-  if (!username || !password) {
-    return res.status(400).json({ message: "Username dan password wajib diisi." });
-  }
-
   try {
-    const query = `
-      SELECT id, username, staff_name, password_hash, role
-      FROM users
-      WHERE LOWER(username) = LOWER($1)
-      LIMIT 1;
-    `;
-    const { rows } = await pool.query(query, [username]);
-    if (rows.length === 0) {
-      return res.status(401).json({ message: "User tidak ditemukan." });
+    // 1️⃣ Cari user di database
+    const userQuery = await pool.query(
+      "SELECT id, username, password_hash, staff_name, role FROM users WHERE username = $1",
+      [username]
+    );
+
+    if (userQuery.rows.length === 0) {
+      return res.status(401).json({ message: "Username atau password salah." });
     }
 
-    const user = rows[0];
+    const user = userQuery.rows[0];
 
-    if (!user.password_hash || typeof user.password_hash !== "string") {
-      return res.status(500).json({ message: "Password user belum diatur dengan benar." });
+    // 2️⃣ Verifikasi password
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Username atau password salah." });
     }
 
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) {
-      return res.status(401).json({ message: "Password salah." });
-    }
+    // 3️⃣ Buat JWT token
+    const token = generateToken(user);
 
-    const { accessToken, refreshToken } = generateTokens(user);
-
-    res.status(200).json({
-      message: "Login berhasil",
-      token: accessToken,
-      refresh_token: refreshToken,
+    // 4️⃣ Kirim response ke frontend
+    res.json({
+      token,
       username: user.username,
-      role: user.role,
       staff_name: user.staff_name,
+      role: user.role,
     });
   } catch (err) {
     console.error("❌ Auth login error:", err);
-    res.status(500).json({ message: "Terjadi kesalahan server saat login." });
+    res.status(500).json({ message: "Terjadi kesalahan saat login." });
   }
 }
 
 // ==========================================================
-// 🔹 POST /api/auth/refresh — Perpanjang Token
+// 🔹 GET /api/auth/verify
 // ==========================================================
-export async function refreshToken(req, res) {
-  const { token } = req.body;
-  if (!token) {
-    return res.status(400).json({ message: "Token tidak ditemukan." });
-  }
-
+export async function verifyToken(req, res) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userQuery = `
-      SELECT id, username, staff_name, role
-      FROM users WHERE id = $1;
-    `;
-    const { rows } = await pool.query(userQuery, [decoded.id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "User tidak ditemukan." });
+    const authHeader = req.headers["authorization"];
+    if (!authHeader) return res.status(401).json({ message: "Token tidak ditemukan." });
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const userCheck = await pool.query(
+      "SELECT id, username, role, staff_name FROM users WHERE id = $1",
+      [decoded.id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(401).json({ message: "User tidak ditemukan." });
     }
 
-    const user = rows[0];
-    const { accessToken, refreshToken } = generateTokens(user);
     res.json({
-      token: accessToken,
-      refresh_token: refreshToken,
-      username: user.username,
-      role: user.role,
-      staff_name: user.staff_name,
+      valid: true,
+      user: userCheck.rows[0],
     });
   } catch (err) {
-    console.error("❌ Refresh token error:", err);
-    res.status(401).json({ message: "Token tidak valid atau telah kedaluwarsa." });
+    console.error("❌ Verify token error:", err);
+    res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
   }
 }
 
 // ==========================================================
-// 🔹 GET /api/auth/verify — Cek Validitas Token
+// 🔹 POST /api/auth/register (Opsional: admin only)
 // ==========================================================
-export async function verify(req, res) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Token tidak ditemukan." });
-  }
-
-  const token = authHeader.split(" ")[1];
+export async function register(req, res) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ valid: true, user: decoded });
+    const { username, password, role = "staff", staff_name } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username dan password wajib diisi." });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      "INSERT INTO users (username, password_hash, role, staff_name) VALUES ($1, $2, $3, $4)",
+      [username, hash, role, staff_name || ""]
+    );
+
+    res.json({ message: "User berhasil didaftarkan." });
   } catch (err) {
-    console.error("❌ Verify token error:", err);
-    res.status(401).json({ valid: false, message: "Token tidak valid atau kedaluwarsa." });
+    console.error("❌ Register user error:", err);
+    if (err.code === "23505") {
+      return res.status(400).json({ message: "Username sudah digunakan." });
+    }
+    res.status(500).json({ message: "Gagal mendaftarkan user." });
   }
 }
