@@ -1,5 +1,5 @@
 /* ==========================================================
-🎨 Travel Dashboard Enterprise v5.4.5 — Universal Stylesheet
+🎨 Travel Dashboard Enterprise v5.4.6 — Universal Stylesheet
 ========================================================== */
 
 /* -------------------------------------- */
@@ -42,6 +42,7 @@ main {
   left: 0;
   bottom: 0;
   overflow-y: auto;
+  z-index: 10;
 }
 
 .sidebar-header {
@@ -233,6 +234,10 @@ tr:hover {
   padding: 20px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   text-align: center;
+  transition: transform 0.2s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
 }
 .card h3 {
   font-size: 16px;
@@ -261,24 +266,101 @@ tr:hover {
 }
 
 /* -------------------------------------- */
-/* ⚙️ Mode Terang & Gelap */
+/* 🔐 LOGIN PAGE */
+/* -------------------------------------- */
+.login-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-main);
+  width: 100%;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  padding: 10px;
+}
+
+.login-card {
+  background: var(--bg-card);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.login-card h1 {
+  margin-bottom: 10px;
+  color: var(--accent);
+  font-size: 22px;
+}
+
+.login-card p {
+  color: var(--text-header);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-card input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-input);
+  color: var(--text-main);
+}
+
+.login-card button {
+  background: var(--accent);
+  border: none;
+  padding: 10px;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.login-card button:hover {
+  background: var(--accent-hover);
+}
+
+.error-msg {
+  color: #e74c3c;
+  font-size: 13px;
+  min-height: 18px;
+}
+
+.theme-toggle-login {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+/* -------------------------------------- */
+/* ⚙️ Theme Variables */
 /* -------------------------------------- */
 :root {
   --accent: #007bff;
   --accent-hover: #0056b3;
   --accent-light: #e6f0ff;
-
   --bg-main: #f5f7fa;
   --bg-card: #ffffff;
   --bg-table: #ffffff;
   --bg-input: #f0f0f0;
   --bg-sidebar: #ffffff;
   --sidebar-header: #e9ecef;
-
   --text-main: #212529;
   --text-sidebar: #212529;
   --text-header: #333;
-
   --border-light: #dee2e6;
   --hover-bg: #f1f3f5;
 }
@@ -287,18 +369,15 @@ body.dark-mode {
   --accent: #1e90ff;
   --accent-hover: #63b3ed;
   --accent-light: #243447;
-
   --bg-main: #181a1b;
   --bg-card: #1f2223;
   --bg-table: #1f2223;
   --bg-input: #2a2d2e;
   --bg-sidebar: #202324;
   --sidebar-header: #2a2e30;
-
   --text-main: #f0f0f0;
   --text-sidebar: #f0f0f0;
   --text-header: #ffffff;
-
   --border-light: #343a40;
   --hover-bg: #2a2e31;
 }
@@ -309,7 +388,7 @@ body.dark-mode {
 @media (max-width: 992px) {
   .sidebar {
     position: fixed;
-    z-index: 10;
+    z-index: 15;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
   }
@@ -326,7 +405,7 @@ body.dark-mode {
 }
 
 /* -------------------------------------- */
-/* 💫 Animasi Transisi */
+/* 💫 Page Animations */
 /* -------------------------------------- */
 .fade-in {
   opacity: 0;
