@@ -1,25 +1,25 @@
 {
   "name": "travel-dashboard-enterprise",
   "version": "5.4.8",
-  "description": "Travel Dashboard Enterprise — Fullstack system for managing tour, sales, documents, and executive reporting. Integrated with PostgreSQL (NeonDB) and Render deployment.",
+  "description": "Travel Dashboard Enterprise — Fullstack system for managing tour, sales, documents, executive reporting, with NeonDB and Render auto-deploy integration.",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/auto-repair-deploy.js",
+    "dev": "nodemon server.js",
     "init-db": "node scripts/initDatabase.js",
     "setup-admin": "node scripts/setup-admin.js",
-    "postinstall": "npm run init-db && npm run setup-admin",
-    "dev": "nodemon server.js"
+    "clean-structure": "node scripts/auto-clean-structure.js"
   },
   "keywords": [
     "travel",
     "dashboard",
-    "reporting",
     "enterprise",
+    "render",
+    "neondb",
     "express",
     "postgresql",
-    "render",
-    "neon"
+    "auto-deploy"
   ],
   "author": "Travel Dashboard Enterprise Team",
   "license": "MIT",
@@ -37,5 +37,9 @@
   },
   "engines": {
     "node": ">=18.x"
+  },
+  "render": {
+    "startCommand": "npm start",
+    "buildCommand": "npm install"
   }
 }
