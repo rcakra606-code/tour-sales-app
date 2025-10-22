@@ -1,4 +1,12 @@
-// controllers/dashboardController.js
+// ==========================================================
+// 📊 Dashboard Controller — Travel Dashboard Enterprise v5.4.6
+// ==========================================================
+// Fitur:
+// - Dashboard summary (total sales, profit, tour, dokumen, user aktif)
+// - Tour region data untuk chart
+// - Target vs realisasi sales/profit per bulan per staff
+// ==========================================================
+
 import pkg from "pg";
 const { Pool } = pkg;
 
@@ -7,95 +15,94 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-/**
- * GET /api/dashboard/summary
- * Return main summary numbers (sales, profit, tours, regions)
- */
+// ==========================================================
+// 🔹 GET /api/dashboard/summary
+// ==========================================================
 export async function getDashboardSummary(req, res) {
   try {
-    const userRole = req.user.role;
-    const staffName = req.user.staff_name || req.user.username;
+    // Dapatkan bulan aktif (YYYY-MM)
+    const now = new Date();
+    const activeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-    let where = "";
-    if (userRole === "staff") where = `WHERE s.staff_name = '${staffName}'`;
+    // Total sales, profit, tour, dokumen
+    const totalQuery = `
+      SELECT
+        (SELECT COUNT(*) FROM users) AS total_users,
+        (SELECT COUNT(*) FROM tours) AS total_tours,
+        (SELECT COUNT(*) FROM documents) AS total_documents,
+        (SELECT SUM(sales_amount) FROM sales) AS total_sales,
+        (SELECT SUM(profit_amount) FROM sales) AS total_profit;
+    `;
 
-    const totalSalesQ = `SELECT COALESCE(SUM(sales_amount),0) AS total_sales, COALESCE(SUM(profit_amount),0) AS total_profit FROM sales s ${where}`;
-    const totalToursQ = `SELECT COUNT(*) AS total_tours FROM tours ${where ? `WHERE staff = '${staffName}'` : ""}`;
-    const totalRegionsQ = `SELECT COUNT(*) AS total_regions FROM regions`;
+    const { rows: totalRows } = await pool.query(totalQuery);
+    const summary = totalRows[0];
 
-    const [salesR, toursR, regionR] = await Promise.all([
-      pool.query(totalSalesQ),
-      pool.query(totalToursQ),
-      pool.query(totalRegionsQ),
-    ]);
+    // Target per bulan & pencapaian aktual
+    const targetQuery = `
+      SELECT t.staff_name,
+             t.month,
+             t.target_sales,
+             t.target_profit,
+             COALESCE(SUM(s.sales_amount),0) AS actual_sales,
+             COALESCE(SUM(s.profit_amount),0) AS actual_profit
+      FROM targets t
+      LEFT JOIN sales s
+        ON LOWER(s.staff_name) = LOWER(t.staff_name)
+        AND TO_CHAR(s.transaction_date, 'YYYY-MM') = t.month
+      WHERE t.month = $1
+      GROUP BY t.staff_name, t.month, t.target_sales, t.target_profit
+      ORDER BY t.staff_name ASC;
+    `;
 
-    return res.json({
-      totalSales: parseFloat(salesR.rows[0].total_sales) || 0,
-      totalProfit: parseFloat(salesR.rows[0].total_profit) || 0,
-      totalTours: parseInt(toursR.rows[0].total_tours) || 0,
-      totalRegions: parseInt(regionR.rows[0].total_regions) || 0,
+    const { rows: targetRows } = await pool.query(targetQuery, [activeMonth]);
+
+    // Format hasil target dengan persen pencapaian
+    const targetData = targetRows.map((t) => ({
+      staff_name: t.staff_name,
+      month: t.month,
+      target_sales: Number(t.target_sales || 0),
+      target_profit: Number(t.target_profit || 0),
+      actual_sales: Number(t.actual_sales || 0),
+      actual_profit: Number(t.actual_profit || 0),
+      sales_progress: t.target_sales > 0 ? Math.min(100, Math.round((t.actual_sales / t.target_sales) * 100)) : 0,
+      profit_progress: t.target_profit > 0 ? Math.min(100, Math.round((t.actual_profit / t.target_profit) * 100)) : 0,
+    }));
+
+    res.json({
+      totals: {
+        total_users: Number(summary.total_users || 0),
+        total_tours: Number(summary.total_tours || 0),
+        total_documents: Number(summary.total_documents || 0),
+        total_sales: Number(summary.total_sales || 0),
+        total_profit: Number(summary.total_profit || 0),
+      },
+      targets: targetData,
+      month: activeMonth,
     });
   } catch (err) {
     console.error("❌ Dashboard summary error:", err);
-    res.status(500).json({ message: "Gagal memuat summary" });
+    res.status(500).json({ message: "Gagal memuat ringkasan dashboard." });
   }
 }
 
-/**
- * GET /api/dashboard/staff-progress
- * Return progress comparison for each staff (sales & profit)
- */
-export async function getStaffProgress(req, res) {
+// ==========================================================
+// 🔹 GET /api/dashboard/tour-region
+// ==========================================================
+export async function getTourRegionData(req, res) {
   try {
-    const role = req.user.role;
-    const staffName = req.user.staff_name || req.user.username;
-
-    let filter = "";
-    if (role === "staff") filter = `WHERE s.staff_name = '${staffName}'`;
-
-    const q = `
-      SELECT 
-        s.staff_name,
-        DATE_TRUNC('month', s.transaction_date)::date AS month,
-        COALESCE(SUM(s.sales_amount),0) AS total_sales,
-        COALESCE(SUM(s.profit_amount),0) AS total_profit,
-        COALESCE(t.target_sales,0) AS target_sales,
-        COALESCE(t.target_profit,0) AS target_profit
-      FROM sales s
-      LEFT JOIN targets t 
-        ON LOWER(s.staff_name) = LOWER(t.staff_name)
-        AND DATE_TRUNC('month', s.transaction_date) = DATE_TRUNC('month', t.month)
-      ${filter}
-      GROUP BY s.staff_name, t.target_sales, t.target_profit, month
-      ORDER BY month DESC
-      LIMIT 12;
+    const query = `
+      SELECT region, COUNT(*) AS total_tour, 
+             SUM(CASE WHEN departure_status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed,
+             SUM(CASE WHEN departure_status = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+             SUM(CASE WHEN departure_status = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled
+      FROM tours
+      GROUP BY region
+      ORDER BY region;
     `;
-
-    const { rows } = await pool.query(q);
-    return res.json(rows);
-  } catch (err) {
-    console.error("❌ Staff progress error:", err);
-    res.status(500).json({ message: "Gagal memuat progress staff" });
-  }
-}
-
-/**
- * GET /api/dashboard/tour-region
- * Return total pax per region (for chart)
- */
-export async function getTourRegion(req, res) {
-  try {
-    const q = `
-      SELECT r.name AS region, COUNT(t.id) AS total_tours
-      FROM tours t
-      LEFT JOIN regions r ON r.name = t.region
-      GROUP BY r.name
-      ORDER BY total_tours DESC;
-    `;
-    const { rows } = await pool.query(q);
+    const { rows } = await pool.query(query);
     res.json(rows);
   } catch (err) {
-    console.error("❌ GET regions error:", err);
-    res.status(500).json({ message: "Gagal memuat data region" });
+    console.error("❌ Tour region summary error:", err);
+    res.status(500).json({ message: "Gagal memuat data tour per region." });
   }
 }
