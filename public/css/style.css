@@ -1,74 +1,66 @@
 /* ==========================================================
-🎨 Travel Dashboard Enterprise v5.4.6
-Global Stylesheet
-========================================================== */
+   🎨 Travel Dashboard Enterprise v5.4.6 — Global Stylesheet
+   ========================================================== */
 
-/* ------------------------------
-   🌈 CSS VARIABLES
------------------------------- */
-:root {
-  --bg-main: #f7f9fc;
-  --bg-card: #ffffff;
-  --bg-sidebar: #1f2937;
-  --bg-input: #f1f5f9;
-  --border-light: #e5e7eb;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  --text-header: #111827;
-  --accent: #2563eb;
-  --accent-hover: #1e40af;
-}
-
-/* Dark mode */
-body.dark-mode {
-  --bg-main: #0f172a;
-  --bg-card: #1e293b;
-  --bg-sidebar: #111827;
-  --bg-input: #1e293b;
-  --border-light: #334155;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-header: #f1f5f9;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-}
-
-/* ------------------------------
-   🌍 GLOBAL BASE
------------------------------- */
-body {
-  font-family: "Inter", sans-serif;
+/* 🌍 RESET */
+* {
   margin: 0;
   padding: 0;
-  background: var(--bg-main);
-  color: var(--text-main);
-  display: flex;
-  min-height: 100vh;
-  transition: background 0.3s, color 0.3s;
+  box-sizing: border-box;
+  font-family: "Inter", "Segoe UI", sans-serif;
 }
 
-h1, h2, h3, h4 {
-  color: var(--text-header);
-  margin-bottom: 10px;
+html, body {
+  height: 100%;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
 }
 
-p {
-  color: var(--text-muted);
+a {
+  text-decoration: none;
+  color: inherit;
 }
 
-/* ------------------------------
+/* ==========================================================
+   🌗 THEME VARIABLES
+   ========================================================== */
+body.light-mode {
+  --bg-color: #f9fafb;
+  --card-bg: #ffffff;
+  --text-color: #1e293b;
+  --border-color: #e2e8f0;
+  --accent-color: #007bff;
+  --hover-color: #e0e7ff;
+}
+
+body.dark-mode {
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --text-color: #f1f5f9;
+  --border-color: #334155;
+  --accent-color: #3b82f6;
+  --hover-color: #334155;
+}
+
+/* ==========================================================
    🧭 SIDEBAR
------------------------------- */
+   ========================================================== */
 .sidebar {
-  width: 260px;
-  background: var(--bg-sidebar);
-  color: white;
-  height: 100vh;
-  transition: width 0.3s ease;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
-  overflow-y: auto;
-  flex-shrink: 0;
+  width: 250px;
+  height: 100vh;
+  background-color: var(--card-bg);
+  border-right: 1px solid var(--border-color);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  z-index: 100;
 }
 
 .sidebar.collapsed {
@@ -77,355 +69,238 @@ p {
 
 .sidebar-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background: #111827;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
 .sidebar-header h2 {
-  font-size: 18px;
-  margin: 0;
-  color: #fff;
-  transition: opacity 0.3s;
-}
-
-.sidebar.collapsed .sidebar-header h2 {
-  opacity: 0;
-  pointer-events: none;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent-color);
+  white-space: nowrap;
 }
 
 .sidebar-menu {
   list-style: none;
-  margin: 0;
-  padding: 0;
+  flex-grow: 1;
 }
 
-.sidebar-menu li a {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  color: #e5e7eb;
-  text-decoration: none;
-  border-left: 4px solid transparent;
-  transition: background 0.2s, border-left 0.2s;
+.sidebar-menu li {
+  margin: 0.3rem 0;
 }
 
-.sidebar-menu li a:hover {
-  background: #374151;
-  border-left: 4px solid var(--accent);
+.sidebar-menu a {
+  display: block;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.sidebar-menu li.active a {
-  background: #1d4ed8;
+.sidebar-menu a:hover {
+  background-color: var(--hover-color);
+  color: var(--accent-color);
+}
+
+.sidebar-menu .active a {
+  background-color: var(--accent-color);
   color: white;
-  border-left: 4px solid #60a5fa;
+  font-weight: 600;
 }
 
 .theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
-  gap: 10px;
-  font-size: 18px;
-  color: #e5e7eb;
+  gap: 0.5rem;
 }
 
-/* Toggle switch */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 38px;
-  height: 20px;
-}
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0;
-  right: 0; bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-  border-radius: 20px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.4s;
-  border-radius: 50%;
-}
-input:checked + .slider {
-  background-color: var(--accent);
-}
-input:checked + .slider:before {
-  transform: translateX(18px);
-}
-
-/* ------------------------------
-   🧠 MAIN CONTENT
------------------------------- */
+/* ==========================================================
+   📋 MAIN CONTENT
+   ========================================================== */
 #main-content {
-  flex: 1;
-  padding: 25px 35px;
-  overflow-y: auto;
+  margin-left: 260px;
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar.collapsed + #main-content {
+  margin-left: 100px;
+}
+
+header {
+  margin-bottom: 1.5rem;
 }
 
 header h1 {
-  font-size: 24px;
-  margin-bottom: 4px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent-color);
 }
 
 header p {
-  margin-top: 0;
-  font-size: 15px;
-  color: var(--text-muted);
+  color: var(--text-color);
+  opacity: 0.8;
 }
 
-/* ------------------------------
-   📋 FORM & TABLES
------------------------------- */
-.form-section,
-.table-section {
-  background: var(--bg-card);
-  padding: 20px;
-  margin-bottom: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+/* ==========================================================
+   🧾 SECTIONS
+   ========================================================== */
+.filter-section, .form-section, .table-section, .chart-section, .kpi-section {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 15px;
-  margin-bottom: 15px;
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
 }
 
-label {
-  display: block;
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 5px;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 14px;
-}
-
-textarea {
-  resize: vertical;
+.filter-grid input, 
+.filter-grid select, 
+.filter-grid button {
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
 }
 
 button {
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 button:hover {
-  background: var(--accent-hover);
+  transform: translateY(-1px);
 }
 
 button.secondary {
-  background: #6c757d;
+  background-color: var(--border-color);
 }
-button.secondary:hover {
-  background: #5a6268;
-}
+
 button.danger {
-  background: #dc3545;
-}
-button.danger:hover {
-  background: #b91c1c;
+  background-color: #ef4444;
+  color: white;
 }
 
-.message {
-  font-size: 14px;
-  text-align: left;
-  margin-top: 5px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-th, td {
-  text-align: left;
-  padding: 10px;
-  border-bottom: 1px solid var(--border-light);
-}
-th {
-  background: var(--bg-input);
-  color: var(--text-header);
-}
-tr:hover {
-  background: rgba(0,0,0,0.03);
-}
-td.center {
-  text-align: center;
-}
-
-/* ------------------------------
-   🎯 KPI CARDS (Executive + Dashboard)
------------------------------- */
-.kpi-section {
+/* ==========================================================
+   🧮 KPI SECTION
+   ========================================================== */
+.kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 25px;
+  gap: 1rem;
 }
 
 .kpi-card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  padding: 20px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
 .kpi-card h3 {
-  color: var(--text-header);
-  font-size: 16px;
-  margin-bottom: 10px;
+  font-size: 1rem;
+  color: var(--text-color);
+  opacity: 0.8;
 }
 
 .kpi-card p {
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--accent);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  margin-top: 0.5rem;
 }
 
-/* ------------------------------
-   📈 CHARTS (Executive)
------------------------------- */
-.charts {
+/* ==========================================================
+   🧾 FORM STYLES
+   ========================================================== */
+.form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-  gap: 25px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
 }
 
-.chart-container {
-  background: var(--bg-card);
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-/* ------------------------------
-   🧍‍♂️ PROFILE PAGE
------------------------------- */
-.profile-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 25px;
-  margin-top: 25px;
-}
-
-.profile-card {
-  background: var(--bg-card);
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
-
-.profile-card h3 {
-  margin-bottom: 15px;
-  color: var(--text-header);
-}
-
-/* ------------------------------
-   🎯 PROGRESS BAR
------------------------------- */
-.progress-group {
-  margin-top: 5px;
-}
-
-.progress-label {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
-.progress-bar {
+.form-grid input, .form-grid select, .form-grid textarea {
   width: 100%;
-  height: 8px;
-  background: var(--border-light);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 6px;
+  padding: 0.7rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
 }
 
-.progress-fill {
-  height: 8px;
-  background: #007bff;
-  border-radius: 8px;
-}
-
-.progress-fill.green {
-  background: #28a745;
-}
-
-/* ------------------------------
-   💡 FILTER SECTION
------------------------------- */
-.filters {
+.form-buttons {
+  margin-top: 1rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 20px;
+  gap: 0.8rem;
 }
 
-.filters input,
-.filters select {
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid var(--border-light);
-  background: var(--bg-input);
-  color: var(--text-main);
+.message {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.export-buttons {
-  display: flex;
-  gap: 8px;
-  margin-left: auto;
+/* ==========================================================
+   📊 TABLES
+   ========================================================== */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
 }
 
-/* ------------------------------
-   🪄 RESPONSIVE
------------------------------- */
+table th, table td {
+  border: 1px solid var(--border-color);
+  padding: 0.7rem;
+  text-align: left;
+}
+
+table th {
+  background-color: var(--hover-color);
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+table tr:nth-child(even) {
+  background-color: rgba(0,0,0,0.02);
+}
+
+table tr:hover {
+  background-color: var(--hover-color);
+}
+
+/* ==========================================================
+   📱 RESPONSIVE
+   ========================================================== */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
-    z-index: 100;
-    height: 100%;
-    left: -260px;
+    width: 80px;
   }
-  .sidebar.expanded {
-    left: 0;
-  }
+
   #main-content {
-    padding: 20px;
+    margin-left: 90px;
+    padding: 1rem;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 }
