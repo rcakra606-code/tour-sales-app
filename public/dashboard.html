@@ -1,120 +1,198 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard - Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="icon" href="/favicon.ico" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="./js/ui.js"></script>
+</head>
 
-  <body class="theme-light">
-    <!-- SIDEBAR -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-top">
-        <button id="sidebarToggle" class="btn-icon">☰</button>
-        <h1 class="brand">TravelDash</h1>
-        <button id="themeToggle" class="btn-icon">🌓</button>
-      </div>
-
-      <nav class="sidebar-nav">
-        <ul>
-          <li><a href="/dashboard.html" class="active">🏠 Dashboard</a></li>
-
-          <li class="expandable open">
-            <button class="expand-toggle">📊 Reports</button>
-            <ul class="submenu open">
-              <li><a href="/report_tour.html">Report Tour</a></li>
-              <li><a href="/report_sales.html">Report Sales</a></li>
-              <li><a href="/report_document.html">Report Document</a></li>
-            </ul>
-          </li>
-
-          <li class="expandable">
-            <button class="expand-toggle">⚙️ Management</button>
-            <ul class="submenu">
-              <li><a href="/region_management.html">Region Management</a></li>
-              <li><a href="/user-management.html">User Management</a></li>
-            </ul>
-          </li>
-
-          <li><a href="/executive-dashboard.html">📈 Executive Dashboard</a></li>
-          <li><a href="/audit_log.html">🪵 Audit Log</a></li>
-          <li><a href="/profile.html">👤 Profile</a></li>
-          <li><a href="/logout.html">🚪 Logout</a></li>
-        </ul>
-      </nav>
-
-      <div class="sidebar-footer">
-        <small>v5.3.6 • Travel Dashboard</small>
-      </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <div id="main" class="main-content">
-      <header class="topbar">
-        <h2>Welcome Back 👋</h2>
-        <div class="user-info"><span id="activeUser">Loading...</span></div>
-      </header>
-
-      <main class="container">
-        <!-- KPI SUMMARY -->
-        <section class="panel">
-          <div class="panel-header">
-            <h4>📊 Dashboard Summary</h4>
-          </div>
-          <div class="panel-body kpi-grid">
-            <div class="kpi-card">
-              <h5>Total Sales</h5>
-              <p id="totalSales">0</p>
-            </div>
-            <div class="kpi-card">
-              <h5>Total Profit</h5>
-              <p id="totalProfit">0</p>
-            </div>
-            <div class="kpi-card">
-              <h5>Total Tours</h5>
-              <p id="totalTours">0</p>
-            </div>
-            <div class="kpi-card">
-              <h5>Total Regions</h5>
-              <p id="totalRegions">0</p>
-            </div>
-          </div>
-        </section>
-
-        <!-- PROGRESS ACHIEVEMENT -->
-        <section class="panel">
-          <div class="panel-header">
-            <h4>🎯 Progress Achievement Sales & Profit</h4>
-          </div>
-          <div class="panel-body">
-            <div id="achievementContainer"></div>
-          </div>
-        </section>
-
-        <!-- SALES CHART -->
-        <section class="panel">
-          <div class="panel-header">
-            <h4>📈 Sales Trend (12 Bulan)</h4>
-          </div>
-          <div class="panel-body">
-            <canvas id="salesChart" height="100"></canvas>
-          </div>
-        </section>
-      </main>
-
-      <footer class="footer">
-        <small>© <span id="year"></span> Travel Dashboard Enterprise</small>
-      </footer>
+<body class="light-mode">
+  <!-- ===================================================== -->
+  <!-- 🧭 SIDEBAR -->
+  <!-- ===================================================== -->
+  <aside id="sidebar" class="sidebar expanded">
+    <div class="sidebar-header">
+      <h2>Travel Dashboard</h2>
+      <button id="toggleSidebar">☰</button>
     </div>
+    <ul class="sidebar-menu">
+      <li class="active"><a href="dashboard.html">🏠 Dashboard</a></li>
+      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
+      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
+      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
+      <li><a href="user-management.html">👥 User Management</a></li>
+      <li><a href="profile.html">👤 Profil</a></li>
+      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
+    </ul>
+    <div class="theme-toggle">
+      <span>🌞</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" />
+        <span class="slider round"></span>
+      </label>
+      <span>🌙</span>
+    </div>
+  </aside>
 
-    <!-- SCRIPTS -->
-    <script src="/js/ui.js"></script>
-    <script src="/js/dashboard.js" defer></script>
-  </body>
+  <!-- ===================================================== -->
+  <!-- 📊 MAIN CONTENT -->
+  <!-- ===================================================== -->
+  <main id="main-content">
+    <header>
+      <h1>🏠 Dashboard Utama</h1>
+      <p>Ringkasan performa target dan pencapaian penjualan</p>
+    </header>
+
+    <!-- 🧾 CARD SUMMARY -->
+    <section class="cards-container">
+      <div class="card">
+        <h3>Total Sales (Rp)</h3>
+        <p id="totalSales">0</p>
+      </div>
+      <div class="card">
+        <h3>Total Profit (Rp)</h3>
+        <p id="totalProfit">0</p>
+      </div>
+      <div class="card">
+        <h3>Target Sales (Rp)</h3>
+        <p id="targetSales">0</p>
+      </div>
+      <div class="card">
+        <h3>Target Profit (Rp)</h3>
+        <p id="targetProfit">0</p>
+      </div>
+    </section>
+
+    <!-- 📈 CHART AREA -->
+    <section class="charts">
+      <div class="chart-box">
+        <h3>📅 Pencapaian Bulanan</h3>
+        <canvas id="monthlyChart"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <h3>📊 Performa Sales per Staff</h3>
+        <canvas id="staffChart"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===================================================== -->
+  <!-- 📜 SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "login.html";
+    const headers = { "Authorization": `Bearer ${token}` };
+
+    async function fetchDashboardData() {
+      try {
+        const [summaryRes, monthlyRes] = await Promise.all([
+          fetch("/api/executive/summary", { headers }),
+          fetch("/api/executive/monthly-performance", { headers })
+        ]);
+        const summaryData = await summaryRes.json();
+        const monthlyData = await monthlyRes.json();
+
+        // Role-based: kalau staff, tampilkan hanya miliknya
+        const userRole = localStorage.getItem("role") || "staff";
+        const userName = localStorage.getItem("staff_name") || "";
+
+        let filtered = summaryData;
+        if (userRole === "staff") {
+          filtered = summaryData.filter((r) => 
+            r.staff_name?.toLowerCase() === userName.toLowerCase()
+          );
+        }
+
+        let totalSales = 0, totalProfit = 0, targetSales = 0, targetProfit = 0;
+        filtered.forEach((r) => {
+          totalSales += Number(r.total_sales || 0);
+          totalProfit += Number(r.total_profit || 0);
+          targetSales += Number(r.target_sales || 0);
+          targetProfit += Number(r.target_profit || 0);
+        });
+
+        document.getElementById("totalSales").textContent = `Rp ${totalSales.toLocaleString("id-ID")}`;
+        document.getElementById("totalProfit").textContent = `Rp ${totalProfit.toLocaleString("id-ID")}`;
+        document.getElementById("targetSales").textContent = `Rp ${targetSales.toLocaleString("id-ID")}`;
+        document.getElementById("targetProfit").textContent = `Rp ${targetProfit.toLocaleString("id-ID")}`;
+
+        renderCharts(monthlyData, summaryData);
+      } catch (err) {
+        console.error("❌ Dashboard load error:", err);
+      }
+    }
+
+    function renderCharts(monthly, summary) {
+      // 📅 Monthly Chart
+      const ctx1 = document.getElementById("monthlyChart").getContext("2d");
+      new Chart(ctx1, {
+        type: "line",
+        data: {
+          labels: monthly.map((m) =>
+            new Date(m.month).toLocaleString("id-ID", { month: "short", year: "2-digit" })
+          ),
+          datasets: [
+            {
+              label: "Total Sales (Rp)",
+              data: monthly.map((m) => m.total_sales),
+              borderColor: "#007bff",
+              fill: false,
+              tension: 0.3,
+            },
+            {
+              label: "Total Profit (Rp)",
+              data: monthly.map((m) => m.total_profit),
+              borderColor: "#28a745",
+              fill: false,
+              tension: 0.3,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: "bottom" } },
+        },
+      });
+
+      // 📊 Staff Performance
+      const ctx2 = document.getElementById("staffChart").getContext("2d");
+      new Chart(ctx2, {
+        type: "bar",
+        data: {
+          labels: summary.map((s) => s.staff_name),
+          datasets: [
+            {
+              label: "Sales Achievement (%)",
+              data: summary.map((s) => s.sales_achievement),
+              backgroundColor: "#007bff",
+            },
+            {
+              label: "Profit Achievement (%)",
+              data: summary.map((s) => s.profit_achievement),
+              backgroundColor: "#28a745",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true, max: 150 } },
+          plugins: { legend: { position: "bottom" } },
+        },
+      });
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      localStorage.clear();
+      window.location.href = "login.html";
+    });
+
+    fetchDashboardData();
+  </script>
+</body>
 </html>
