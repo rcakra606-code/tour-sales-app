@@ -1,6 +1,3 @@
-// ==========================================================
-// 📊 Dashboard Routes — v5.4.6
-// ==========================================================
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
 import {
