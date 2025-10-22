@@ -1,194 +1,166 @@
 // ==========================================================
 // 💹 Report Sales Controller — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
-import pkg from "pg";
-import ExcelJS from "exceljs";
+// Fitur:
+// - Rekap penjualan dan profit per staff
+// - Bandingkan dengan target bulanan
+// - Rekap per kategori & bulan
+// ==========================================================
 
+import pkg from "pg";
 const { Pool } = pkg;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
 // ==========================================================
-// 🔹 Get all sales (with optional filters)
-// ==========================================================
-export async function getAllSalesReport(req, res) {
-  try {
-    const { q, staff, month, category } = req.query;
-    let filters = [];
-    let values = [];
-    let i = 1;
-
-    if (q) {
-      filters.push(`(LOWER(invoice_number) LIKE LOWER($${i}) OR LOWER(notes) LIKE LOWER($${i}))`);
-      values.push(`%${q}%`);
-      i++;
-    }
-    if (staff) {
-      filters.push(`LOWER(staff_name) = LOWER($${i})`);
-      values.push(staff);
-      i++;
-    }
-    if (month) {
-      filters.push(`TO_CHAR(transaction_date, 'YYYY-MM') = $${i}`);
-      values.push(month);
-      i++;
-    }
-    if (category) {
-      filters.push(`LOWER(category) = LOWER($${i})`);
-      values.push(category);
-      i++;
-    }
-
-    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
-
-    const query = `
-      SELECT id, transaction_date, invoice_number, staff_name, client_name, 
-             sales_amount, profit_amount, category, tour_code, notes
-      FROM sales
-      ${whereClause}
-      ORDER BY transaction_date DESC;
-    `;
-
-    const { rows } = await pool.query(query, values);
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ Sales report query error:", err);
-    res.status(500).json({ message: "Gagal memuat data laporan sales." });
-  }
-}
-
-// ==========================================================
-// 🔹 Get sales by staff (used by staff users)
-// ==========================================================
-export async function getSalesByStaff(req, res) {
-  try {
-    const { staff_name } = req.params;
-    const query = `
-      SELECT *
-      FROM sales
-      WHERE LOWER(staff_name) = LOWER($1)
-      ORDER BY transaction_date DESC;
-    `;
-    const { rows } = await pool.query(query, [staff_name]);
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ Get sales by staff error:", err);
-    res.status(500).json({ message: "Gagal memuat data sales untuk staff." });
-  }
-}
-
-// ==========================================================
-// 🔹 Get sales summary (used by dashboard / executive)
+// 🔹 GET /api/report/sales/summary — Ringkasan Dashboard
 // ==========================================================
 export async function getSalesSummary(req, res) {
   try {
-    const query = `
-      SELECT
-        SUM(sales_amount) AS total_sales,
-        SUM(profit_amount) AS total_profit,
-        COUNT(*) AS total_transactions
-      FROM sales;
-    `;
-    const { rows } = await pool.query(query);
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("❌ Sales summary error:", err);
-    res.status(500).json({ message: "Gagal mengambil ringkasan sales." });
-  }
-}
-
-// ==========================================================
-// 🔹 Export Sales Report to Excel or CSV
-// ==========================================================
-export async function exportSalesReport(req, res) {
-  try {
-    const { format = "xlsx", staff, month, category } = req.query;
-
+    const { month, staff } = req.query;
     let filters = [];
     let values = [];
     let i = 1;
 
-    if (staff) {
-      filters.push(`LOWER(staff_name) = LOWER($${i})`);
-      values.push(staff);
-      i++;
-    }
     if (month) {
-      filters.push(`TO_CHAR(transaction_date, 'YYYY-MM') = $${i}`);
+      filters.push(`TO_CHAR(transaction_date, 'YYYY-MM') = $${i++}`);
       values.push(month);
-      i++;
     }
-    if (category) {
-      filters.push(`LOWER(category) = LOWER($${i})`);
-      values.push(category);
-      i++;
+    if (staff) {
+      filters.push(`LOWER(staff_name) = LOWER($${i++})`);
+      values.push(staff);
     }
 
     const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
+
     const query = `
-      SELECT transaction_date, invoice_number, staff_name, client_name,
-             sales_amount, profit_amount, category, tour_code, notes
+      SELECT
+        COUNT(*) AS total_transactions,
+        COALESCE(SUM(sales_amount), 0) AS total_sales,
+        COALESCE(SUM(profit_amount), 0) AS total_profit
+      FROM sales
+      ${whereClause};
+    `;
+
+    const result = await pool.query(query, values);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("❌ Sales summary error:", err);
+    res.status(500).json({ message: "Gagal memuat ringkasan penjualan." });
+  }
+}
+
+// ==========================================================
+// 🔹 GET /api/report/sales/staff — Rekap Per Staff (Untuk Executive Dashboard)
+// ==========================================================
+export async function getSalesByStaff(req, res) {
+  try {
+    const { month } = req.query;
+    let whereClause = "";
+    let values = [];
+
+    if (month) {
+      whereClause = "WHERE TO_CHAR(transaction_date, 'YYYY-MM') = $1";
+      values.push(month);
+    }
+
+    const query = `
+      SELECT
+        staff_name,
+        COUNT(*) AS total_transactions,
+        COALESCE(SUM(sales_amount), 0) AS total_sales,
+        COALESCE(SUM(profit_amount), 0) AS total_profit
+      FROM sales
+      ${whereClause}
+      GROUP BY staff_name
+      ORDER BY total_sales DESC;
+    `;
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Sales by staff error:", err);
+    res.status(500).json({ message: "Gagal memuat data per staff." });
+  }
+}
+
+// ==========================================================
+// 🔹 GET /api/report/sales/target — Bandingkan Target vs Aktual
+// ==========================================================
+export async function getSalesTargetComparison(req, res) {
+  try {
+    const { month } = req.query;
+    if (!month) {
+      return res.status(400).json({ message: "Parameter bulan wajib diisi (format YYYY-MM)." });
+    }
+
+    const query = `
+      SELECT
+        t.staff_name,
+        t.target_sales,
+        t.target_profit,
+        COALESCE(SUM(s.sales_amount), 0) AS actual_sales,
+        COALESCE(SUM(s.profit_amount), 0) AS actual_profit
+      FROM targets t
+      LEFT JOIN sales s
+        ON LOWER(s.staff_name) = LOWER(t.staff_name)
+        AND TO_CHAR(s.transaction_date, 'YYYY-MM') = t.month
+      WHERE t.month = $1
+      GROUP BY t.staff_name, t.target_sales, t.target_profit
+      ORDER BY t.staff_name;
+    `;
+
+    const result = await pool.query(query, [month]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Target comparison error:", err);
+    res.status(500).json({ message: "Gagal memuat data target vs aktual." });
+  }
+}
+
+// ==========================================================
+// 🔹 GET /api/report/sales/detail — Detail Transaksi (Untuk Export)
+// ==========================================================
+export async function getSalesDetail(req, res) {
+  try {
+    const { month, staff } = req.query;
+    let filters = [];
+    let values = [];
+    let i = 1;
+
+    if (month) {
+      filters.push(`TO_CHAR(transaction_date, 'YYYY-MM') = $${i++}`);
+      values.push(month);
+    }
+    if (staff) {
+      filters.push(`LOWER(staff_name) = LOWER($${i++})`);
+      values.push(staff);
+    }
+
+    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
+
+    const query = `
+      SELECT
+        id,
+        invoice_number,
+        transaction_date,
+        category,
+        sales_amount,
+        profit_amount,
+        staff_name,
+        created_at
       FROM sales
       ${whereClause}
       ORDER BY transaction_date DESC;
     `;
-    const { rows } = await pool.query(query, values);
 
-    if (format === "csv") {
-      const header = "Tanggal,Invoice,Staff,Client,Sales,Profit,Kategori,Tour Code,Notes\n";
-      const csv = header + rows
-        .map(r => [
-          r.transaction_date ? new Date(r.transaction_date).toISOString().split("T")[0] : "",
-          r.invoice_number || "",
-          r.staff_name || "",
-          r.client_name || "",
-          r.sales_amount || 0,
-          r.profit_amount || 0,
-          r.category || "",
-          r.tour_code || "",
-          r.notes || "",
-        ].join(","))
-        .join("\n");
-
-      res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", 'attachment; filename="sales_report.csv"');
-      res.send(csv);
-    } else {
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet("Sales Report");
-      sheet.columns = [
-        { header: "Tanggal", key: "transaction_date", width: 15 },
-        { header: "Invoice", key: "invoice_number", width: 20 },
-        { header: "Staff", key: "staff_name", width: 20 },
-        { header: "Client", key: "client_name", width: 20 },
-        { header: "Sales (Rp)", key: "sales_amount", width: 15 },
-        { header: "Profit (Rp)", key: "profit_amount", width: 15 },
-        { header: "Kategori", key: "category", width: 15 },
-        { header: "Tour Code", key: "tour_code", width: 15 },
-        { header: "Notes", key: "notes", width: 25 },
-      ];
-
-      rows.forEach(r => sheet.addRow({
-        transaction_date: r.transaction_date ? new Date(r.transaction_date).toISOString().split("T")[0] : "",
-        invoice_number: r.invoice_number,
-        staff_name: r.staff_name,
-        client_name: r.client_name,
-        sales_amount: r.sales_amount,
-        profit_amount: r.profit_amount,
-        category: r.category,
-        tour_code: r.tour_code,
-        notes: r.notes,
-      }));
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", 'attachment; filename="sales_report.xlsx"');
-      await workbook.xlsx.write(res);
-      res.end();
-    }
+    const result = await pool.query(query, values);
+    res.json(result.rows);
   } catch (err) {
-    console.error("❌ Export sales report error:", err);
-    res.status(500).json({ message: "Gagal mengekspor laporan sales." });
+    console.error("❌ Sales detail error:", err);
+    res.status(500).json({ message: "Gagal memuat data penjualan." });
   }
 }
