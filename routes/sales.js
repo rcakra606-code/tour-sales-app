@@ -1,13 +1,23 @@
-// routes/sales.js
+// ==========================================================
+// 💰 Sales Management Routes — v5.4.6
+// ==========================================================
 import express from "express";
-import { authenticate } from "../middleware/authMiddleware.js";
-import { getSales, createSale, deleteSale } from "../controllers/salesController.js";
+import {
+  authenticate,
+  authorizeManagement,
+} from "../middleware/authMiddleware.js";
+import {
+  createSale,
+  updateSale,
+  deleteSale,
+  getSales,
+} from "../controllers/salesController.js";
 
 const router = express.Router();
 
-// Semua route sales butuh autentikasi
 router.get("/", authenticate, getSales);
-router.post("/", authenticate, createSale);
-router.delete("/:id", authenticate, deleteSale);
+router.post("/", authenticate, authorizeManagement, createSale);
+router.put("/:id", authenticate, authorizeManagement, updateSale);
+router.delete("/:id", authenticate, authorizeManagement, deleteSale);
 
 export default router;
