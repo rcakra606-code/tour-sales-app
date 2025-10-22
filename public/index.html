@@ -1,63 +1,26 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="icon" href="/favicon.ico" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Dashboard Enterprise</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script type="module" src="./js/ui.js"></script>
+</head>
 
-    <style>
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        flex-direction: column;
-        background: linear-gradient(135deg, #004b99, #0a66c2);
-        color: white;
-        font-family: "Inter", sans-serif;
-        margin: 0;
-      }
+<body class="light-mode">
+  <div class="loader">
+    <h1>🔄 Memuat Sistem...</h1>
+  </div>
 
-      .logo {
-        font-size: 1.8rem;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        margin-bottom: 10px;
-      }
-
-      .desc {
-        opacity: 0.9;
-      }
-
-      .loader {
-        width: 42px;
-        height: 42px;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-top: 4px solid #fff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-top: 25px;
-      }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="logo">Travel Dashboard Enterprise</div>
-    <div class="desc">Memuat sistem, harap tunggu sebentar...</div>
-    <div class="loader"></div>
-
-    <!-- External JS Loader to bypass CSP Render -->
-    <script src="/js/loader.js" defer></script>
-  </body>
+  <script>
+    // Redirect otomatis ke login atau dashboard
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "login.html";
+    } else {
+      window.location.href = "dashboard.html";
+    }
+  </script>
+</body>
 </html>
