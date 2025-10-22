@@ -1,125 +1,39 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - Travel Dashboard Enterprise</title>
-    <link rel="stylesheet" href="/css/style.css" />
-    <link rel="icon" href="/favicon.ico" />
-    <style>
-      body {
-        height: 100vh;
-        background: linear-gradient(135deg, #004b99, #0a66c2);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-family: "Inter", sans-serif;
-        margin: 0;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script defer src="./js/login.js"></script>
+</head>
 
-      .login-box {
-        background: #fff;
-        border-radius: 12px;
-        width: 380px;
-        padding: 30px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        animation: fadeIn 0.5s ease-in-out;
-      }
-
-      .login-box h2 {
-        text-align: center;
-        color: #004b99;
-        margin-bottom: 20px;
-      }
-
-      .form-group {
-        margin-bottom: 15px;
-      }
-
-      label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 5px;
-      }
-
-      input {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        font-size: 0.95rem;
-      }
-
-      .btn {
-        width: 100%;
-        padding: 10px;
-        background-color: #004b99;
-        color: white;
-        font-weight: 600;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-
-      .btn:hover {
-        background-color: #0a66c2;
-      }
-
-      .error {
-        color: #c0392b;
-        font-size: 0.9rem;
-        text-align: center;
-        margin-bottom: 10px;
-      }
-
-      .footer-text {
-        text-align: center;
-        margin-top: 15px;
-        font-size: 0.9rem;
-        color: #777;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    </style>
-  </head>
-
-  <body>
-    <div class="login-box">
-      <h2>Login Sistem</h2>
-      <div id="errorMsg" class="error"></div>
+<body class="light-mode login-body">
+  <div class="login-container fade-in">
+    <div class="login-card">
+      <h1>✈️ Travel Dashboard</h1>
+      <p>Masuk ke sistem pelaporan perjalanan</p>
 
       <form id="loginForm">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" required autocomplete="username" />
-        </div>
+        <label>Username</label>
+        <input type="text" id="username" placeholder="Masukkan username..." required />
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" required autocomplete="current-password" />
-        </div>
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Masukkan password..." required />
 
-        <button type="submit" class="btn">Masuk</button>
+        <button type="submit" id="loginBtn">Masuk</button>
+        <p id="errorMsg" class="error-msg"></p>
       </form>
-
-      <div class="footer-text">
-        <p>© <span id="year"></span> Travel Dashboard Enterprise</p>
-      </div>
     </div>
 
-    <script src="/js/login.js" defer></script>
-  </body>
+    <div class="theme-toggle-login">
+      <span>🌞</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" />
+        <span class="slider round"></span>
+      </label>
+      <span>🌙</span>
+    </div>
+  </div>
+</body>
 </html>
