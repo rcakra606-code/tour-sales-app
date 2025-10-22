@@ -1,96 +1,97 @@
 // ==========================================================
-// 🎨 UI Controller — Travel Dashboard Enterprise v5.4.5
-// ==========================================================
-// Fitur:
-// - Sidebar toggle (expand/collapse)
-// - Mode terang/gelap sinkron di semua halaman
-// - Transisi animasi smooth antar halaman
+// 🧭 Travel Dashboard Enterprise v5.4.6
+// UI Interactivity (Sidebar, Theme, Navigation)
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
   const body = document.body;
   const sidebar = document.getElementById("sidebar");
-  const toggleSidebarBtn = document.getElementById("toggleSidebar");
+  const toggleSidebar = document.getElementById("toggleSidebar");
   const themeSwitch = document.getElementById("themeSwitch");
 
-  // ======================================================
-  // ☀️🌙 THEME MODE HANDLER
-  // ======================================================
+  // ==========================================================
+  // 🌓 THEME TOGGLE (Dark / Light Mode)
+  // ==========================================================
   const currentTheme = localStorage.getItem("theme") || "light";
-  if (currentTheme === "dark") {
-    body.classList.remove("light-mode");
-    body.classList.add("dark-mode");
-    if (themeSwitch) themeSwitch.checked = true;
-  }
+  body.classList.toggle("dark-mode", currentTheme === "dark");
+  if (themeSwitch) themeSwitch.checked = currentTheme === "dark";
 
   if (themeSwitch) {
     themeSwitch.addEventListener("change", () => {
-      if (themeSwitch.checked) {
-        body.classList.add("dark-mode");
-        body.classList.remove("light-mode");
-        localStorage.setItem("theme", "dark");
-      } else {
-        body.classList.add("light-mode");
-        body.classList.remove("dark-mode");
-        localStorage.setItem("theme", "light");
-      }
+      const mode = themeSwitch.checked ? "dark" : "light";
+      body.classList.toggle("dark-mode", mode === "dark");
+      localStorage.setItem("theme", mode);
     });
   }
 
-  // ======================================================
-  // 🧭 SIDEBAR COLLAPSE
-  // ======================================================
-  if (toggleSidebarBtn && sidebar) {
-    toggleSidebarBtn.addEventListener("click", () => {
+  // ==========================================================
+  // 📦 SIDEBAR TOGGLE (Expand / Collapse)
+  // ==========================================================
+  if (toggleSidebar) {
+    toggleSidebar.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
-      body.classList.toggle("sidebar-collapsed");
-
-      // Simpan status sidebar di localStorage
-      const collapsed = sidebar.classList.contains("collapsed");
-      localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false");
+      const isCollapsed = sidebar.classList.contains("collapsed");
+      localStorage.setItem("sidebarState", isCollapsed ? "collapsed" : "expanded");
     });
-
-    // Pulihkan status sidebar dari localStorage
-    const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
-    if (isCollapsed) {
-      sidebar.classList.add("collapsed");
-      body.classList.add("sidebar-collapsed");
-    }
   }
 
-  // ======================================================
-  // 💫 PAGE TRANSITION ANIMATION
-  // ======================================================
-  document.querySelectorAll('a[href$=".html"]').forEach((link) => {
-    link.addEventListener("click", (e) => {
-      const href = link.getAttribute("href");
-      if (!href.startsWith("#") && href.endsWith(".html")) {
-        e.preventDefault();
-        body.classList.add("fade-out");
-        setTimeout(() => {
-          window.location.href = href;
-        }, 200);
-      }
-    });
+  // Restore sidebar state
+  const sidebarState = localStorage.getItem("sidebarState") || "expanded";
+  sidebar.classList.toggle("collapsed", sidebarState === "collapsed");
+
+  // ==========================================================
+  // 🧭 ACTIVE MENU HIGHLIGHT
+  // ==========================================================
+  const currentPage = window.location.pathname.split("/").pop();
+  const menuLinks = document.querySelectorAll(".sidebar-menu li a");
+
+  menuLinks.forEach((link) => {
+    const href = link.getAttribute("href");
+    if (href === currentPage) {
+      link.parentElement.classList.add("active");
+    } else {
+      link.parentElement.classList.remove("active");
+    }
   });
 
-  // Tambahkan efek fade-in setiap kali halaman dimuat
-  body.classList.add("fade-in");
-});
+  // ==========================================================
+  // 🚪 LOGOUT HANDLER
+  // ==========================================================
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.clear();
+      window.location.href = "login.html";
+    });
+  }
 
-// ==========================================================
-// ✨ CSS class tambahan (light/dark)
-// ==========================================================
-// Gunakan di file CSS (style.css):
-//
-// body.light-mode { background: #f4f6f9; color: #222; }
-// body.dark-mode { background: #181a1b; color: #eee; }
-//
-// .sidebar.collapsed { width: 80px; }
-// .sidebar-collapsed main { margin-left: 90px; transition: all 0.3s ease; }
-//
-// .fade-in { opacity: 0; animation: fadeIn 0.3s forwards; }
-// .fade-out { opacity: 1; animation: fadeOut 0.2s forwards; }
-//
-// @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-// @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+  // ==========================================================
+  // 📱 MOBILE SIDEBAR AUTO-CLOSE
+  // ==========================================================
+  if (window.innerWidth <= 768) {
+    const links = document.querySelectorAll(".sidebar-menu li a");
+    links.forEach(link => {
+      link.addEventListener("click", () => {
+        sidebar.classList.remove("expanded");
+        localStorage.setItem("sidebarState", "collapsed");
+      });
+    });
+  }
+
+  // ==========================================================
+  // 🧩 AUTO LOGIN REDIRECT HANDLING
+  // ==========================================================
+  const token = localStorage.getItem("token");
+  const isLoginPage = window.location.pathname.includes("login.html");
+
+  // Jika belum login & bukan di halaman login → arahkan ke login
+  if (!token && !isLoginPage) {
+    window.location.href = "login.html";
+  }
+
+  // Jika sudah login & berada di halaman login → arahkan ke dashboard
+  if (token && isLoginPage) {
+    window.location.href = "dashboard.html";
+  }
+});
