@@ -1,147 +1,181 @@
 // ==========================================================
-// 📑 Report Document Controller — Travel Dashboard Enterprise v5.4.5
+// 📑 Report Document Controller — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
 // Fitur:
-// - Ambil semua laporan dokumen
-// - Filter berdasarkan staff / tanggal
-// - Export ke Excel atau CSV
+// - CRUD dokumen tamu
+// - Filter per staff, tanggal, dan jenis proses
+// - Rekap untuk dashboard dan laporan
 // ==========================================================
 
 import pkg from "pg";
-import ExcelJS from "exceljs";
-import { parse } from "json2csv";
-
 const { Pool } = pkg;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
 // ==========================================================
-// 🔹 GET /api/report/document — Semua laporan dokumen
+// 🔹 GET /api/report/documents — Ambil Semua Data Dokumen
 // ==========================================================
-export async function getAllDocuments(req, res) {
+export async function getDocuments(req, res) {
   try {
-    const q = `
-      SELECT id, received_date, sent_date, guest_name, document_type,
-             process_type, booking_code, invoice_number, staff_name, tour_code, created_at
-      FROM documents
-      ORDER BY received_date DESC;
-    `;
-    const { rows } = await pool.query(q);
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ getAllDocuments error:", err);
-    res.status(500).json({ message: "Gagal memuat data dokumen" });
-  }
-}
+    const { staff, month, process_type } = req.query;
+    let filters = [];
+    let values = [];
+    let i = 1;
 
-// ==========================================================
-// 🔹 GET /api/report/document/staff/:staff_name — Filter per staff
-// ==========================================================
-export async function getDocumentsByStaff(req, res) {
-  try {
-    const { staff_name } = req.params;
-    const q = `
-      SELECT id, received_date, sent_date, guest_name, document_type,
-             process_type, booking_code, invoice_number, staff_name, tour_code
-      FROM documents
-      WHERE LOWER(staff_name) = LOWER($1)
-      ORDER BY received_date DESC;
-    `;
-    const { rows } = await pool.query(q, [staff_name]);
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ getDocumentsByStaff error:", err);
-    res.status(500).json({ message: "Gagal memuat laporan dokumen per staff" });
-  }
-}
-
-// ==========================================================
-// 🔹 GET /api/report/document/summary — Ringkasan dokumen per bulan
-// ==========================================================
-export async function getDocumentSummary(req, res) {
-  try {
-    const q = `
-      SELECT
-        staff_name,
-        COUNT(*) AS total_docs,
-        DATE_TRUNC('month', received_date) AS month
-      FROM documents
-      GROUP BY staff_name, DATE_TRUNC('month', received_date)
-      ORDER BY month DESC, staff_name ASC;
-    `;
-    const { rows } = await pool.query(q);
-    res.json(rows);
-  } catch (err) {
-    console.error("❌ getDocumentSummary error:", err);
-    res.status(500).json({ message: "Gagal memuat ringkasan dokumen" });
-  }
-}
-
-// ==========================================================
-// 🔹 GET /api/report/document/export — Export Excel / CSV
-// ==========================================================
-export async function exportDocumentReport(req, res) {
-  try {
-    const format = req.query.format || "xlsx";
-
-    const q = `
-      SELECT id, received_date, sent_date, guest_name, document_type,
-             process_type, booking_code, invoice_number, staff_name, tour_code
-      FROM documents
-      ORDER BY received_date DESC;
-    `;
-    const { rows } = await pool.query(q);
-
-    if (rows.length === 0)
-      return res.status(404).json({ message: "Tidak ada data dokumen untuk diekspor" });
-
-    // ------------------------------------------------------
-    // 📘 Export ke Excel
-    if (format === "xlsx") {
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet("Document Report");
-
-      sheet.columns = [
-        { header: "No", key: "id", width: 5 },
-        { header: "Tanggal Terima", key: "received_date", width: 15 },
-        { header: "Tanggal Kirim", key: "sent_date", width: 15 },
-        { header: "Nama Tamu", key: "guest_name", width: 20 },
-        { header: "Jenis Dokumen", key: "document_type", width: 20 },
-        { header: "Proses", key: "process_type", width: 15 },
-        { header: "Booking Code", key: "booking_code", width: 15 },
-        { header: "Invoice", key: "invoice_number", width: 15 },
-        { header: "Staff", key: "staff_name", width: 20 },
-        { header: "Tour Code", key: "tour_code", width: 15 },
-      ];
-
-      rows.forEach((row) => sheet.addRow(row));
-
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-      res.setHeader("Content-Disposition", "attachment; filename=document_report.xlsx");
-
-      await workbook.xlsx.write(res);
-      res.end();
-      return;
+    if (staff) {
+      filters.push(`LOWER(staff_name) = LOWER($${i++})`);
+      values.push(staff);
+    }
+    if (month) {
+      filters.push(`TO_CHAR(receive_date, 'YYYY-MM') = $${i++}`);
+      values.push(month);
+    }
+    if (process_type) {
+      filters.push(`LOWER(process_type) = LOWER($${i++})`);
+      values.push(process_type);
     }
 
-    // ------------------------------------------------------
-    // 📄 Export ke CSV
-    if (format === "csv") {
-      const csv = parse(rows);
-      res.header("Content-Type", "text/csv");
-      res.attachment("document_report.csv");
-      res.send(csv);
-      return;
-    }
+    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
 
-    return res.status(400).json({ message: "Format tidak dikenali (gunakan xlsx atau csv)" });
+    const query = `
+      SELECT 
+        id, receive_date, send_date, guest_name, passport_country, process_type,
+        booking_code_dms, invoice_number, guest_phone, estimate_completion,
+        staff_name, tour_code, created_at
+      FROM documents
+      ${whereClause}
+      ORDER BY receive_date DESC;
+    `;
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
   } catch (err) {
-    console.error("❌ exportDocumentReport error:", err);
-    res.status(500).json({ message: "Gagal mengekspor laporan dokumen" });
+    console.error("❌ Get documents error:", err);
+    res.status(500).json({ message: "Gagal memuat data dokumen." });
+  }
+}
+
+// ==========================================================
+// 🔹 POST /api/report/documents — Tambah Dokumen Baru
+// ==========================================================
+export async function createDocument(req, res) {
+  try {
+    const {
+      receive_date,
+      send_date,
+      guest_name,
+      passport_country,
+      process_type,
+      booking_code_dms,
+      invoice_number,
+      guest_phone,
+      estimate_completion,
+      staff_name,
+      tour_code,
+    } = req.body;
+
+    await pool.query(
+      `
+      INSERT INTO documents (
+        receive_date, send_date, guest_name, passport_country, process_type,
+        booking_code_dms, invoice_number, guest_phone, estimate_completion,
+        staff_name, tour_code
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      `,
+      [
+        receive_date || null,
+        send_date || null,
+        guest_name || "",
+        passport_country || "",
+        process_type || "",
+        booking_code_dms || "",
+        invoice_number || "",
+        guest_phone || "",
+        estimate_completion || null,
+        staff_name || "",
+        tour_code || "",
+      ]
+    );
+
+    res.json({ message: "Data dokumen berhasil ditambahkan." });
+  } catch (err) {
+    console.error("❌ Create document error:", err);
+    res.status(500).json({ message: "Gagal menambahkan dokumen." });
+  }
+}
+
+// ==========================================================
+// 🔹 PUT /api/report/documents/:id — Update Dokumen
+// ==========================================================
+export async function updateDocument(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      receive_date,
+      send_date,
+      guest_name,
+      passport_country,
+      process_type,
+      booking_code_dms,
+      invoice_number,
+      guest_phone,
+      estimate_completion,
+      staff_name,
+      tour_code,
+    } = req.body;
+
+    const result = await pool.query(
+      `
+      UPDATE documents SET
+        receive_date=$1, send_date=$2, guest_name=$3, passport_country=$4,
+        process_type=$5, booking_code_dms=$6, invoice_number=$7, guest_phone=$8,
+        estimate_completion=$9, staff_name=$10, tour_code=$11
+      WHERE id=$12 RETURNING id
+      `,
+      [
+        receive_date || null,
+        send_date || null,
+        guest_name || "",
+        passport_country || "",
+        process_type || "",
+        booking_code_dms || "",
+        invoice_number || "",
+        guest_phone || "",
+        estimate_completion || null,
+        staff_name || "",
+        tour_code || "",
+        id,
+      ]
+    );
+
+    if (result.rowCount === 0)
+      return res.status(404).json({ message: "Data dokumen tidak ditemukan." });
+
+    res.json({ message: "Data dokumen berhasil diperbarui." });
+  } catch (err) {
+    console.error("❌ Update document error:", err);
+    res.status(500).json({ message: "Gagal memperbarui dokumen." });
+  }
+}
+
+// ==========================================================
+// 🔹 DELETE /api/report/documents/:id — Hapus Dokumen
+// ==========================================================
+export async function deleteDocument(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await pool.query("DELETE FROM documents WHERE id = $1", [id]);
+
+    if (result.rowCount === 0)
+      return res.status(404).json({ message: "Data dokumen tidak ditemukan." });
+
+    res.json({ message: "Dokumen berhasil dihapus." });
+  } catch (err) {
+    console.error("❌ Delete document error:", err);
+    res.status(500).json({ message: "Gagal menghapus dokumen." });
   }
 }
