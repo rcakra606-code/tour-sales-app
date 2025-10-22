@@ -1,11 +1,6 @@
 // ==========================================================
-// 👤 Profile Routes — Travel Dashboard Enterprise v5.4.0
+// 👤 Profile Routes — v5.4.6
 // ==========================================================
-// Endpoint:
-//   GET /api/profile   → Ambil data profil user aktif
-//   PUT /api/profile   → Update profil user aktif
-// ==========================================================
-
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
 import {
@@ -15,21 +10,7 @@ import {
 
 const router = express.Router();
 
-// ==========================================================
-// 🧭 ROUTES
-// ==========================================================
+router.get("/", authenticate, getProfile);
+router.put("/", authenticate, updateProfile);
 
-// 🔹 GET profil user aktif
-router.get("/", authenticate, async (req, res) => {
-  await getProfile(req, res);
-});
-
-// 🔹 UPDATE profil user aktif
-router.put("/", authenticate, async (req, res) => {
-  await updateProfile(req, res);
-});
-
-// ==========================================================
-// 🚀 EXPORT ROUTER
-// ==========================================================
 export default router;
