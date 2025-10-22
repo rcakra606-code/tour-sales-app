@@ -1,5 +1,5 @@
 // ==========================================================
-// 🧭 Executive Report Routes — Travel Dashboard v5.4.5
+// 📊 Executive Dashboard Routes — v5.4.6
 // ==========================================================
 import express from "express";
 import {
@@ -15,7 +15,6 @@ import {
 
 const router = express.Router();
 
-// Route summary & statistik
 router.get("/summary", authenticate, authorizeManagement, getExecutiveSummary);
 router.get("/monthly-performance", authenticate, authorizeManagement, getMonthlyPerformance);
 router.get("/tour-statistics", authenticate, authorizeManagement, getTourStatistics);
