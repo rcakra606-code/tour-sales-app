@@ -1,78 +1,84 @@
 // ==========================================================
-// 🔐 Auth Middleware — Travel Dashboard Enterprise v5.4.0
+// 🛡️ Auth Middleware — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
-// Fully ESM compatible for Render deployment
-// Provides:
-//  - authenticate() main middleware
-//  - authMiddleware (alias for backward compatibility)
-//  - authorizeAdmin() for admin-only access
-//  - authorizeManagement() for admin + semiadmin
+// Fitur:
+// - Verifikasi token JWT
+// - Role-based access (Admin, SemiAdmin, Staff)
+// - Integrasi penuh dengan semua route API
 // ==========================================================
 
 import jwt from "jsonwebtoken";
 
-// ==========================================================
-// 🧩 Middleware: Authenticate (verifikasi JWT)
-// ==========================================================
-export function authenticate(req, res, next) {
-  try {
-    const authHeader = req.headers.authorization || "";
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey";
 
-    if (!authHeader.startsWith("Bearer ")) {
-      console.warn("⚠️ Authorization header tidak valid atau kosong");
-      return res.status(401).json({ message: "Token tidak ditemukan" });
+// ==========================================================
+// 🔹 Middleware: Autentikasi Token
+// ==========================================================
+export async function authenticate(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Akses ditolak: token tidak ditemukan." });
     }
 
     const token = authHeader.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    req.user = {
-      id: decoded.id,
-      username: decoded.username,
-      role: decoded.role,
-      staff_name: decoded.staff_name,
-    };
-
+    req.user = decoded;
     next();
   } catch (err) {
     console.error("❌ Auth middleware error:", err.message);
-
     if (err.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "jwt expired" });
+      return res.status(401).json({ message: "Token sudah kedaluwarsa." });
     }
-
-    return res.status(401).json({ message: "Token tidak valid" });
+    return res.status(401).json({ message: "Token tidak valid." });
   }
 }
 
 // ==========================================================
-// 🧩 Alias Export untuk kompatibilitas lama
+// 🔹 Middleware: Role Authorization (Admin Only)
 // ==========================================================
-export { authenticate as authMiddleware };
-
-// ==========================================================
-// 🧩 Role-Based Access Middleware
-// ==========================================================
-
-// 🔹 Hanya untuk admin
 export function authorizeAdmin(req, res, next) {
-  if (!req.user || req.user.role !== "admin") {
-    console.warn("🚫 Akses ditolak — hanya Admin");
-    return res.status(403).json({ message: "Akses ditolak. Hanya Admin." });
+  try {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Akses ditolak: hanya admin yang dapat mengakses." });
+    }
+    next();
+  } catch (err) {
+    console.error("❌ Role check error (Admin):", err.message);
+    res.status(403).json({ message: "Akses ditolak: admin saja." });
   }
-  next();
 }
 
-// 🔹 Untuk admin dan semiadmin
+// ==========================================================
+// 🔹 Middleware: Role Authorization (Admin + SemiAdmin)
+// ==========================================================
 export function authorizeManagement(req, res, next) {
-  const allowed = ["admin", "semiadmin"];
-  if (!req.user || !allowed.includes(req.user.role)) {
-    console.warn("🚫 Akses ditolak — hanya Admin atau SemiAdmin");
-    return res
-      .status(403)
-      .json({ message: "Akses ditolak. Hanya Admin atau SemiAdmin." });
+  try {
+    if (!req.user || (req.user.role !== "admin" && req.user.role !== "semiadmin")) {
+      return res.status(403).json({
+        message: "Akses ditolak: hanya admin atau semiadmin yang dapat mengakses.",
+      });
+    }
+    next();
+  } catch (err) {
+    console.error("❌ Role check error (Management):", err.message);
+    res.status(403).json({ message: "Akses ditolak: tidak memiliki hak manajemen." });
   }
-  next();
+}
+
+// ==========================================================
+// 🔹 Middleware: Role Authorization (Staff Only)
+// ==========================================================
+export function authorizeStaff(req, res, next) {
+  try {
+    if (!req.user || req.user.role !== "staff") {
+      return res.status(403).json({ message: "Akses ditolak: hanya staff yang dapat mengakses." });
+    }
+    next();
+  } catch (err) {
+    console.error("❌ Role check error (Staff):", err.message);
+    res.status(403).json({ message: "Akses ditolak: tidak memiliki hak akses staff." });
+  }
 }
