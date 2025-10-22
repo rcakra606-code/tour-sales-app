@@ -1,5 +1,5 @@
 // ==========================================================
-// 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.7
+// 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.8
 // ==========================================================
 
 import bcrypt from "bcryptjs";
@@ -26,16 +26,13 @@ export async function login(req, res) {
 
     const user = userQuery.rows[0];
 
-    // ✅ Pastikan password_hash adalah string
+    // Pastikan password hash adalah string
     const hash = typeof user.password_hash === "string" ? user.password_hash : String(user.password_hash);
 
-    // ✅ Bandingkan password secara aman
     const isMatch = await bcrypt.compare(String(password), hash);
-
     if (!isMatch)
       return res.status(401).json({ message: "Password salah." });
 
-    // ✅ Generate JWT
     const token = jwt.sign(
       {
         id: user.id,
@@ -60,7 +57,7 @@ export async function login(req, res) {
 }
 
 // ==========================================================
-// 🔹 REGISTER USER (optional untuk admin)
+// 🔹 REGISTER USER (Opsional untuk Admin)
 // ==========================================================
 export async function register(req, res) {
   try {
@@ -80,5 +77,27 @@ export async function register(req, res) {
   } catch (err) {
     console.error("❌ Register error:", err);
     res.status(500).json({ message: "Gagal membuat user baru." });
+  }
+}
+
+// ==========================================================
+// 🔹 VERIFY TOKEN (Untuk Auto-Login Frontend)
+// ==========================================================
+export async function verifyToken(req, res) {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(" ")[1];
+
+    if (!token)
+      return res.status(401).json({ message: "Token tidak ditemukan." });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    res.json({
+      valid: true,
+      user: decoded,
+    });
+  } catch (err) {
+    console.error("❌ Verify token error:", err.message);
+    res.status(401).json({ valid: false, message: "Token tidak valid atau sudah kedaluwarsa." });
   }
 }
