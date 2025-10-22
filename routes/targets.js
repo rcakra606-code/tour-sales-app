@@ -1,53 +1,27 @@
-/**
- * ==========================================================
- * routes/targets.js
- * Travel Dashboard Enterprise — Target Bulanan per User
- * ==========================================================
- * ✅ CRUD targets per user per bulan
- * ✅ Summary untuk dashboard (target vs realisasi)
- * ✅ Role-based access dengan JWT verify
- * ==========================================================
- */
+// ==========================================================
+// 🎯 Target Routes — Travel Dashboard Enterprise v5.4.6
+// ==========================================================
+import express from "express";
+import { authenticate } from "../middleware/authMiddleware.js";
+import {
+  upsertTarget,
+  getAllTargets,
+  getTargetByStaffMonth,
+  deleteTarget,
+} from "../controllers/targetController.js";
 
-const express = require("express");
 const router = express.Router();
-const targetController = require("../controllers/targetController");
-const { verifyToken } = require("../middleware/authMiddleware");
-const roleCheck = require("../middleware/roleCheck");
 
-// ============================================================
-// 📘 GET /api/targets
-// Ambil semua target, bisa difilter by staff/month/year
-// Roles: super, semi, basic (read-only)
-// ============================================================
-router.get("/", verifyToken, roleCheck(["super", "semi", "basic"]), targetController.getTargets);
+// Simpan / update target
+router.post("/", authenticate, upsertTarget);
 
-// ============================================================
-// 🟢 POST /api/targets
-// Tambah atau update target berdasarkan staff_name + month + year
-// Roles: super, semi (semi hanya boleh untuk dirinya sendiri)
-// ============================================================
-router.post("/", verifyToken, roleCheck(["super", "semi"]), targetController.createOrUpdateTarget);
+// Ambil semua target
+router.get("/", authenticate, getAllTargets);
 
-// ============================================================
-// 🟡 PUT /api/targets/:id
-// Update target by ID
-// Roles: super, semi (semi hanya boleh ubah target-nya sendiri)
-// ============================================================
-router.put("/:id", verifyToken, roleCheck(["super", "semi"]), targetController.updateTarget);
+// Ambil target berdasarkan staff & bulan
+router.get("/:staff/:month", authenticate, getTargetByStaffMonth);
 
-// ============================================================
-// 🔴 DELETE /api/targets/:id
 // Hapus target
-// Roles: super only
-// ============================================================
-router.delete("/:id", verifyToken, roleCheck(["super"]), targetController.deleteTarget);
+router.delete("/:id", authenticate, deleteTarget);
 
-// ============================================================
-// 📊 GET /api/targets/summary
-// Ambil data target vs realisasi untuk dashboard
-// Roles: super, semi, basic
-// ============================================================
-router.get("/summary", verifyToken, roleCheck(["super", "semi", "basic"]), targetController.getTargetsSummary);
-
-module.exports = router;
+export default router;
