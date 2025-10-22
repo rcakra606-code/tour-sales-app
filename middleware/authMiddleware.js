@@ -1,84 +1,59 @@
 // ==========================================================
-// 🔐 Auth Controller — Travel Dashboard Enterprise v5.4.7
+// 🔐 Auth Middleware — Travel Dashboard Enterprise v5.4.6
+// ==========================================================
+// Fitur:
+// - JWT authentication
+// - Role-based access control
+// - Admin-only access
 // ==========================================================
 
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { pool } from "../server.js";
 
 // ==========================================================
-// 🔹 LOGIN USER
+// 🔹 AUTHENTICATE TOKEN
 // ==========================================================
-export async function login(req, res) {
-  try {
-    const { username, password } = req.body;
+export function authenticate(req, res, next) {
+const authHeader = req.headers.authorization;
+const token = authHeader && authHeader.split(" ")[1];
 
-    if (!username || !password)
-      return res.status(400).json({ message: "Username dan password wajib diisi." });
-
-    const userQuery = await pool.query(
-      "SELECT id, username, password_hash, role, staff_name FROM users WHERE LOWER(username) = LOWER($1)",
-      [username]
-    );
-
-    if (userQuery.rows.length === 0)
-      return res.status(401).json({ message: "Username tidak ditemukan." });
-
-    const user = userQuery.rows[0];
-
-    // ✅ Pastikan password_hash adalah string
-    const hash = typeof user.password_hash === "string" ? user.password_hash : String(user.password_hash);
-
-    // ✅ Bandingkan password secara aman
-    const isMatch = await bcrypt.compare(String(password), hash);
-
-    if (!isMatch)
-      return res.status(401).json({ message: "Password salah." });
-
-    // ✅ Generate JWT
-    const token = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        staff_name: user.staff_name,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "15m" }
-    );
-
-    res.json({
-      message: "Login berhasil.",
-      token,
-      role: user.role,
-      staff_name: user.staff_name,
-    });
-  } catch (err) {
-    console.error("❌ Auth login error:", err);
-    res.status(500).json({ message: "Terjadi kesalahan saat login." });
+  if (!token) {
+  if (!token)
+return res.status(401).json({ message: "Token tidak ditemukan." });
   }
+
+try {
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded; // user: { id, username, role, staff_name }
+    req.user = decoded;
+next();
+} catch (err) {
+    console.error("❌ Auth middleware error:", err.message);
+    return res.status(401).json({ message: "Token tidak valid atau sudah kadaluarsa." });
+    console.error("❌ Auth error:", err.message);
+    res.status(401).json({ message: "Token tidak valid atau sudah kedaluwarsa." });
+}
 }
 
 // ==========================================================
-// 🔹 REGISTER USER (optional untuk admin)
+// 🔹 AUTHORIZE BY ROLE
 // ==========================================================
-export async function register(req, res) {
-  try {
-    const { username, password, role, staff_name } = req.body;
+export function authorize(roles = []) {
+return (req, res, next) => {
+if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: "Akses ditolak. Hak akses tidak mencukupi." });
+      return res.status(403).json({ message: "Akses ditolak." });
+}
+next();
+};
+}
 
-    if (!username || !password || !role)
-      return res.status(400).json({ message: "Semua field wajib diisi." });
-
-    const hash = await bcrypt.hash(String(password), 10);
-
-    await pool.query(
-      "INSERT INTO users (username, password_hash, role, staff_name) VALUES ($1, $2, $3, $4)",
-      [username, hash, role, staff_name || ""]
-    );
-
-    res.json({ message: "User berhasil dibuat." });
-  } catch (err) {
-    console.error("❌ Register error:", err);
-    res.status(500).json({ message: "Gagal membuat user baru." });
-  }
+// ==========================================================
+// 🔹 AUTHORIZE ADMIN ONLY
+// ==========================================================
+export function authorizeAdmin(req, res, next) {
+if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ message: "Akses khusus admin." });
+    return res.status(403).json({ message: "Hanya admin yang dapat mengakses." });
+}
+next();
 }
