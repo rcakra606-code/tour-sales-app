@@ -5,27 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
-  <script defer src="./js/login.js"></script>
+  <script defer src="./js/ui.js"></script>
+  <style>
+    /* =============================================== */
+    /* 🎨 LOGIN PAGE STYLES                            */
+    /* =============================================== */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: var(--bg-main);
+      transition: background 0.3s;
+    }
+
+    .login-container {
+      background: var(--bg-card);
+      padding: 40px 50px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+
+    .login-container h2 {
+      margin-bottom: 10px;
+      color: var(--text-header);
+    }
+
+    .login-container p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .login-form label {
+      text-align: left;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    .login-form input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-light);
+      background: var(--bg-input);
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    .login-form button {
+      background: var(--accent);
+      border: none;
+      color: white;
+      font-size: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .login-form button:hover {
+      background: var(--accent-hover);
+    }
+
+    .error-message {
+      color: #dc2626;
+      font-size: 14px;
+      margin-top: 10px;
+      text-align: left;
+    }
+
+    .theme-toggle-login {
+      margin-top: 25px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-muted);
+    }
+  </style>
 </head>
 
-<body class="light-mode login-body">
-  <div class="login-container fade-in">
-    <div class="login-card">
-      <h1>✈️ Travel Dashboard</h1>
-      <p>Masuk ke sistem pelaporan perjalanan</p>
+<body>
+  <!-- ===================================================== -->
+  <!-- 🧩 LOGIN CONTAINER -->
+  <!-- ===================================================== -->
+  <div class="login-container">
+    <h2>Selamat Datang 👋</h2>
+    <p>Masuk ke Travel Dashboard Anda</p>
 
-      <form id="loginForm">
-        <label>Username</label>
-        <input type="text" id="username" placeholder="Masukkan username..." required />
+    <form id="loginForm" class="login-form">
+      <div>
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Masukkan username" required />
+      </div>
 
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Masukkan password..." required />
+      <div>
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Masukkan password" required />
+      </div>
 
-        <button type="submit" id="loginBtn">Masuk</button>
-        <p id="errorMsg" class="error-msg"></p>
-      </form>
-    </div>
+      <button type="submit">Masuk</button>
 
+      <p id="errorMsg" class="error-message"></p>
+    </form>
+
+    <!-- Theme toggle -->
     <div class="theme-toggle-login">
       <span>🌞</span>
       <label class="switch">
@@ -35,5 +128,49 @@
       <span>🌙</span>
     </div>
   </div>
+
+  <!-- ===================================================== -->
+  <!-- ⚙️ SCRIPT -->
+  <!-- ===================================================== -->
+  <script>
+    const form = document.getElementById("loginForm");
+    const errorMsg = document.getElementById("errorMsg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      errorMsg.textContent = "";
+
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorMsg.textContent = data.message || "Login gagal. Periksa username dan password.";
+          return;
+        }
+
+        // Simpan token & role user
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("role", data.role);
+        localStorage.setItem("staff_name", data.staff_name || "");
+
+        // Redirect ke dashboard
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        console.error("❌ Login error:", err);
+        errorMsg.textContent = "Terjadi kesalahan koneksi.";
+      }
+    });
+  </script>
 </body>
 </html>
