@@ -1,6 +1,11 @@
 // ==========================================================
-// 🧭 Travel Dashboard Enterprise v5.4.6
-// UI Interactivity (Sidebar, Theme, Navigation)
+// ⚙️ UI Controller — Travel Dashboard Enterprise v5.4.6
+// ==========================================================
+// Mengatur:
+// - Sidebar expand/collapse
+// - Mode siang/malam (dark/light)
+// - Logout universal
+// - Responsive sidebar
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -8,90 +13,89 @@ document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById("sidebar");
   const toggleSidebar = document.getElementById("toggleSidebar");
   const themeSwitch = document.getElementById("themeSwitch");
+  const logoutBtn = document.getElementById("logoutBtn");
 
-  // ==========================================================
-  // 🌓 THEME TOGGLE (Dark / Light Mode)
-  // ==========================================================
-  const currentTheme = localStorage.getItem("theme") || "light";
-  body.classList.toggle("dark-mode", currentTheme === "dark");
-  if (themeSwitch) themeSwitch.checked = currentTheme === "dark";
-
-  if (themeSwitch) {
-    themeSwitch.addEventListener("change", () => {
-      const mode = themeSwitch.checked ? "dark" : "light";
-      body.classList.toggle("dark-mode", mode === "dark");
-      localStorage.setItem("theme", mode);
-    });
-  }
-
-  // ==========================================================
-  // 📦 SIDEBAR TOGGLE (Expand / Collapse)
-  // ==========================================================
+  // ======================================================
+  // 🧭 SIDEBAR TOGGLE
+  // ======================================================
   if (toggleSidebar) {
     toggleSidebar.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
-      const isCollapsed = sidebar.classList.contains("collapsed");
-      localStorage.setItem("sidebarState", isCollapsed ? "collapsed" : "expanded");
+      localStorage.setItem("sidebar-collapsed", sidebar.classList.contains("collapsed"));
     });
   }
 
-  // Restore sidebar state
-  const sidebarState = localStorage.getItem("sidebarState") || "expanded";
-  sidebar.classList.toggle("collapsed", sidebarState === "collapsed");
+  // Muat status sidebar dari localStorage
+  const sidebarState = localStorage.getItem("sidebar-collapsed");
+  if (sidebarState === "true") {
+    sidebar.classList.add("collapsed");
+  }
 
-  // ==========================================================
-  // 🧭 ACTIVE MENU HIGHLIGHT
-  // ==========================================================
-  const currentPage = window.location.pathname.split("/").pop();
-  const menuLinks = document.querySelectorAll(".sidebar-menu li a");
+  // ======================================================
+  // 🌗 THEME TOGGLE
+  // ======================================================
+  if (themeSwitch) {
+    themeSwitch.addEventListener("change", (e) => {
+      const mode = e.target.checked ? "dark" : "light";
+      setTheme(mode);
+    });
+  }
 
-  menuLinks.forEach((link) => {
-    const href = link.getAttribute("href");
-    if (href === currentPage) {
+  function setTheme(mode) {
+    if (mode === "dark") {
+      body.classList.remove("light-mode");
+      body.classList.add("dark-mode");
+      localStorage.setItem("theme", "dark");
+      if (themeSwitch) themeSwitch.checked = true;
+    } else {
+      body.classList.remove("dark-mode");
+      body.classList.add("light-mode");
+      localStorage.setItem("theme", "light");
+      if (themeSwitch) themeSwitch.checked = false;
+    }
+  }
+
+  // Muat tema dari localStorage
+  const savedTheme = localStorage.getItem("theme") || "light";
+  setTheme(savedTheme);
+
+  // ======================================================
+  // 🚪 LOGOUT HANDLER
+  // ======================================================
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (confirm("Apakah kamu yakin ingin logout?")) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("staff_name");
+        window.location.href = "login.html";
+      }
+    });
+  }
+
+  // ======================================================
+  // 🌐 MENU ACTIVE STATE
+  // ======================================================
+  const menuLinks = document.querySelectorAll(".sidebar-menu a");
+  menuLinks.forEach(link => {
+    if (window.location.pathname.includes(link.getAttribute("href"))) {
       link.parentElement.classList.add("active");
     } else {
       link.parentElement.classList.remove("active");
     }
   });
 
-  // ==========================================================
-  // 🚪 LOGOUT HANDLER
-  // ==========================================================
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      localStorage.clear();
-      window.location.href = "login.html";
-    });
+  // ======================================================
+  // 📱 RESPONSIVE AUTO COLLAPSE
+  // ======================================================
+  function handleResize() {
+    if (window.innerWidth < 900) {
+      sidebar.classList.add("collapsed");
+    } else if (localStorage.getItem("sidebar-collapsed") === "false") {
+      sidebar.classList.remove("collapsed");
+    }
   }
-
-  // ==========================================================
-  // 📱 MOBILE SIDEBAR AUTO-CLOSE
-  // ==========================================================
-  if (window.innerWidth <= 768) {
-    const links = document.querySelectorAll(".sidebar-menu li a");
-    links.forEach(link => {
-      link.addEventListener("click", () => {
-        sidebar.classList.remove("expanded");
-        localStorage.setItem("sidebarState", "collapsed");
-      });
-    });
-  }
-
-  // ==========================================================
-  // 🧩 AUTO LOGIN REDIRECT HANDLING
-  // ==========================================================
-  const token = localStorage.getItem("token");
-  const isLoginPage = window.location.pathname.includes("login.html");
-
-  // Jika belum login & bukan di halaman login → arahkan ke login
-  if (!token && !isLoginPage) {
-    window.location.href = "login.html";
-  }
-
-  // Jika sudah login & berada di halaman login → arahkan ke dashboard
-  if (token && isLoginPage) {
-    window.location.href = "dashboard.html";
-  }
+  window.addEventListener("resize", handleResize);
+  handleResize();
 });
