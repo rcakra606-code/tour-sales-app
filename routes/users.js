@@ -1,13 +1,10 @@
 // ==========================================================
-// 👥 User Management Routes — v5.4.6
+// 👥 User Routes — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
 import express from "express";
+import { authenticate, authorize } from "../middleware/authMiddleware.js";
 import {
-  authenticate,
-  authorizeAdmin,
-} from "../middleware/authMiddleware.js";
-import {
-  getAllUsers,
+  getUsers,
   createUser,
   updateUser,
   deleteUser,
@@ -15,10 +12,14 @@ import {
 
 const router = express.Router();
 
-// Hanya Admin yang bisa mengelola user
-router.get("/", authenticate, authorizeAdmin, getAllUsers);
-router.post("/", authenticate, authorizeAdmin, createUser);
-router.put("/:id", authenticate, authorizeAdmin, updateUser);
-router.delete("/:id", authenticate, authorizeAdmin, deleteUser);
+// Hanya admin & semiadmin yang bisa melihat data user
+router.get("/", authenticate, authorize(["admin", "semiadmin"]), getUsers);
+
+// Hanya admin yang bisa menambah / menghapus user
+router.post("/", authenticate, authorize(["admin"]), createUser);
+router.delete("/:id", authenticate, authorize(["admin"]), deleteUser);
+
+// Admin & semiadmin bisa update user
+router.put("/:id", authenticate, authorize(["admin", "semiadmin"]), updateUser);
 
 export default router;
