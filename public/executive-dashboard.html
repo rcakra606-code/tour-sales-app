@@ -25,6 +25,7 @@
       <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
       <li class="active"><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
       <li><a href="user-management.html">👥 User Management</a></li>
+      <li><a href="region_management.html">🌍 Region Management</a></li>
       <li><a href="profile.html">👤 Profil</a></li>
       <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
     </ul>
@@ -39,51 +40,62 @@
   </aside>
 
   <!-- ===================================================== -->
-  <!-- 📈 MAIN CONTENT -->
+  <!-- 📊 MAIN CONTENT -->
   <!-- ===================================================== -->
   <main id="main-content">
     <header>
       <h1>📊 Executive Dashboard</h1>
-      <p>Ringkasan performa bisnis berdasarkan sales, tour, dan dokumen</p>
+      <p>Analisis kinerja sales, tour, dan profit seluruh tim.</p>
     </header>
 
-    <section class="cards-container">
-      <div class="card">
-        <h3>Total Penjualan (Rp)</h3>
-        <p id="totalSales">0</p>
+    <!-- KPI SECTION -->
+    <section class="kpi-section">
+      <div class="kpi-card">
+        <h3>Total Sales</h3>
+        <p id="kpiSales">Rp 0</p>
       </div>
-      <div class="card">
-        <h3>Total Profit (Rp)</h3>
-        <p id="totalProfit">0</p>
+      <div class="kpi-card">
+        <h3>Total Profit</h3>
+        <p id="kpiProfit">Rp 0</p>
       </div>
-      <div class="card">
-        <h3>Rata-rata Capaian Sales (%)</h3>
-        <p id="avgSalesAchievement">0%</p>
+      <div class="kpi-card">
+        <h3>Total Tours</h3>
+        <p id="kpiTours">0</p>
       </div>
-      <div class="card">
-        <h3>Rata-rata Capaian Profit (%)</h3>
-        <p id="avgProfitAchievement">0%</p>
+      <div class="kpi-card">
+        <h3>Total Documents</h3>
+        <p id="kpiDocs">0</p>
       </div>
     </section>
 
-    <!-- ===================================================== -->
-    <!-- 📉 CHARTS -->
-    <!-- ===================================================== -->
+    <!-- CHARTS SECTION -->
     <section class="charts">
-      <div class="chart-box">
-        <h3>📆 Performa Bulanan (Sales & Profit)</h3>
+      <div class="chart-container">
+        <h3>📈 Performa Bulanan (Sales vs Profit)</h3>
         <canvas id="monthlyChart"></canvas>
       </div>
 
-      <div class="chart-box">
-        <h3>✈️ Tour per Region</h3>
-        <canvas id="tourChart"></canvas>
+      <div class="chart-container">
+        <h3>🌍 Distribusi Tour per Region</h3>
+        <canvas id="tourRegionChart"></canvas>
       </div>
+    </section>
 
-      <div class="chart-box">
-        <h3>📑 Dokumen per Staff</h3>
-        <canvas id="documentChart"></canvas>
-      </div>
+    <!-- STAFF PERFORMANCE -->
+    <section class="table-section">
+      <h3>🎯 Performa Staff (Target vs Realisasi)</h3>
+      <table id="staffTable">
+        <thead>
+          <tr>
+            <th>Nama Staff</th>
+            <th>Bulan</th>
+            <th>Sales (Target / Realisasi)</th>
+            <th>Profit (Target / Realisasi)</th>
+            <th>Pencapaian</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </section>
   </main>
 
@@ -92,112 +104,152 @@
   <!-- ===================================================== -->
   <script>
     const token = localStorage.getItem("token");
-    const headers = { "Authorization": `Bearer ${token}` };
-
-    async function fetchExecutiveSummary() {
-      const res = await fetch("/api/executive/summary", { headers });
-      const data = await res.json();
-
-      if (!Array.isArray(data)) return;
-
-      let totalSales = 0,
-          totalProfit = 0,
-          salesRate = 0,
-          profitRate = 0;
-
-      data.forEach((d) => {
-        totalSales += Number(d.total_sales || 0);
-        totalProfit += Number(d.total_profit || 0);
-        salesRate += Number(d.sales_achievement || 0);
-        profitRate += Number(d.profit_achievement || 0);
-      });
-
-      const avgSales = (salesRate / data.length).toFixed(1);
-      const avgProfit = (profitRate / data.length).toFixed(1);
-
-      document.getElementById("totalSales").textContent = `Rp ${totalSales.toLocaleString("id-ID")}`;
-      document.getElementById("totalProfit").textContent = `Rp ${totalProfit.toLocaleString("id-ID")}`;
-      document.getElementById("avgSalesAchievement").textContent = `${avgSales}%`;
-      document.getElementById("avgProfitAchievement").textContent = `${avgProfit}%`;
+    const role = localStorage.getItem("role");
+    if (!token || (role !== "admin" && role !== "semiadmin")) {
+      alert("Akses ditolak! Halaman ini hanya untuk Admin / SemiAdmin.");
+      window.location.href = "dashboard.html";
     }
 
-    async function renderCharts() {
-      const [monthlyRes, tourRes, docRes] = await Promise.all([
-        fetch("/api/executive/monthly-performance", { headers }),
-        fetch("/api/executive/tour-statistics", { headers }),
-        fetch("/api/executive/document-summary", { headers }),
-      ]);
+    const headers = { "Authorization": "Bearer " + token };
 
-      const monthly = await monthlyRes.json();
-      const tour = await tourRes.json();
-      const docs = await docRes.json();
+    const kpiSales = document.getElementById("kpiSales");
+    const kpiProfit = document.getElementById("kpiProfit");
+    const kpiTours = document.getElementById("kpiTours");
+    const kpiDocs = document.getElementById("kpiDocs");
+    const staffTable = document.querySelector("#staffTable tbody");
 
-      // 📆 Monthly Sales Chart
-      const monthLabels = monthly.map((m) =>
-        new Date(m.month).toLocaleString("id-ID", { month: "short", year: "numeric" })
-      );
-      new Chart(document.getElementById("monthlyChart"), {
-        type: "bar",
-        data: {
-          labels: monthLabels,
-          datasets: [
-            {
-              label: "Sales (Rp)",
-              data: monthly.map((m) => m.total_sales),
-              borderWidth: 1,
-            },
-            {
-              label: "Profit (Rp)",
-              data: monthly.map((m) => m.total_profit),
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: { responsive: true, plugins: { legend: { position: "bottom" } } },
-      });
+    // ===============================
+    // 📊 LOAD KPI SUMMARY
+    // ===============================
+    async function loadSummary() {
+      try {
+        const res = await fetch("/api/executive/summary", { headers });
+        const data = await res.json();
 
-      // ✈️ Tour per Region
-      new Chart(document.getElementById("tourChart"), {
-        type: "pie",
-        data: {
-          labels: tour.map((t) => t.region || "Tidak Diketahui"),
-          datasets: [
-            {
-              data: tour.map((t) => t.total_tours),
-              backgroundColor: ["#3498db", "#e67e22", "#2ecc71", "#9b59b6", "#f1c40f"],
-            },
-          ],
-        },
-      });
-
-      // 📑 Document per Staff
-      const docLabels = [...new Set(docs.map((d) => d.staff_name))];
-      const docCounts = docLabels.map(
-        (staff) => docs.filter((d) => d.staff_name === staff).length
-      );
-      new Chart(document.getElementById("documentChart"), {
-        type: "bar",
-        data: {
-          labels: docLabels,
-          datasets: [
-            {
-              label: "Jumlah Dokumen",
-              data: docCounts,
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: { responsive: true, plugins: { legend: { display: false } } },
-      });
+        kpiSales.textContent = "Rp " + Number(data.total_sales || 0).toLocaleString("id-ID");
+        kpiProfit.textContent = "Rp " + Number(data.total_profit || 0).toLocaleString("id-ID");
+        kpiTours.textContent = Number(data.total_tours || 0);
+        kpiDocs.textContent = Number(data.total_documents || 0);
+      } catch (err) {
+        console.error("❌ Gagal load summary:", err);
+      }
     }
 
+    // ===============================
+    // 📈 LOAD MONTHLY PERFORMANCE
+    // ===============================
+    async function loadMonthlyChart() {
+      try {
+        const res = await fetch("/api/executive/monthly-performance", { headers });
+        const data = await res.json();
+
+        const months = data.map(d => d.month);
+        const sales = data.map(d => Number(d.total_sales || 0));
+        const profit = data.map(d => Number(d.total_profit || 0));
+
+        new Chart(document.getElementById("monthlyChart"), {
+          type: "line",
+          data: {
+            labels: months,
+            datasets: [
+              { label: "Sales", data: sales, borderColor: "#007bff", fill: false },
+              { label: "Profit", data: profit, borderColor: "#28a745", fill: false }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } }
+          }
+        });
+      } catch (err) {
+        console.error("❌ Gagal load monthly chart:", err);
+      }
+    }
+
+    // ===============================
+    // 🌍 LOAD TOUR REGION DATA
+    // ===============================
+    async function loadTourRegionChart() {
+      try {
+        const res = await fetch("/api/executive/tour-statistics", { headers });
+        const data = await res.json();
+
+        const regions = data.map(r => r.region);
+        const totals = data.map(r => Number(r.total_tour || 0));
+
+        new Chart(document.getElementById("tourRegionChart"), {
+          type: "bar",
+          data: {
+            labels: regions,
+            datasets: [
+              {
+                label: "Jumlah Tour",
+                data: totals,
+                backgroundColor: "#17a2b8"
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      } catch (err) {
+        console.error("❌ Gagal load tour region:", err);
+      }
+    }
+
+    // ===============================
+    // 🎯 LOAD STAFF PERFORMANCE
+    // ===============================
+    async function loadStaffPerformance() {
+      try {
+        const res = await fetch("/api/executive/staff-performance", { headers });
+        const data = await res.json();
+
+        staffTable.innerHTML = data.map(d => `
+          <tr>
+            <td>${d.staff_name}</td>
+            <td>${d.month}</td>
+            <td>Rp ${Number(d.total_sales || 0).toLocaleString("id-ID")} / 
+                Rp ${Number(d.target_sales || 0).toLocaleString("id-ID")}</td>
+            <td>Rp ${Number(d.total_profit || 0).toLocaleString("id-ID")} / 
+                Rp ${Number(d.target_profit || 0).toLocaleString("id-ID")}</td>
+            <td>
+              <div class="progress-group">
+                <div class="progress-label">Sales</div>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width:${d.sales_progress}%;"></div>
+                </div>
+                <div class="progress-label">Profit</div>
+                <div class="progress-bar">
+                  <div class="progress-fill green" style="width:${d.profit_progress}%;"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `).join("");
+      } catch (err) {
+        console.error("❌ Gagal load staff performance:", err);
+      }
+    }
+
+    // ===============================
+    // 🚀 INIT
+    // ===============================
+    (async function init() {
+      await loadSummary();
+      await loadMonthlyChart();
+      await loadTourRegionChart();
+      await loadStaffPerformance();
+    })();
+
+    // Logout
     document.getElementById("logoutBtn").addEventListener("click", () => {
       localStorage.clear();
       window.location.href = "login.html";
     });
-
-    fetchExecutiveSummary();
-    renderCharts();
   </script>
 </body>
 </html>
