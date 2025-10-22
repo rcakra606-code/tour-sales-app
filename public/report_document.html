@@ -3,10 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Laporan Dokumen | Travel Dashboard</title>
+  <title>Report Document | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
   <script defer src="./js/ui.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
+
 <body class="light-mode">
   <!-- ===================================================== -->
   <!-- 🧭 SIDEBAR -->
@@ -21,6 +23,8 @@
       <li><a href="report_sales.html">💹 Laporan Sales</a></li>
       <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
       <li class="active"><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
+      <li><a href="region_management.html">🌍 Region Management</a></li>
       <li><a href="user-management.html">👥 User Management</a></li>
       <li><a href="profile.html">👤 Profil</a></li>
       <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
@@ -36,136 +40,217 @@
   </aside>
 
   <!-- ===================================================== -->
-  <!-- 📊 MAIN CONTENT -->
+  <!-- 📋 MAIN CONTENT -->
   <!-- ===================================================== -->
   <main id="main-content">
     <header>
       <h1>📑 Laporan Dokumen</h1>
-      <p>Data dokumen tamu, proses visa, dan pengiriman</p>
+      <p>Kelola dan pantau proses dokumen tamu Anda.</p>
     </header>
 
-    <!-- 🔍 FILTERS -->
-    <section class="filters">
-      <input type="text" id="guestFilter" placeholder="Cari nama tamu..." />
-      <input type="text" id="staffFilter" placeholder="Nama staff..." />
-      <input type="month" id="monthFilter" />
-      <button id="filterBtn">Terapkan Filter</button>
-      <div class="export-buttons">
-        <button id="exportExcel">📘 Export Excel</button>
-        <button id="exportCSV">📄 Export CSV</button>
+    <!-- 🔹 FILTER -->
+    <section class="filter-section">
+      <div class="filter-grid">
+        <input type="month" id="filterMonth" />
+        <input type="text" id="filterStaff" placeholder="Nama staff..." />
+        <select id="filterProcess">
+          <option value="">Semua Proses</option>
+          <option value="KILAT">Kilat</option>
+          <option value="BIASA">Biasa</option>
+        </select>
+        <button id="filterBtn">🔍 Filter</button>
+        <button id="exportBtn">📦 Export Excel</button>
       </div>
     </section>
 
-    <!-- 📋 TABLE -->
+    <!-- 🔹 FORM INPUT -->
+    <section class="form-section">
+      <h3 id="formTitle">Tambah Dokumen</h3>
+      <form id="documentForm">
+        <div class="form-grid">
+          <div><label>Tanggal Terima Dokumen</label><input type="date" id="receiveDate" /></div>
+          <div><label>Tanggal Pengiriman</label><input type="date" id="sendDate" /></div>
+          <div><label>Nama Tamu</label><input type="text" id="guestName" /></div>
+          <div><label>Paspor / Visa (Negara)</label><input type="text" id="passportCountry" /></div>
+          <div><label>Jenis Proses</label>
+            <select id="processType">
+              <option value="BIASA">Biasa</option>
+              <option value="KILAT">Kilat</option>
+            </select>
+          </div>
+          <div><label>Kode Booking DMS</label><input type="text" id="bookingCodeDms" /></div>
+          <div><label>Nomor Invoice</label><input type="text" id="invoiceNumber" /></div>
+          <div><label>Nomor Telepon Tamu</label><input type="text" id="guestPhone" /></div>
+          <div><label>Estimasi Selesai</label><input type="date" id="estimateCompletion" /></div>
+          <div><label>Nama Staff</label><input type="text" id="staffName" disabled /></div>
+          <div><label>Tour Code (Opsional)</label><input type="text" id="tourCode" /></div>
+        </div>
+        <div class="form-buttons">
+          <button type="submit" id="saveBtn">💾 Simpan</button>
+          <button type="button" id="resetBtn" class="secondary">🔄 Reset</button>
+        </div>
+        <p id="formMsg" class="message"></p>
+      </form>
+    </section>
+
+    <!-- 🔹 TABEL DATA -->
     <section class="table-section">
+      <h3>Daftar Dokumen</h3>
       <table id="documentTable">
         <thead>
           <tr>
-            <th>No</th>
+            <th>ID</th>
             <th>Tanggal Terima</th>
-            <th>Tanggal Kirim</th>
             <th>Nama Tamu</th>
-            <th>Jenis Dokumen</th>
-            <th>Proses</th>
-            <th>Kode Booking</th>
-            <th>Nomor Invoice</th>
+            <th>Negara</th>
+            <th>Jenis Proses</th>
+            <th>Kode DMS</th>
+            <th>Invoice</th>
+            <th>Telepon</th>
             <th>Staff</th>
-            <th>Tour Code</th>
+            <th>Aksi</th>
           </tr>
         </thead>
-        <tbody id="documentTableBody">
-          <tr><td colspan="10" class="center">Memuat data...</td></tr>
-        </tbody>
+        <tbody></tbody>
       </table>
     </section>
   </main>
 
   <!-- ===================================================== -->
-  <!-- 📜 SCRIPT -->
+  <!-- ⚙️ SCRIPT -->
   <!-- ===================================================== -->
   <script>
     const token = localStorage.getItem("token");
-    const headers = { "Authorization": `Bearer ${token}` };
+    const role = localStorage.getItem("role");
+    const staffName = localStorage.getItem("staff_name");
+    if (!token) window.location.href = "login.html";
 
-    async function fetchDocumentData(guest = "", staff = "", month = "") {
-      try {
-        const response = await fetch("/api/report/document", { headers });
-        const data = await response.json();
+    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
+    document.getElementById("staffName").value = staffName;
 
-        let filtered = data;
-        if (guest) {
-          filtered = filtered.filter((r) =>
-            r.guest_name?.toLowerCase().includes(guest.toLowerCase())
-          );
-        }
-        if (staff) {
-          filtered = filtered.filter((r) =>
-            r.staff_name?.toLowerCase().includes(staff.toLowerCase())
-          );
-        }
-        if (month) {
-          const [year, mon] = month.split("-");
-          filtered = filtered.filter((r) => {
-            const date = new Date(r.received_date);
-            return (
-              date.getFullYear() === parseInt(year) &&
-              date.getMonth() + 1 === parseInt(mon)
-            );
-          });
-        }
+    const docTable = document.querySelector("#documentTable tbody");
+    const docForm = document.getElementById("documentForm");
+    const formMsg = document.getElementById("formMsg");
+    const filterBtn = document.getElementById("filterBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    let editId = null;
 
-        const tbody = document.getElementById("documentTableBody");
-        tbody.innerHTML = "";
+    // =====================================================
+    // 📂 LOAD DOCUMENTS
+    // =====================================================
+    async function loadDocuments(filters = {}) {
+      const params = new URLSearchParams(filters).toString();
+      const res = await fetch("/api/report/documents?" + params, { headers });
+      const data = await res.json();
 
-        if (filtered.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="10" class="center">Tidak ada data ditemukan.</td></tr>';
-          return;
-        }
-
-        filtered.forEach((row, i) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${new Date(row.received_date).toLocaleDateString("id-ID")}</td>
-            <td>${row.sent_date ? new Date(row.sent_date).toLocaleDateString("id-ID") : "-"}</td>
-            <td>${row.guest_name || "-"}</td>
-            <td>${row.document_type || "-"}</td>
-            <td>${row.process_type || "-"}</td>
-            <td>${row.booking_code || "-"}</td>
-            <td>${row.invoice_number || "-"}</td>
-            <td>${row.staff_name || "-"}</td>
-            <td>${row.tour_code || "-"}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (err) {
-        console.error("❌ Error memuat data dokumen:", err);
-      }
+      docTable.innerHTML = data.map(d => `
+        <tr>
+          <td>${d.id}</td>
+          <td>${d.receive_date ? new Date(d.receive_date).toLocaleDateString("id-ID") : "-"}</td>
+          <td>${d.guest_name}</td>
+          <td>${d.passport_country}</td>
+          <td>${d.process_type}</td>
+          <td>${d.booking_code_dms}</td>
+          <td>${d.invoice_number}</td>
+          <td>${d.guest_phone}</td>
+          <td>${d.staff_name}</td>
+          <td>
+            <button onclick="editDocument(${d.id})">✏️</button>
+            ${role === "admin" ? `<button class="danger" onclick="deleteDocument(${d.id})">🗑️</button>` : ""}
+          </td>
+        </tr>
+      `).join("");
     }
 
-    document.getElementById("filterBtn").addEventListener("click", () => {
-      const guest = document.getElementById("guestFilter").value;
-      const staff = document.getElementById("staffFilter").value;
-      const month = document.getElementById("monthFilter").value;
-      fetchDocumentData(guest, staff, month);
+    // =====================================================
+    // 💾 SAVE / UPDATE DOCUMENT
+    // =====================================================
+    docForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const data = {
+        receive_date: receiveDate.value,
+        send_date: sendDate.value,
+        guest_name: guestName.value,
+        passport_country: passportCountry.value,
+        process_type: processType.value,
+        booking_code_dms: bookingCodeDms.value,
+        invoice_number: invoiceNumber.value,
+        guest_phone: guestPhone.value,
+        estimate_completion: estimateCompletion.value,
+        staff_name: staffName,
+        tour_code: tourCode.value
+      };
+
+      const method = editId ? "PUT" : "POST";
+      const url = editId ? `/api/report/documents/${editId}` : "/api/report/documents";
+      const res = await fetch(url, { method, headers, body: JSON.stringify(data) });
+      const result = await res.json();
+
+      formMsg.textContent = result.message;
+      formMsg.style.color = res.ok ? "green" : "red";
+      if (res.ok) {
+        docForm.reset();
+        editId = null;
+        loadDocuments();
+      }
     });
 
-    document.getElementById("exportExcel").addEventListener("click", () => {
-      window.open("/api/report/document/export?format=xlsx", "_blank");
+    // =====================================================
+    // ✏️ EDIT DOCUMENT
+    // =====================================================
+    window.editDocument = async function(id) {
+      const res = await fetch("/api/report/documents", { headers });
+      const data = await res.json();
+      const doc = data.find(d => d.id === id);
+      if (!doc) return;
+
+      editId = id;
+      receiveDate.value = doc.receive_date?.split("T")[0] || "";
+      sendDate.value = doc.send_date?.split("T")[0] || "";
+      guestName.value = doc.guest_name;
+      passportCountry.value = doc.passport_country;
+      processType.value = doc.process_type;
+      bookingCodeDms.value = doc.booking_code_dms;
+      invoiceNumber.value = doc.invoice_number;
+      guestPhone.value = doc.guest_phone;
+      estimateCompletion.value = doc.estimate_completion?.split("T")[0] || "";
+      tourCode.value = doc.tour_code;
+    };
+
+    // =====================================================
+    // 🗑️ DELETE DOCUMENT
+    // =====================================================
+    window.deleteDocument = async function(id) {
+      if (!confirm("Yakin ingin menghapus data ini?")) return;
+      await fetch(`/api/report/documents/${id}`, { method: "DELETE", headers });
+      loadDocuments();
+    };
+
+    // =====================================================
+    // 🔍 FILTER
+    // =====================================================
+    filterBtn.addEventListener("click", () => {
+      loadDocuments({
+        staff: filterStaff.value,
+        month: filterMonth.value,
+        process_type: filterProcess.value
+      });
     });
 
-    document.getElementById("exportCSV").addEventListener("click", () => {
-      window.open("/api/report/document/export?format=csv", "_blank");
+    // =====================================================
+    // 📦 EXPORT TO EXCEL
+    // =====================================================
+    exportBtn.addEventListener("click", () => {
+      const table = document.getElementById("documentTable");
+      const wb = XLSX.utils.table_to_book(table, { sheet: "Documents" });
+      XLSX.writeFile(wb, "report_documents.xlsx");
     });
 
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      localStorage.clear();
-      window.location.href = "login.html";
-    });
-
-    // Jalankan saat load awal
-    fetchDocumentData();
+    // =====================================================
+    // 🚀 INIT
+    // =====================================================
+    loadDocuments();
   </script>
 </body>
 </html>
