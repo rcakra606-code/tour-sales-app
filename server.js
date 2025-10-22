@@ -1,5 +1,5 @@
 // ==========================================================
-// 🚀 Travel Dashboard Enterprise v5.4.6 — Server.js
+// 🚀 Travel Dashboard Enterprise v5.4.8 — Server.js (Safe Frontend)
 // ==========================================================
 
 import express from "express";
@@ -10,9 +10,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { Pool } from "pg";
 
-// ==========================================================
-// 🧩 CONFIGURATION
-// ==========================================================
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,15 +17,12 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ==========================================================
-// ⚙️ MIDDLEWARE
-// ==========================================================
 app.use(express.json());
 app.use(cors());
 app.use(compression());
 
 // ==========================================================
-// 🗃️ DATABASE CONNECTION
+// 🗃️ DATABASE
 // ==========================================================
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -40,7 +34,7 @@ pool.connect()
   .catch((err) => console.error("❌ PostgreSQL Connection Error:", err));
 
 // ==========================================================
-// 🛡️ ROUTES
+// 🛡️ API ROUTES
 // ==========================================================
 import authRoutes from "./routes/auth.js";
 import dashboardRoutes from "./routes/dashboard.js";
@@ -71,20 +65,30 @@ app.use("/api/executive", executiveReportRoutes);
 app.use("/api/logs", logRoutes);
 
 // ==========================================================
-// 💓 HEALTH CHECK
+// 🌐 FRONTEND (STATIC)
+// ==========================================================
+const publicPath = path.join(__dirname, "public");
+app.use(express.static(publicPath, {
+  extensions: ["html"],
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".js")) {
+      res.setHeader("Content-Type", "application/javascript");
+    }
+  },
+}));
+
+// ==========================================================
+// 🩺 HEALTH CHECK
 // ==========================================================
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", message: "Server is healthy" });
+  res.json({ status: "ok" });
 });
 
 // ==========================================================
-// 🌐 STATIC FRONTEND HANDLER
+// 🌍 FALLBACK — Redirect ke index.html (SPA-friendly)
 // ==========================================================
-app.use(express.static(path.join(__dirname, "public")));
-
-// Handle all routes not matching /api -> serve index.html
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(publicPath, "index.html"));
 });
 
 // ==========================================================
