@@ -1,5 +1,5 @@
 // ==========================================================
-// 🚀 Travel Dashboard Enterprise v5.4.8 — Server.js (Safe Frontend)
+// 🚀 Travel Dashboard Enterprise v5.4.9 — Server.js
 // ==========================================================
 
 import express from "express";
@@ -17,12 +17,24 @@ const PORT = process.env.PORT || 5000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.json());
+// ==========================================================
+// ⚙️ MIDDLEWARE
+// ==========================================================
 app.use(cors());
+app.use(express.json({ limit: "2mb", strict: true }));
 app.use(compression());
 
+// ✅ Fix CSP agar fetch JS dari frontend tidak ditolak
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src *;"
+  );
+  next();
+});
+
 // ==========================================================
-// 🗃️ DATABASE
+// 🗃️ DATABASE CONNECTION (NeonDB)
 // ==========================================================
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -65,30 +77,24 @@ app.use("/api/executive", executiveReportRoutes);
 app.use("/api/logs", logRoutes);
 
 // ==========================================================
-// 🌐 FRONTEND (STATIC)
-// ==========================================================
-const publicPath = path.join(__dirname, "public");
-app.use(express.static(publicPath, {
-  extensions: ["html"],
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith(".js")) {
-      res.setHeader("Content-Type", "application/javascript");
-    }
-  },
-}));
-
-// ==========================================================
-// 🩺 HEALTH CHECK
+// 💓 HEALTH CHECK
 // ==========================================================
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", message: "Server is healthy" });
 });
 
 // ==========================================================
-// 🌍 FALLBACK — Redirect ke index.html (SPA-friendly)
+// 🌐 FRONTEND STATIC HANDLER
 // ==========================================================
+app.use(express.static(path.join(__dirname, "public"), {
+  extensions: ["html"],
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".js")) res.setHeader("Content-Type", "application/javascript");
+  },
+}));
+
 app.get("*", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // ==========================================================
