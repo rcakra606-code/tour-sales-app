@@ -1,11 +1,8 @@
 // ==========================================================
-// 💹 Sales Report Routes — v5.4.6
+// 💹 Report Sales Routes — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
 import express from "express";
-import {
-  authenticate,
-  authorizeManagement,
-} from "../middleware/authMiddleware.js";
+import { authenticate } from "../middleware/authMiddleware.js";
 import {
   getAllSalesReport,
   getSalesByStaff,
@@ -15,9 +12,16 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticate, authorizeManagement, getAllSalesReport);
+// Semua user login bisa lihat laporan mereka sendiri
+router.get("/", authenticate, getAllSalesReport);
+
+// Ambil data berdasarkan staff (untuk staff login)
 router.get("/staff/:staff_name", authenticate, getSalesByStaff);
-router.get("/summary", authenticate, authorizeManagement, getSalesSummary);
-router.get("/export", authenticate, authorizeManagement, exportSalesReport);
+
+// Ambil summary total sales + profit
+router.get("/summary", authenticate, getSalesSummary);
+
+// Export Excel / CSV
+router.get("/export", authenticate, exportSalesReport);
 
 export default router;
