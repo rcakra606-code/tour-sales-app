@@ -1,4 +1,7 @@
-// controllers/salesController.js
+// ==========================================================
+// 💰 Sales Controller — Travel Dashboard Enterprise v5.4.6
+// ==========================================================
+
 import pkg from "pg";
 const { Pool } = pkg;
 
@@ -7,91 +10,178 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-/**
- * GET /api/sales
- * Return list of all sales (admin & semiadmin), or only own sales (staff)
- */
+// ==========================================================
+// 🔹 GET /api/sales — Ambil Semua Data Sales
+// ==========================================================
 export async function getSales(req, res) {
   try {
-    const role = req.user.role;
-    const staff = req.user.staff_name || req.user.username;
+    const { staff, month } = req.query;
+    let filters = [];
+    let values = [];
+    let i = 1;
 
-    let q = `SELECT id, transaction_date, staff_name, invoice_number, sales_amount, profit_amount, remarks 
-             FROM sales `;
-    if (role === "staff") {
-      q += `WHERE LOWER(staff_name) = LOWER($1) ORDER BY transaction_date DESC`;
-    } else {
-      q += `ORDER BY transaction_date DESC`;
+    if (staff) {
+      filters.push(`LOWER(staff_name) = LOWER($${i})`);
+      values.push(staff);
+      i++;
     }
 
-    const values = role === "staff" ? [staff] : [];
-    const { rows } = await pool.query(q, values);
+    if (month) {
+      filters.push(`TO_CHAR(transaction_date, 'YYYY-MM') = $${i}`);
+      values.push(month);
+      i++;
+    }
 
-    const formatted = rows.map((r) => ({
-      id: r.id,
-      transactionDate: r.transaction_date,
-      staffName: r.staff_name,
-      invoiceNumber: r.invoice_number,
-      salesAmount: parseFloat(r.sales_amount) || 0,
-      profitAmount: parseFloat(r.profit_amount) || 0,
-      remarks: r.remarks,
-    }));
+    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
 
-    res.json(formatted);
+    const query = `
+      SELECT id, transaction_date, invoice_number, staff_name, client_name,
+             sales_amount, profit_amount, category, tour_code, notes
+      FROM sales
+      ${whereClause}
+      ORDER BY transaction_date DESC;
+    `;
+
+    const { rows } = await pool.query(query, values);
+    res.json(rows);
   } catch (err) {
-    console.error("❌ GET /api/sales error:", err);
-    res.status(500).json({ message: "Gagal memuat data sales" });
+    console.error("❌ GET sales error:", err);
+    res.status(500).json({ message: "Gagal memuat data sales." });
   }
 }
 
-/**
- * POST /api/sales
- * Create new sales record
- */
+// ==========================================================
+// 🔹 GET /api/sales/:id — Ambil Data Sales Berdasarkan ID
+// ==========================================================
+export async function getSaleById(req, res) {
+  try {
+    const { id } = req.params;
+    const query = `SELECT * FROM sales WHERE id = $1;`;
+    const { rows } = await pool.query(query, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Data sales tidak ditemukan." });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("❌ Get sale by ID error:", err);
+    res.status(500).json({ message: "Gagal mengambil data sales." });
+  }
+}
+
+// ==========================================================
+// 🔹 POST /api/sales — Tambah Data Sales Baru
+// ==========================================================
 export async function createSale(req, res) {
   try {
-    const { transactionDate, staffName, invoiceNumber, salesAmount, profitAmount, remarks } = req.body;
+    const {
+      transaction_date,
+      invoice_number,
+      staff_name,
+      client_name,
+      sales_amount,
+      profit_amount,
+      category,
+      tour_code,
+      notes,
+    } = req.body;
 
-    if (!transactionDate || !staffName) {
-      return res.status(400).json({ message: "Tanggal transaksi dan nama staff wajib diisi" });
-    }
-
-    const q = `
-      INSERT INTO sales (transaction_date, staff_name, invoice_number, sales_amount, profit_amount, remarks)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, staff_name, invoice_number, sales_amount, profit_amount, remarks;
+    const query = `
+      INSERT INTO sales (
+        transaction_date, invoice_number, staff_name, client_name,
+        sales_amount, profit_amount, category, tour_code, notes
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING id;
     `;
-    const values = [transactionDate, staffName, invoiceNumber, salesAmount, profitAmount, remarks];
 
-    const { rows } = await pool.query(q, values);
-    res.status(201).json({
-      message: "Data sales berhasil disimpan",
-      data: rows[0],
-    });
+    const values = [
+      transaction_date || null,
+      invoice_number || null,
+      staff_name || null,
+      client_name || null,
+      parseFloat(sales_amount) || 0,
+      parseFloat(profit_amount) || 0,
+      category || null,
+      tour_code || null,
+      notes || null,
+    ];
+
+    await pool.query(query, values);
+    res.json({ message: "Data sales berhasil ditambahkan." });
   } catch (err) {
-    console.error("❌ POST /api/sales error:", err);
-    res.status(500).json({ message: "Gagal menyimpan data sales" });
+    console.error("❌ Create sales error:", err);
+    res.status(500).json({ message: "Gagal menambah data sales." });
   }
 }
 
-/**
- * DELETE /api/sales/:id
- * Delete a sales record by ID (Admin or SemiAdmin only)
- */
-export async function deleteSale(req, res) {
+// ==========================================================
+// 🔹 PUT /api/sales/:id — Update Data Sales
+// ==========================================================
+export async function updateSale(req, res) {
   try {
-    const role = req.user.role;
-    if (!["admin", "semiadmin"].includes(role)) {
-      return res.status(403).json({ message: "Akses ditolak. Hanya Admin atau SemiAdmin yang dapat menghapus." });
+    const { id } = req.params;
+    const {
+      transaction_date,
+      invoice_number,
+      staff_name,
+      client_name,
+      sales_amount,
+      profit_amount,
+      category,
+      tour_code,
+      notes,
+    } = req.body;
+
+    const query = `
+      UPDATE sales
+      SET transaction_date=$1, invoice_number=$2, staff_name=$3, client_name=$4,
+          sales_amount=$5, profit_amount=$6, category=$7, tour_code=$8, notes=$9
+      WHERE id=$10
+      RETURNING id;
+    `;
+
+    const values = [
+      transaction_date || null,
+      invoice_number || null,
+      staff_name || null,
+      client_name || null,
+      parseFloat(sales_amount) || 0,
+      parseFloat(profit_amount) || 0,
+      category || null,
+      tour_code || null,
+      notes || null,
+      id,
+    ];
+
+    const result = await pool.query(query, values);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Data sales tidak ditemukan." });
     }
 
-    const { id } = req.params;
-    if (!id) return res.status(400).json({ message: "ID tidak valid" });
-
-    await pool.query(`DELETE FROM sales WHERE id = $1;`, [id]);
-    res.json({ message: "Data sales berhasil dihapus" });
+    res.json({ message: "Data sales berhasil diperbarui." });
   } catch (err) {
-    console.error("❌ DELETE /api/sales error:", err);
-    res.status(500).json({ message: "Gagal menghapus data sales" });
+    console.error("❌ Update sales error:", err);
+    res.status(500).json({ message: "Gagal memperbarui data sales." });
+  }
+}
+
+// ==========================================================
+// 🔹 DELETE /api/sales/:id — Hapus Data Sales
+// ==========================================================
+export async function deleteSale(req, res) {
+  try {
+    const { id } = req.params;
+    const query = `DELETE FROM sales WHERE id = $1;`;
+    const result = await pool.query(query, [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Data sales tidak ditemukan." });
+    }
+
+    res.json({ message: "Data sales berhasil dihapus." });
+  } catch (err) {
+    console.error("❌ Delete sales error:", err);
+    res.status(500).json({ message: "Gagal menghapus data sales." });
   }
 }
