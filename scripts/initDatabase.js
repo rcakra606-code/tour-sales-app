@@ -1,203 +1,74 @@
 // ==========================================================
-// 🗄️ initDatabase.js — Travel Dashboard Enterprise v5.4.4
+// 🧱 Travel Dashboard Enterprise v5.4.6
+// Database Initialization Script for NeonDB / Render PostgreSQL
 // ==========================================================
-// - Membuat & memperbaiki struktur database
-// - Memperbaiki tabel users (password_hash, staff_name, role)
-// - Membuat ulang akun admin jika rusak
-// - Aman untuk Render + NeonDB
+// Fungsi: Membaca file update-schema.sql dan menjalankannya otomatis
 // ==========================================================
 
 import pkg from "pg";
-import bcryptjs from "bcryptjs";
-const bcrypt = bcryptjs;
-const { Pool } = pkg;
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
+// ==========================================================
+// 📍 Setup Path & PostgreSQL Connection
+// ==========================================================
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const schemaPath = path.join(__dirname, "update-schema.sql");
+
+const { Pool } = pkg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-async function initDatabase() {
-  console.log("🚀 Inisialisasi dan perbaikan struktur database...");
+// ==========================================================
+// 🚀 Main Execution
+// ==========================================================
+async function initDB() {
+  console.log("🧩 Starting database initialization...");
+  console.log(`📄 Loading schema file from: ${schemaPath}`);
 
   try {
-    // ======================================================
-    // USERS TABLE
-    // ======================================================
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        staff_name TEXT,
-        password_hash TEXT,
-        role TEXT CHECK (role IN ('admin','semiadmin','staff')),
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    // Tambahkan kolom jika hilang
-    const requiredColumns = [
-      ["staff_name", "TEXT"],
-      ["password_hash", "TEXT"],
-      ["role", "TEXT DEFAULT 'staff'"],
-      ["created_at", "TIMESTAMP DEFAULT NOW()"],
-    ];
-
-    for (const [col, type] of requiredColumns) {
-      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${col} ${type};`);
+    // Pastikan file ada
+    if (!fs.existsSync(schemaPath)) {
+      console.error("❌ Schema file not found:", schemaPath);
+      process.exit(1);
     }
 
-    // Migrasi kolom lama
-    const checkOld = await pool.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'users' AND column_name = 'password';
+    // Baca isi file SQL
+    const sql = fs.readFileSync(schemaPath, "utf8");
+    console.log("📦 Executing SQL script...");
+    await pool.query(sql);
+
+    console.log("✅ Database schema updated successfully!");
+
+    // Verifikasi hasil
+    const verify = await pool.query(`
+      SELECT COUNT(*) AS user_count FROM users;
     `);
-    if (checkOld.rows.length > 0) {
-      console.log("⚙️  Migrasi kolom lama 'password' ke 'password_hash'...");
-      await pool.query(`
-        UPDATE users SET password_hash = password WHERE password_hash IS NULL;
-        ALTER TABLE users DROP COLUMN IF EXISTS password;
-      `);
-    }
+    console.log(`👥 Users table check: ${verify.rows[0].user_count} record(s)`);
 
-    // Isi nilai default kosong
-    await pool.query(`UPDATE users SET role = 'staff' WHERE role IS NULL;`);
-    await pool.query(`UPDATE users SET staff_name = username WHERE staff_name IS NULL;`);
-
-    // ======================================================
-    // ADMIN DEFAULT ACCOUNT FIX
-    // ======================================================
-    const { rows } = await pool.query(
-      "SELECT id, username, password_hash FROM users WHERE username = 'admin';"
-    );
-
-    if (rows.length > 0) {
-      const admin = rows[0];
-      const hash = admin.password_hash;
-
-      if (!hash || typeof hash !== "string" || !hash.startsWith("$2a$")) {
-        console.warn("⚠️  Kolom password_hash admin rusak — memperbaiki...");
-        await pool.query("DELETE FROM users WHERE username = 'admin';");
-
-        const newHash = await bcrypt.hash("admin123", 10);
-        await pool.query(
-          `
-          INSERT INTO users (username, staff_name, password_hash, role)
-          VALUES ('admin', 'Administrator', $1, 'admin');
-          `,
-          [newHash]
-        );
-        console.log("✅ Akun admin diperbaiki (admin / admin123)");
-      } else {
-        console.log("✅ Akun admin valid — tidak perlu perbaikan");
-      }
-    } else {
-      console.log("⚙️  Membuat akun admin default...");
-      const newHash = await bcrypt.hash("admin123", 10);
-      await pool.query(
-        `
-        INSERT INTO users (username, staff_name, password_hash, role)
-        VALUES ('admin', 'Administrator', $1, 'admin');
-        `,
-        [newHash]
-      );
-      console.log("✅ Akun admin default dibuat (admin / admin123)");
-    }
-
-    // ======================================================
-    // TABEL LAINNYA
-    // ======================================================
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS sales (
-        id SERIAL PRIMARY KEY,
-        transaction_date DATE NOT NULL,
-        staff_name TEXT,
-        invoice_number TEXT,
-        sales_amount NUMERIC(12,2) DEFAULT 0,
-        profit_amount NUMERIC(12,2) DEFAULT 0,
-        remarks TEXT,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
+    const tourCheck = await pool.query(`
+      SELECT COUNT(*) AS tour_count FROM tours;
     `);
+    console.log(`✈️ Tours table check: ${tourCheck.rows[0].tour_count} record(s)`);
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS tours (
-        id SERIAL PRIMARY KEY,
-        registration_date DATE,
-        lead_passenger TEXT,
-        all_passengers TEXT,
-        tour_code TEXT,
-        region TEXT,
-        departure_date DATE,
-        booking_code TEXT,
-        tour_price NUMERIC(12,2),
-        discount_remarks TEXT,
-        payment_proof TEXT,
-        document_received TEXT,
-        visa_process_start DATE,
-        visa_process_end DATE,
-        document_remarks TEXT,
-        staff TEXT,
-        sales_amount NUMERIC(12,2),
-        profit_amount NUMERIC(12,2),
-        departure_status TEXT DEFAULT 'PENDING',
-        created_at TIMESTAMP DEFAULT NOW()
-      );
+    const salesCheck = await pool.query(`
+      SELECT COUNT(*) AS sales_count FROM sales;
     `);
+    console.log(`💹 Sales table check: ${salesCheck.rows[0].sales_count} record(s)`);
 
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS documents (
-        id SERIAL PRIMARY KEY,
-        received_date DATE NOT NULL,
-        sent_date DATE,
-        guest_name TEXT,
-        document_type TEXT,
-        process_type TEXT,
-        booking_code TEXT,
-        invoice_number TEXT,
-        guest_phone TEXT,
-        estimated_finish DATE,
-        staff_name TEXT,
-        tour_code TEXT,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS regions (
-        id SERIAL PRIMARY KEY,
-        name TEXT UNIQUE NOT NULL,
-        description TEXT
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS targets (
-        id SERIAL PRIMARY KEY,
-        staff_name TEXT NOT NULL,
-        month DATE NOT NULL,
-        target_sales NUMERIC(12,2) DEFAULT 0,
-        target_profit NUMERIC(12,2) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS logs (
-        id SERIAL PRIMARY KEY,
-        action TEXT,
-        username TEXT,
-        details TEXT,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    console.log("✅ Struktur database siap digunakan!");
-  } catch (err) {
-    console.error("❌ Error saat inisialisasi database:", err);
-  } finally {
+    console.log("🎯 Database initialization completed successfully!");
     await pool.end();
+    process.exit(0);
+  } catch (err) {
+    console.error("❌ Database schema update failed:", err.message);
+    if (err.detail) console.error("📄 Detail:", err.detail);
+    process.exit(1);
   }
 }
 
-initDatabase();
+initDB();
