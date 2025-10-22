@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./css/style.css" />
   <script defer src="./js/ui.js"></script>
 </head>
+
 <body class="light-mode">
   <!-- ===================================================== -->
   <!-- 🧭 SIDEBAR -->
@@ -21,7 +22,9 @@
       <li><a href="report_sales.html">💹 Laporan Sales</a></li>
       <li class="active"><a href="report_tour.html">✈️ Laporan Tour</a></li>
       <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
+      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
       <li><a href="user-management.html">👥 User Management</a></li>
+      <li><a href="region_management.html">🌍 Region Management</a></li>
       <li><a href="profile.html">👤 Profil</a></li>
       <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
     </ul>
@@ -36,46 +39,141 @@
   </aside>
 
   <!-- ===================================================== -->
-  <!-- 📊 MAIN CONTENT -->
+  <!-- ✈️ MAIN CONTENT -->
   <!-- ===================================================== -->
   <main id="main-content">
     <header>
       <h1>✈️ Laporan Tour</h1>
-      <p>Data rekap tour berdasarkan tanggal keberangkatan, region, dan staff</p>
+      <p>Kelola dan tinjau data tour termasuk region, pax, sales, dan profit.</p>
     </header>
 
-    <!-- 🔍 FILTERS -->
+    <!-- ========================== -->
+    <!-- 🧾 FILTER SECTION -->
+    <!-- ========================== -->
     <section class="filters">
-      <input type="text" id="regionFilter" placeholder="Cari region..." />
-      <input type="month" id="monthFilter" />
-      <input type="text" id="staffFilter" placeholder="Nama staff..." />
+      <input type="text" id="searchInput" placeholder="🔍 Cari berdasarkan kode booking / nama tamu..." />
+      <select id="filterRegion">
+        <option value="">🌍 Semua Region</option>
+      </select>
       <button id="filterBtn">Terapkan Filter</button>
       <div class="export-buttons">
-        <button id="exportExcel">📘 Export Excel</button>
+        <button id="exportExcel">📤 Export Excel</button>
         <button id="exportCSV">📄 Export CSV</button>
       </div>
     </section>
 
-    <!-- 📋 TABLE -->
+    <!-- ========================== -->
+    <!-- 📝 FORM INPUT TOUR -->
+    <!-- ========================== -->
+    <section class="form-section">
+      <form id="tourForm">
+        <input type="hidden" id="tourId" />
+
+        <div class="form-grid">
+          <div>
+            <label>Tanggal Registrasi</label>
+            <input type="date" id="registrationDate" required />
+          </div>
+          <div>
+            <label>Nama Lead Passenger</label>
+            <input type="text" id="leadPassenger" required />
+          </div>
+          <div>
+            <label>Nama Semua Penumpang</label>
+            <textarea id="allPassengers" rows="2"></textarea>
+          </div>
+          <div>
+            <label>Tour Code</label>
+            <input type="text" id="tourCode" />
+          </div>
+          <div>
+            <label>Region</label>
+            <select id="region"></select>
+          </div>
+          <div>
+            <label>Tanggal Keberangkatan</label>
+            <input type="date" id="departureDate" />
+          </div>
+          <div>
+            <label>Kode Booking</label>
+            <input type="text" id="bookingCode" />
+          </div>
+          <div>
+            <label>Harga Tour (Rp)</label>
+            <input type="number" id="tourPrice" step="0.01" />
+          </div>
+          <div>
+            <label>Diskon / Remarks</label>
+            <input type="text" id="discountRemarks" />
+          </div>
+          <div>
+            <label>Bukti Pembayaran</label>
+            <input type="text" id="paymentProof" />
+          </div>
+          <div>
+            <label>Tanggal Terima Dokumen</label>
+            <input type="date" id="documentReceived" />
+          </div>
+          <div>
+            <label>Proses Visa Mulai</label>
+            <input type="date" id="visaProcessStart" />
+          </div>
+          <div>
+            <label>Proses Visa Selesai</label>
+            <input type="date" id="visaProcessEnd" />
+          </div>
+          <div>
+            <label>Keterangan Dokumen</label>
+            <input type="text" id="documentRemarks" />
+          </div>
+          <div>
+            <label>Nama Staff</label>
+            <input type="text" id="staff" />
+          </div>
+          <div>
+            <label>Sales Amount (Rp)</label>
+            <input type="number" id="salesAmount" step="0.01" />
+          </div>
+          <div>
+            <label>Profit (Rp)</label>
+            <input type="number" id="profitAmount" step="0.01" />
+          </div>
+          <div>
+            <label>Status Keberangkatan</label>
+            <select id="departureStatus">
+              <option value="PENDING">PENDING</option>
+              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="CANCELLED">CANCELLED</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" id="saveTour">💾 Simpan Tour</button>
+        <button type="button" id="resetTour" class="secondary">🔄 Reset</button>
+        <p id="formMsg" class="message"></p>
+      </form>
+    </section>
+
+    <!-- ========================== -->
+    <!-- 📋 TABEL DATA TOUR -->
+    <!-- ========================== -->
     <section class="table-section">
+      <h3>Daftar Data Tour</h3>
       <table id="tourTable">
         <thead>
           <tr>
-            <th>No</th>
+            <th>ID</th>
             <th>Lead Passenger</th>
-            <th>Semua Penumpang</th>
             <th>Tour Code</th>
             <th>Region</th>
-            <th>Tanggal Berangkat</th>
-            <th>Booking Code</th>
-            <th>Harga Tour</th>
-            <th>Staff</th>
+            <th>Tgl Berangkat</th>
+            <th>Sales</th>
+            <th>Profit</th>
             <th>Status</th>
+            <th>Aksi</th>
           </tr>
         </thead>
-        <tbody id="tourTableBody">
-          <tr><td colspan="10" class="center">Memuat data...</td></tr>
-        </tbody>
+        <tbody></tbody>
       </table>
     </section>
   </main>
@@ -85,78 +183,128 @@
   <!-- ===================================================== -->
   <script>
     const token = localStorage.getItem("token");
-    const headers = { "Authorization": `Bearer ${token}` };
+    const role = localStorage.getItem("role");
+    if (!token) window.location.href = "login.html";
+    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
 
-    async function fetchTourData(region = "", month = "", staff = "") {
-      try {
-        const response = await fetch("/api/report/tour", { headers });
-        const data = await response.json();
+    const tourForm = document.getElementById("tourForm");
+    const msg = document.getElementById("formMsg");
+    const tableBody = document.querySelector("#tourTable tbody");
+    const regionSelect = document.getElementById("region");
 
-        let filtered = data;
-        if (region) {
-          filtered = filtered.filter((r) =>
-            r.region?.toLowerCase().includes(region.toLowerCase())
-          );
-        }
-        if (month) {
-          const [year, mon] = month.split("-");
-          filtered = filtered.filter((r) => {
-            const date = new Date(r.departure_date);
-            return (
-              date.getFullYear() === parseInt(year) &&
-              date.getMonth() + 1 === parseInt(mon)
-            );
-          });
-        }
-        if (staff) {
-          filtered = filtered.filter((r) =>
-            r.staff?.toLowerCase().includes(staff.toLowerCase())
-          );
-        }
-
-        const tbody = document.getElementById("tourTableBody");
-        tbody.innerHTML = "";
-
-        if (filtered.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="10" class="center">Tidak ada data ditemukan.</td></tr>';
-          return;
-        }
-
-        filtered.forEach((row, i) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${row.lead_passenger || "-"}</td>
-            <td>${row.all_passengers || "-"}</td>
-            <td>${row.tour_code || "-"}</td>
-            <td>${row.region || "-"}</td>
-            <td>${new Date(row.departure_date).toLocaleDateString("id-ID")}</td>
-            <td>${row.booking_code || "-"}</td>
-            <td>Rp ${Number(row.tour_price || 0).toLocaleString("id-ID")}</td>
-            <td>${row.staff || "-"}</td>
-            <td>${row.departure_status || "PENDING"}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      } catch (err) {
-        console.error("❌ Error memuat data tour:", err);
-      }
+    // =============================
+    // 🔄 LOAD REGIONS
+    // =============================
+    async function loadRegions() {
+      const res = await fetch("/api/regions", { headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      regionSelect.innerHTML = data.map(r => `<option value="${r.name}">${r.name}</option>`).join("");
+      document.getElementById("filterRegion").innerHTML =
+        '<option value="">🌍 Semua Region</option>' +
+        data.map(r => `<option value="${r.name}">${r.name}</option>`).join("");
     }
 
-    document.getElementById("filterBtn").addEventListener("click", () => {
-      const region = document.getElementById("regionFilter").value;
-      const month = document.getElementById("monthFilter").value;
-      const staff = document.getElementById("staffFilter").value;
-      fetchTourData(region, month, staff);
+    // =============================
+    // 🧾 LOAD TOUR DATA
+    // =============================
+    async function loadTours() {
+      const res = await fetch("/api/tours", { headers });
+      const data = await res.json();
+      tableBody.innerHTML = data.map(t => `
+        <tr>
+          <td>${t.id}</td>
+          <td>${t.lead_passenger}</td>
+          <td>${t.tour_code}</td>
+          <td>${t.region}</td>
+          <td>${t.departure_date ? new Date(t.departure_date).toLocaleDateString("id-ID") : "-"}</td>
+          <td>${t.sales_amount?.toLocaleString("id-ID") || 0}</td>
+          <td>${t.profit_amount?.toLocaleString("id-ID") || 0}</td>
+          <td>${t.departure_status}</td>
+          <td>
+            <button onclick="editTour(${t.id})">✏️</button>
+            <button onclick="deleteTour(${t.id})" class="danger">🗑️</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    // =============================
+    // 💾 SAVE / UPDATE TOUR
+    // =============================
+    tourForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "";
+      const id = document.getElementById("tourId").value;
+      const payload = {
+        registrationDate: registrationDate.value,
+        leadPassenger: leadPassenger.value,
+        allPassengers: allPassengers.value,
+        tourCode: tourCode.value,
+        region: region.value,
+        departureDate: departureDate.value,
+        bookingCode: bookingCode.value,
+        tourPrice: parseFloat(tourPrice.value) || 0,
+        discountRemarks: discountRemarks.value,
+        paymentProof: paymentProof.value,
+        documentReceived: documentReceived.value,
+        visaProcessStart: visaProcessStart.value,
+        visaProcessEnd: visaProcessEnd.value,
+        documentRemarks: documentRemarks.value,
+        staff: staff.value,
+        salesAmount: parseFloat(salesAmount.value) || 0,
+        profitAmount: parseFloat(profitAmount.value) || 0,
+        departureStatus: departureStatus.value,
+      };
+
+      const method = id ? "PUT" : "POST";
+      const url = id ? `/api/tours/${id}` : "/api/tours";
+
+      try {
+        const res = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Gagal menyimpan data tour.");
+
+        msg.textContent = data.message || "Tour berhasil disimpan.";
+        msg.style.color = "#28a745";
+        tourForm.reset();
+        document.getElementById("tourId").value = "";
+        loadTours();
+      } catch (err) {
+        msg.textContent = "Gagal menyimpan data tour.";
+        msg.style.color = "#e74c3c";
+      }
     });
 
-    document.getElementById("exportExcel").addEventListener("click", () => {
-      window.open("/api/report/tour/export?format=xlsx", "_blank");
-    });
+    // =============================
+    // ✏️ EDIT TOUR
+    // =============================
+    window.editTour = async function (id) {
+      const res = await fetch(`/api/tours`, { headers });
+      const data = await res.json();
+      const tour = data.find(t => t.id === id);
+      if (!tour) return;
 
-    document.getElementById("exportCSV").addEventListener("click", () => {
-      window.open("/api/report/tour/export?format=csv", "_blank");
+      for (const key in tour) {
+        const el = document.getElementById(key);
+        if (el) el.value = tour[key] || "";
+      }
+      document.getElementById("tourId").value = id;
+    };
+
+    // =============================
+    // 🗑️ DELETE TOUR
+    // =============================
+    window.deleteTour = async function (id) {
+      if (!confirm("Yakin ingin menghapus data tour ini?")) return;
+      const res = await fetch(`/api/tours/${id}`, { method: "DELETE", headers });
+      if (res.ok) loadTours();
+    };
+
+    document.getElementById("resetTour").addEventListener("click", () => {
+      tourForm.reset();
+      document.getElementById("tourId").value = "";
+      msg.textContent = "";
     });
 
     document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -164,8 +312,8 @@
       window.location.href = "login.html";
     });
 
-    // Jalankan saat halaman dibuka
-    fetchTourData();
+    loadRegions();
+    loadTours();
   </script>
 </body>
 </html>
