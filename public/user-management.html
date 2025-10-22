@@ -24,6 +24,7 @@
       <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
       <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
       <li class="active"><a href="user-management.html">👥 User Management</a></li>
+      <li><a href="region_management.html">🌍 Region Management</a></li>
       <li><a href="profile.html">👤 Profil</a></li>
       <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
     </ul>
@@ -38,51 +39,51 @@
   </aside>
 
   <!-- ===================================================== -->
-  <!-- 👥 MAIN CONTENT -->
+  <!-- 📋 MAIN CONTENT -->
   <!-- ===================================================== -->
   <main id="main-content">
     <header>
-      <h1>👥 Manajemen Pengguna</h1>
-      <p>Kelola akun pengguna, role, dan akses sistem.</p>
+      <h1>👥 Manajemen User</h1>
+      <p>Kelola akun pengguna dan hak akses sistem.</p>
     </header>
 
-    <!-- 📋 FORM TAMBAH/EDIT USER -->
+    <!-- 🔸 FORM TAMBAH/EDIT USER -->
     <section class="form-section">
+      <h3 id="formTitle">Tambah User</h3>
       <form id="userForm">
-        <input type="hidden" id="userId" />
-
         <div class="form-grid">
           <div>
-            <label>Username</label>
+            <label for="username">Username</label>
             <input type="text" id="username" required placeholder="Masukkan username" />
           </div>
           <div>
-            <label>Nama Staff</label>
-            <input type="text" id="staff_name" placeholder="Masukkan nama staff" />
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Masukkan password" />
           </div>
           <div>
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Masukkan password (opsional)" />
+            <label for="staff_name">Nama Staff</label>
+            <input type="text" id="staff_name" placeholder="Nama lengkap staff" />
           </div>
           <div>
-            <label>Role</label>
+            <label for="role">Role</label>
             <select id="role" required>
               <option value="staff">Staff</option>
-              <option value="semiadmin">SemiAdmin</option>
+              <option value="semiadmin">Semi Admin</option>
               <option value="admin">Admin</option>
             </select>
           </div>
         </div>
-
-        <button type="submit" id="saveBtn">💾 Simpan User</button>
-        <button type="button" id="resetBtn" class="secondary">🔄 Reset</button>
+        <div style="margin-top: 10px;">
+          <button type="submit" id="saveBtn">💾 Simpan</button>
+          <button type="button" id="resetBtn" class="secondary">🔄 Reset</button>
+        </div>
         <p id="formMsg" class="message"></p>
       </form>
     </section>
 
-    <!-- 📄 TABEL USER -->
+    <!-- 🔸 DAFTAR USER -->
     <section class="table-section">
-      <h3>Daftar Pengguna</h3>
+      <h3>Daftar User</h3>
       <table id="userTable">
         <thead>
           <tr>
@@ -90,6 +91,7 @@
             <th>Username</th>
             <th>Nama Staff</th>
             <th>Role</th>
+            <th>Dibuat</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -99,117 +101,143 @@
   </main>
 
   <!-- ===================================================== -->
-  <!-- 📜 SCRIPT -->
+  <!-- ⚙️ SCRIPT -->
   <!-- ===================================================== -->
   <script>
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
-    if (!token || role !== "admin") {
-      alert("Akses ditolak. Hanya admin yang dapat mengakses halaman ini.");
+    if (!token || (role !== "admin" && role !== "semiadmin")) {
+      alert("Akses ditolak! Halaman ini hanya untuk Admin / SemiAdmin.");
       window.location.href = "dashboard.html";
     }
 
-    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
-    const userForm = document.getElementById("userForm");
-    const msg = document.getElementById("formMsg");
-    const tableBody = document.querySelector("#userTable tbody");
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token,
+    };
 
+    const userForm = document.getElementById("userForm");
+    const userTable = document.querySelector("#userTable tbody");
+    const formMsg = document.getElementById("formMsg");
+    const formTitle = document.getElementById("formTitle");
+    const saveBtn = document.getElementById("saveBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let editId = null;
+
+    // =====================================================
+    // 🧭 LOAD USERS
+    // =====================================================
     async function loadUsers() {
       try {
         const res = await fetch("/api/users", { headers });
-        if (!res.ok) throw new Error("Gagal memuat data pengguna.");
         const data = await res.json();
 
-        tableBody.innerHTML = data
-          .map(
-            (u) => `
-            <tr>
-              <td>${u.id}</td>
-              <td>${u.username}</td>
-              <td>${u.staff_name || "-"}</td>
-              <td>${u.role}</td>
-              <td>
-                <button onclick="editUser(${u.id}, '${u.username}', '${u.staff_name || ""}', '${u.role}')">✏️</button>
-                <button onclick="deleteUser(${u.id})" class="danger">🗑️</button>
-              </td>
-            </tr>`
-          )
-          .join("");
+        userTable.innerHTML = data.map(u => `
+          <tr>
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td>${u.staff_name || "-"}</td>
+            <td>${u.role}</td>
+            <td>${new Date(u.created_at).toLocaleString("id-ID")}</td>
+            <td>
+              <button onclick="editUser(${u.id}, '${u.username}', '${u.staff_name || ""}', '${u.role}')">✏️ Edit</button>
+              ${role === "admin" ? `<button class="danger" onclick="deleteUser(${u.id})">🗑️ Hapus</button>` : ""}
+            </td>
+          </tr>
+        `).join("");
       } catch (err) {
-        console.error("❌ Gagal memuat user:", err);
-        msg.textContent = "Gagal memuat data pengguna.";
-        msg.style.color = "#e74c3c";
+        console.error("❌ Gagal load user:", err);
+        formMsg.textContent = "Gagal memuat data user.";
       }
     }
 
-    async function saveUser(e) {
+    // =====================================================
+    // 💾 SAVE / UPDATE USER
+    // =====================================================
+    userForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      msg.textContent = "";
 
-      const userId = document.getElementById("userId").value;
-      const username = document.getElementById("username").value.trim();
-      const staff_name = document.getElementById("staff_name").value.trim();
-      const password = document.getElementById("password").value.trim();
-      const role = document.getElementById("role").value;
-
-      const method = userId ? "PUT" : "POST";
-      const url = userId ? `/api/users/${userId}` : "/api/users";
-      const payload = { username, staff_name, password, role };
+      const data = {
+        username: document.getElementById("username").value.trim(),
+        password: document.getElementById("password").value.trim(),
+        staff_name: document.getElementById("staff_name").value.trim(),
+        role: document.getElementById("role").value,
+      };
 
       try {
+        const method = editId ? "PUT" : "POST";
+        const url = editId ? `/api/users/${editId}` : "/api/users";
+
         const res = await fetch(url, {
           method,
           headers,
-          body: JSON.stringify(payload),
+          body: JSON.stringify(data),
         });
-        const data = await res.json();
 
-        if (!res.ok) throw new Error(data.message || "Gagal menyimpan user.");
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message);
 
-        msg.textContent = data.message || "Berhasil disimpan.";
-        msg.style.color = "#28a745";
+        formMsg.textContent = result.message;
+        formMsg.style.color = "green";
         userForm.reset();
-        document.getElementById("userId").value = "";
+        editId = null;
+        formTitle.textContent = "Tambah User";
+        saveBtn.textContent = "💾 Simpan";
         loadUsers();
       } catch (err) {
-        console.error("❌ Gagal simpan user:", err);
-        msg.textContent = "Gagal menyimpan data.";
-        msg.style.color = "#e74c3c";
+        console.error("❌ Save user error:", err);
+        formMsg.textContent = err.message || "Gagal menyimpan user.";
+        formMsg.style.color = "red";
       }
-    }
+    });
 
-    async function deleteUser(id) {
-      if (!confirm("Yakin ingin menghapus user ini?")) return;
-      try {
-        const res = await fetch(`/api/users/${id}`, { method: "DELETE", headers });
-        if (!res.ok) throw new Error("Gagal menghapus user.");
-        loadUsers();
-      } catch (err) {
-        console.error("❌ Gagal hapus user:", err);
-      }
-    }
-
-    function editUser(id, username, staff_name, role) {
-      document.getElementById("userId").value = id;
+    // =====================================================
+    // ✏️ EDIT USER
+    // =====================================================
+    window.editUser = function(id, username, staff_name, role) {
+      editId = id;
       document.getElementById("username").value = username;
       document.getElementById("staff_name").value = staff_name;
       document.getElementById("role").value = role;
-      document.getElementById("password").value = "";
-    }
+      formTitle.textContent = "Edit User";
+      saveBtn.textContent = "💾 Update";
+      formMsg.textContent = "";
+    };
 
-    document.getElementById("resetBtn").addEventListener("click", () => {
+    // =====================================================
+    // 🗑️ DELETE USER
+    // =====================================================
+    window.deleteUser = async function(id) {
+      if (!confirm("Yakin ingin menghapus user ini?")) return;
+
+      try {
+        const res = await fetch(`/api/users/${id}`, {
+          method: "DELETE",
+          headers,
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message);
+        alert("✅ " + result.message);
+        loadUsers();
+      } catch (err) {
+        console.error("❌ Delete user error:", err);
+        alert("❌ Gagal menghapus user.");
+      }
+    };
+
+    // =====================================================
+    // 🔄 RESET FORM
+    // =====================================================
+    resetBtn.addEventListener("click", () => {
+      editId = null;
       userForm.reset();
-      document.getElementById("userId").value = "";
-      msg.textContent = "";
+      formTitle.textContent = "Tambah User";
+      saveBtn.textContent = "💾 Simpan";
+      formMsg.textContent = "";
     });
 
-    userForm.addEventListener("submit", saveUser);
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      localStorage.clear();
-      window.location.href = "login.html";
-    });
-
+    // 🚀 INIT
     loadUsers();
   </script>
 </body>
