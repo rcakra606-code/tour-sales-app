@@ -1,21 +1,20 @@
 // ==========================================================
-// ✈️ Tour Report Routes — v5.4.6
+// 📊 Report Tour Routes — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
 import express from "express";
+import { authenticate } from "../middleware/authMiddleware.js";
 import {
-  authenticate,
-  authorizeManagement,
-} from "../middleware/authMiddleware.js";
-import {
-  getAllTours,
-  getToursByRegion,
-  exportTourReport,
+  getTourSummary,
+  getTourByRegion,
+  getTourByStatus,
+  getTourDetails,
 } from "../controllers/reportTourController.js";
 
 const router = express.Router();
 
-router.get("/", authenticate, authorizeManagement, getAllTours);
-router.get("/region/:region", authenticate, getToursByRegion);
-router.get("/export", authenticate, authorizeManagement, exportTourReport);
+router.get("/summary", authenticate, getTourSummary);
+router.get("/region", authenticate, getTourByRegion);
+router.get("/status", authenticate, getTourByStatus);
+router.get("/detail", authenticate, getTourDetails);
 
 export default router;
