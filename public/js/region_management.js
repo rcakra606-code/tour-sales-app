@@ -1,88 +1,72 @@
 // ==========================================================
-// 🌍 Region Management — v5.3.6
+// 🌍 Region Management — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("regionForm");
-  const tableBody = document.querySelector("#regionTable tbody");
-  const searchInput = document.getElementById("searchRegion");
 
+document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const role = localStorage.getItem("role");
+  const tableBody = document.getElementById("regionTableBody");
+  const form = document.getElementById("regionForm");
+  const msg = document.getElementById("regionMsg");
 
+  // ===== LOAD REGIONS =====
   async function loadRegions() {
-    try {
-      const res = await fetch("/api/regions", { headers });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal memuat data region");
-      renderTable(data);
-    } catch (err) {
-      console.error("❌ loadRegions error:", err);
-    }
-  }
-
-  function renderTable(data) {
-    const query = searchInput.value.toLowerCase();
-    const filtered = data.filter(r => r.name.toLowerCase().includes(query));
-
-    tableBody.innerHTML = "";
-    filtered.forEach((r) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.id}</td>
-        <td>${r.name}</td>
-        <td>${r.description || "-"}</td>
-        <td>
-          <button class="btn danger small" data-id="${r.id}">🗑️ Hapus</button>
-        </td>
-      `;
-      tableBody.appendChild(tr);
+    const res = await fetch("/api/regions", {
+      headers: { Authorization: "Bearer " + token }
     });
+    const data = await res.json();
 
-    // Tambahkan event delete
-    tableBody.querySelectorAll(".btn.danger").forEach((btn) => {
+    tableBody.innerHTML = data
+      .map(
+        (r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${r.region_name}</td>
+        ${
+          role === "admin" || role === "semiadmin"
+            ? `<td><button class="delete-btn" data-id="${r.id}">Hapus</button></td>`
+            : `<td>-</td>`
+        }
+      </tr>`
+      )
+      .join("");
+
+    // Delete buttons
+    document.querySelectorAll(".delete-btn").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         const id = e.target.dataset.id;
-        if (!confirm("Yakin ingin menghapus region ini?")) return;
-        try {
-          const res = await fetch(`/api/regions/${id}`, {
-            method: "DELETE",
-            headers,
-          });
-          const result = await res.json();
-          if (!res.ok) throw new Error(result.message);
-          alert("✅ Region berhasil dihapus");
-          loadRegions();
-        } catch (err) {
-          alert("❌ Gagal menghapus region: " + err.message);
-        }
+        if (!confirm("Hapus region ini?")) return;
+        await fetch(`/api/regions/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token }
+        });
+        loadRegions();
       });
     });
   }
 
+  await loadRegions();
+
+  // ===== ADD REGION =====
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const name = document.getElementById("regionName").value.trim();
-    const description = document.getElementById("regionDesc").value.trim();
+    msg.textContent = "";
 
-    if (!name) return alert("Nama region wajib diisi");
+    const region_name = document.getElementById("region_name").value.trim();
+    if (!region_name) return (msg.textContent = "Nama region wajib diisi.");
 
-    try {
-      const res = await fetch("/api/regions", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ name, description }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-      alert("✅ Region berhasil ditambahkan");
-      form.reset();
-      loadRegions();
-    } catch (err) {
-      alert("❌ Gagal menambahkan region: " + err.message);
-    }
+    const res = await fetch("/api/regions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ region_name })
+    });
+
+    const data = await res.json();
+    msg.textContent = data.message || (res.ok ? "Region berhasil ditambahkan." : "Gagal menambahkan region.");
+    form.reset();
+    loadRegions();
   });
-
-  searchInput.addEventListener("input", loadRegions);
-
-  loadRegions();
 });
