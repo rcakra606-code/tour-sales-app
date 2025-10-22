@@ -1,17 +1,16 @@
-// routes/dashboard.js
+// ==========================================================
+// 📊 Dashboard Routes — v5.4.6
+// ==========================================================
 import express from "express";
 import { authenticate } from "../middleware/authMiddleware.js";
 import {
   getDashboardSummary,
-  getStaffProgress,
-  getTourRegion,
+  getTourRegionData,
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
 
-// Semua route dashboard butuh autentikasi
 router.get("/summary", authenticate, getDashboardSummary);
-router.get("/staff-progress", authenticate, getStaffProgress);
-router.get("/tour-region", authenticate, getTourRegion);
+router.get("/tour-region", authenticate, getTourRegionData);
 
 export default router;
