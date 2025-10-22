@@ -7,131 +7,70 @@
   <link rel="stylesheet" href="./css/style.css" />
   <script defer src="./js/ui.js"></script>
   <style>
-    /* =============================================== */
-    /* 🎨 LOGIN PAGE STYLES                            */
-    /* =============================================== */
     body {
       display: flex;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      background: var(--bg-main);
-      transition: background 0.3s;
+      background-color: var(--bg-color);
     }
-
     .login-container {
-      background: var(--bg-card);
-      padding: 40px 50px;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      background-color: var(--card-bg);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
+    }
+    h1 {
       text-align: center;
+      color: var(--accent-color);
+      margin-bottom: 1.5rem;
     }
-
-    .login-container h2 {
-      margin-bottom: 10px;
-      color: var(--text-header);
-    }
-
-    .login-container p {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 25px;
-    }
-
-    .login-form {
+    form {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 1rem;
     }
-
-    .login-form label {
-      text-align: left;
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-
-    .login-form input {
-      padding: 10px;
+    input {
+      padding: 0.7rem;
       border-radius: 8px;
-      border: 1px solid var(--border-light);
-      background: var(--bg-input);
-      font-size: 15px;
-      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      background: var(--bg-color);
+      color: var(--text-color);
     }
-
-    .login-form button {
-      background: var(--accent);
-      border: none;
+    button {
+      background-color: var(--accent-color);
       color: white;
-      font-size: 16px;
-      padding: 12px;
+      padding: 0.7rem;
+      border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s;
+      font-weight: 600;
     }
-
-    .login-form button:hover {
-      background: var(--accent-hover);
+    button:hover {
+      background-color: #0056b3;
     }
-
-    .error-message {
-      color: #dc2626;
-      font-size: 14px;
-      margin-top: 10px;
-      text-align: left;
-    }
-
-    .theme-toggle-login {
-      margin-top: 25px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      color: var(--text-muted);
+    .error {
+      color: #ef4444;
+      text-align: center;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 
-<body>
-  <!-- ===================================================== -->
-  <!-- 🧩 LOGIN CONTAINER -->
-  <!-- ===================================================== -->
+<body class="light-mode">
   <div class="login-container">
-    <h2>Selamat Datang 👋</h2>
-    <p>Masuk ke Travel Dashboard Anda</p>
-
-    <form id="loginForm" class="login-form">
-      <div>
-        <label for="username">Username</label>
-        <input type="text" id="username" placeholder="Masukkan username" required />
-      </div>
-
-      <div>
-        <label for="password">Password</label>
-        <input type="password" id="password" placeholder="Masukkan password" required />
-      </div>
-
+    <h1>🔐 Login Dashboard</h1>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Username" required />
+      <input type="password" id="password" placeholder="Password" required />
       <button type="submit">Masuk</button>
-
-      <p id="errorMsg" class="error-message"></p>
+      <div class="error" id="errorMsg"></div>
     </form>
-
-    <!-- Theme toggle -->
-    <div class="theme-toggle-login">
-      <span>🌞</span>
-      <label class="switch">
-        <input type="checkbox" id="themeSwitch" />
-        <span class="slider round"></span>
-      </label>
-      <span>🌙</span>
-    </div>
   </div>
 
-  <!-- ===================================================== -->
-  <!-- ⚙️ SCRIPT -->
-  <!-- ===================================================== -->
   <script>
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
@@ -142,7 +81,10 @@
       const username = document.getElementById("username").value.trim();
       const password = document.getElementById("password").value.trim();
 
-      errorMsg.textContent = "";
+      if (!username || !password) {
+        errorMsg.textContent = "Isi username dan password.";
+        return;
+      }
 
       try {
         const res = await fetch("/api/auth/login", {
@@ -154,21 +96,42 @@
         const data = await res.json();
 
         if (!res.ok) {
-          errorMsg.textContent = data.message || "Login gagal. Periksa username dan password.";
+          errorMsg.textContent = data.message || "Login gagal.";
           return;
         }
 
-        // Simpan token & role user
+        // Simpan token dan role di localStorage
         localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.username);
         localStorage.setItem("role", data.role);
         localStorage.setItem("staff_name", data.staff_name || "");
 
-        // Redirect ke dashboard
-        window.location.href = "dashboard.html";
+        // Redirect sesuai role
+        if (data.role === "admin" || data.role === "semiadmin") {
+          window.location.href = "dashboard.html";
+        } else {
+          window.location.href = "report_sales.html";
+        }
       } catch (err) {
+        errorMsg.textContent = "Terjadi kesalahan jaringan.";
         console.error("❌ Login error:", err);
-        errorMsg.textContent = "Terjadi kesalahan koneksi.";
+      }
+    });
+
+    // Cek token otomatis (auto redirect jika masih aktif)
+    window.addEventListener("load", async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const res = await fetch("/api/auth/verify", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        const data = await res.json();
+        if (data.valid) {
+          window.location.href = "dashboard.html";
+        }
+      } catch {
+        // token invalid → tetap di login
       }
     });
   </script>
