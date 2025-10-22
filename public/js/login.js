@@ -1,29 +1,45 @@
 // ==========================================================
-// 🔐 Login Handler v5.3.4
-// Safe login flow with redirect & token storage
+// 🔐 Login Controller — Travel Dashboard Enterprise v5.4.6
+// ==========================================================
+// Fitur:
+// - Validasi login ke API /api/auth/login
+// - Simpan token JWT + data user
+// - Redirect otomatis sesuai role
+// - Mode siang/malam tersimpan global
 // ==========================================================
 
 document.addEventListener("DOMContentLoaded", () => {
+  const body = document.body;
   const form = document.getElementById("loginForm");
   const errorMsg = document.getElementById("errorMsg");
-  const year = document.getElementById("year");
-  year.textContent = new Date().getFullYear();
+  const themeSwitch = document.getElementById("themeSwitch");
 
-  // Jika user sudah login sebelumnya, langsung redirect
-  const existingToken = localStorage.getItem("token");
-  const validToken =
-    existingToken &&
-    existingToken !== "undefined" &&
-    existingToken !== "null" &&
-    existingToken.trim().length > 20;
-
-  if (validToken) {
-    console.log("✅ Token masih valid, redirect ke dashboard...");
-    window.location.href = "/dashboard.html";
-    return;
+  // ======================================================
+  // 🌞🌙 THEME INIT
+  // ======================================================
+  const currentTheme = localStorage.getItem("theme") || "light";
+  if (currentTheme === "dark") {
+    body.classList.remove("light-mode");
+    body.classList.add("dark-mode");
+    if (themeSwitch) themeSwitch.checked = true;
+  }
+  if (themeSwitch) {
+    themeSwitch.addEventListener("change", () => {
+      if (themeSwitch.checked) {
+        body.classList.add("dark-mode");
+        body.classList.remove("light-mode");
+        localStorage.setItem("theme", "dark");
+      } else {
+        body.classList.add("light-mode");
+        body.classList.remove("dark-mode");
+        localStorage.setItem("theme", "light");
+      }
+    });
   }
 
-  // Handle form login
+  // ======================================================
+  // 🧩 LOGIN HANDLER
+  // ======================================================
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorMsg.textContent = "";
@@ -32,38 +48,40 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = document.getElementById("password").value.trim();
 
     if (!username || !password) {
-      errorMsg.textContent = "Username dan password wajib diisi.";
+      errorMsg.textContent = "Harap isi username dan password.";
       return;
     }
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
+      if (!response.ok) {
+        const err = await response.json();
         errorMsg.textContent = err.message || "Login gagal, periksa kembali.";
         return;
       }
 
-      const data = await res.json();
-      if (!data.token) {
-        errorMsg.textContent = "Gagal mendapatkan token autentikasi.";
-        return;
-      }
+      const data = await response.json();
 
-      // Simpan token & user info
+      // Simpan data login ke localStorage
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("username", data.username);
+      localStorage.setItem("role", data.role);
+      localStorage.setItem("staff_name", data.staff_name || "");
 
-      console.log("✅ Login berhasil. Mengarahkan ke dashboard...");
-      window.location.href = "/dashboard.html";
+      // Redirect berdasarkan role
+      if (data.role === "admin" || data.role === "semiadmin") {
+        window.location.href = "dashboard.html";
+      } else {
+        window.location.href = "dashboard.html"; // staff tetap ke dashboard, view akan disesuaikan
+      }
     } catch (err) {
-      console.error("❌ Error login:", err);
-      errorMsg.textContent = "Gagal terhubung ke server.";
+      console.error("❌ Login error:", err);
+      errorMsg.textContent = "Terjadi kesalahan koneksi ke server.";
     }
   });
 });
