@@ -7,15 +7,16 @@
   <link rel="stylesheet" href="./css/style.css" />
   <script type="module" src="./js/ui.js"></script>
 </head>
-
 <body class="light-mode">
   <div class="loader">
-    <h1>🔄 Memuat Sistem...</h1>
+    <h1>🚀 Memuat Sistem Travel Dashboard...</h1>
   </div>
 
   <script>
-    // Redirect otomatis ke login atau dashboard
+    // Saat index diakses, redirect otomatis
     const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
     if (!token) {
       window.location.href = "login.html";
     } else {
