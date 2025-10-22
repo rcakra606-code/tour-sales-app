@@ -1,90 +1,107 @@
 // ==========================================================
-// 👤 Profile Controller — Travel Dashboard Enterprise v5.4.0
+// 👤 Profile Controller — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
-// User dapat:
-//  - Melihat profilnya sendiri (GET /api/profile)
-//  - Mengupdate nama staff & password (PUT /api/profile)
+// Fitur:
+// - Lihat profil user login
+// - Update data user (username, nama staff, password)
+// - Aman dengan bcryptjs & PostgreSQL SSL
 // ==========================================================
 
-import bcryptjs from "bcryptjs";
-const bcrypt = bcryptjs;
 import pkg from "pg";
-const { Pool } = pkg;
+import bcryptjs from "bcryptjs";
 
+const { Pool } = pkg;
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
 // ==========================================================
-// 🔹 GET /api/profile — Ambil profil user aktif
+// 🔹 GET /api/profile — Ambil Data Profil User
 // ==========================================================
 export async function getProfile(req, res) {
   try {
     const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "User tidak ditemukan atau belum login." });
+    }
 
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-    const q = `
-      SELECT id, username, staff_name, role, created_at
+    const query = `
+      SELECT id, username, staff_name, role
       FROM users
-      WHERE id = $1
-      LIMIT 1;
+      WHERE id = $1;
     `;
-    const { rows } = await pool.query(q, [userId]);
-
-    if (rows.length === 0)
-      return res.status(404).json({ message: "User tidak ditemukan" });
+    const { rows } = await pool.query(query, [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Data profil tidak ditemukan." });
+    }
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("❌ getProfile error:", err);
-    res.status(500).json({ message: "Gagal memuat profil user" });
+    console.error("❌ Get profile error:", err);
+    res.status(500).json({ message: "Terjadi kesalahan saat mengambil profil." });
   }
 }
 
 // ==========================================================
-// 🔹 PUT /api/profile — Update profil user aktif
+// 🔹 PUT /api/profile — Update Profil User
 // ==========================================================
 export async function updateProfile(req, res) {
   try {
     const userId = req.user?.id;
-    const { staff_name, newPassword } = req.body;
-
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    if (!staff_name && !newPassword)
-      return res.status(400).json({ message: "Tidak ada data yang diubah" });
-
-    // Ambil data lama
-    const existingUser = await pool.query(
-      "SELECT * FROM users WHERE id = $1 LIMIT 1",
-      [userId]
-    );
-    if (existingUser.rows.length === 0)
-      return res.status(404).json({ message: "User tidak ditemukan" });
-
-    let passwordHash = existingUser.rows[0].password_hash;
-
-    // Update password kalau diisi
-    if (newPassword && newPassword.trim() !== "") {
-      passwordHash = await bcrypt.hash(newPassword, 10);
+    if (!userId) {
+      return res.status(401).json({ message: "User tidak ditemukan atau belum login." });
     }
 
-    const q = `
+    const { username, staff_name, password } = req.body;
+
+    if (!username && !staff_name && !password) {
+      return res.status(400).json({ message: "Tidak ada data yang diperbarui." });
+    }
+
+    let updateFields = [];
+    let updateValues = [];
+    let paramIndex = 1;
+
+    if (username) {
+      updateFields.push(`username = $${paramIndex++}`);
+      updateValues.push(username);
+    }
+
+    if (staff_name) {
+      updateFields.push(`staff_name = $${paramIndex++}`);
+      updateValues.push(staff_name);
+    }
+
+    if (password) {
+      const hashedPassword = await bcryptjs.hash(password, 10);
+      updateFields.push(`password_hash = $${paramIndex++}`);
+      updateValues.push(hashedPassword);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: "Tidak ada data untuk diubah." });
+    }
+
+    const query = `
       UPDATE users
-      SET staff_name = COALESCE($1, staff_name),
-          password_hash = $2
-      WHERE id = $3
+      SET ${updateFields.join(", ")}
+      WHERE id = $${paramIndex}
       RETURNING id, username, staff_name, role;
     `;
-    const { rows } = await pool.query(q, [staff_name, passwordHash, userId]);
+    updateValues.push(userId);
+
+    const { rows } = await pool.query(query, updateValues);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "User tidak ditemukan." });
+    }
 
     res.json({
-      message: "Profil berhasil diperbarui",
+      message: "Profil berhasil diperbarui.",
       user: rows[0],
     });
   } catch (err) {
-    console.error("❌ updateProfile error:", err);
-    res.status(500).json({ message: "Gagal memperbarui profil user" });
+    console.error("❌ Update profile error:", err);
+    res.status(500).json({ message: "Gagal memperbarui profil." });
   }
 }
