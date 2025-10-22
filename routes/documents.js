@@ -1,17 +1,23 @@
-// routes/documents.js
+// ==========================================================
+// 📁 Document Management Routes — v5.4.6
+// ==========================================================
 import express from "express";
-import { authenticate } from "../middleware/authMiddleware.js";
 import {
-  getDocuments,
+  authenticate,
+  authorizeManagement,
+} from "../middleware/authMiddleware.js";
+import {
   createDocument,
+  updateDocument,
   deleteDocument,
+  getDocuments,
 } from "../controllers/documentController.js";
 
 const router = express.Router();
 
-// Semua route documents butuh autentikasi
 router.get("/", authenticate, getDocuments);
-router.post("/", authenticate, createDocument);
-router.delete("/:id", authenticate, deleteDocument);
+router.post("/", authenticate, authorizeManagement, createDocument);
+router.put("/:id", authenticate, authorizeManagement, updateDocument);
+router.delete("/:id", authenticate, authorizeManagement, deleteDocument);
 
 export default router;
