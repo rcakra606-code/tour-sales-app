@@ -11,44 +11,51 @@
 </head>
 
 <body class="light-mode">
+  <!-- Sidebar -->
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-header">
-      <h2>Executive View</h2>
+      <h2>Travel Dashboard</h2>
       <button id="toggleSidebar">☰</button>
     </div>
+
     <nav>
       <ul>
         <li><a href="dashboard.html">🏠 Dashboard</a></li>
-        <li><a href="executive-dashboard.html" class="active">👔 Executive Dashboard</a></li>
+        <li><a href="report_tour.html">✈️ Report Tour</a></li>
+        <li><a href="report_sales.html">💰 Report Sales</a></li>
+        <li><a href="report_document.html">📑 Report Document</a></li>
+        <li><a href="region_management.html">🌍 Region Management</a></li>
         <li><a href="target_management.html">🎯 Target Management</a></li>
+        <li><a href="executive-dashboard.html" class="active">👔 Executive Dashboard</a></li>
+        <li><a href="user-management.html">👥 User Management</a></li>
         <li><a href="profile.html">👤 Profile</a></li>
+        <li><a href="logout.html">🚪 Logout</a></li>
       </ul>
     </nav>
   </aside>
 
+  <!-- Main -->
   <main>
     <header>
-      <h1>👔 Executive Summary</h1>
+      <h1>👔 Executive Dashboard</h1>
       <div class="theme-switch">
-        <label>
-          <input type="checkbox" id="themeSwitch" /> 🌙 Mode
-        </label>
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
       </div>
     </header>
 
     <section class="dashboard-stats">
       <div class="chart-container">
-        <h3>Performa Staff</h3>
+        <h3>📊 Performa Staff (Sales & Profit)</h3>
         <canvas id="staffChart"></canvas>
       </div>
 
       <div class="chart-container">
-        <h3>Progress Target</h3>
+        <h3>🎯 Progress Target vs Realisasi</h3>
         <canvas id="targetProgressChart"></canvas>
       </div>
 
       <div class="chart-container">
-        <h3>Performa Bulanan</h3>
+        <h3>📆 Performa Bulanan</h3>
         <canvas id="monthlyChart"></canvas>
       </div>
     </section>
