@@ -1,101 +1,104 @@
 // ==========================================================
-// 👥 User Controller — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
-// Fitur:
-// - Get all users (admin / semiadmin only)
-// - Create user (admin only)
-// - Update user (admin / semiadmin)
-// - Delete user (admin only)
+// 👥 User Controller — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
 
-import pkg from "pg";
 import bcrypt from "bcryptjs";
-const { Pool } = pkg;
+import { pool } from "../server.js";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-// ==========================================================
-// 🔹 GET /api/users — Ambil Semua User
-// ==========================================================
+// ===== GET USERS =====
 export async function getUsers(req, res) {
   try {
-    const result = await pool.query(
-      `SELECT id, username, staff_name, role, created_at
-       FROM users ORDER BY id ASC`
-    );
+    const role = req.user.role;
+    const staffName = req.user.staff_name;
+
+    let query = `
+      SELECT id, username, staff_name, role, created_at
+      FROM users
+      ORDER BY created_at DESC
+    `;
+    let params = [];
+
+    if (role === "staff") {
+      query = `
+        SELECT id, username, staff_name, role, created_at
+        FROM users
+        WHERE staff_name = $1
+      `;
+      params = [staffName];
+    }
+
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error("❌ Get users error:", err);
-    res.status(500).json({ message: "Gagal memuat data user." });
+    res.status(500).json({ message: "Gagal memuat data pengguna." });
   }
 }
 
-// ==========================================================
-// 🔹 POST /api/users — Tambah User Baru (Admin)
-// ==========================================================
+// ===== CREATE USER =====
 export async function createUser(req, res) {
   try {
     const { username, password, staff_name, role } = req.body;
+    if (!username || !password || !role)
+      return res.status(400).json({ message: "Data tidak lengkap." });
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username dan password wajib diisi." });
-    }
-
-    const existingUser = await pool.query(
-      "SELECT id FROM users WHERE username = $1",
+    const checkUser = await pool.query(
+      "SELECT username FROM users WHERE username = $1",
       [username]
     );
-    if (existingUser.rows.length > 0) {
+    if (checkUser.rows.length > 0)
       return res.status(400).json({ message: "Username sudah digunakan." });
-    }
 
-    const hash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO users (username, password_hash, staff_name, role)
-       VALUES ($1, $2, $3, $4)`,
-      [username, hash, staff_name || "", role || "staff"]
+      "INSERT INTO users (username, password_hash, staff_name, role) VALUES ($1, $2, $3, $4)",
+      [username, hashedPassword, staff_name || "", role]
     );
 
-    res.json({ message: "User berhasil ditambahkan." });
+    res.json({ message: "User baru berhasil ditambahkan." });
   } catch (err) {
     console.error("❌ Create user error:", err);
-    res.status(500).json({ message: "Gagal menambahkan user." });
+    res.status(500).json({ message: "Gagal menambahkan user baru." });
   }
 }
 
-// ==========================================================
-// 🔹 PUT /api/users/:id — Update Data User
-// ==========================================================
+// ===== UPDATE USER =====
 export async function updateUser(req, res) {
   try {
     const { id } = req.params;
-    const { username, password, staff_name, role } = req.body;
+    const { staff_name, password, role } = req.body;
 
-    const existingUser = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
-    if (existingUser.rows.length === 0) {
+    const existing = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    if (existing.rows.length === 0)
       return res.status(404).json({ message: "User tidak ditemukan." });
+
+    const updates = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (staff_name) {
+      updates.push(`staff_name = $${paramIndex++}`);
+      params.push(staff_name);
     }
 
-    let query, values;
-
-    if (password && password.trim() !== "") {
-      const hash = await bcrypt.hash(password, 10);
-      query = `
-        UPDATE users SET username=$1, password_hash=$2, staff_name=$3, role=$4 WHERE id=$5
-      `;
-      values = [username, hash, staff_name, role, id];
-    } else {
-      query = `
-        UPDATE users SET username=$1, staff_name=$2, role=$3 WHERE id=$4
-      `;
-      values = [username, staff_name, role, id];
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push(`password_hash = $${paramIndex++}`);
+      params.push(hashedPassword);
     }
 
-    await pool.query(query, values);
+    if (role) {
+      updates.push(`role = $${paramIndex++}`);
+      params.push(role);
+    }
+
+    if (updates.length === 0)
+      return res.status(400).json({ message: "Tidak ada data untuk diperbarui." });
+
+    params.push(id);
+    const query = `UPDATE users SET ${updates.join(", ")} WHERE id = $${paramIndex}`;
+    await pool.query(query, params);
 
     res.json({ message: "Data user berhasil diperbarui." });
   } catch (err) {
@@ -104,19 +107,11 @@ export async function updateUser(req, res) {
   }
 }
 
-// ==========================================================
-// 🔹 DELETE /api/users/:id — Hapus User (Admin)
-// ==========================================================
+// ===== DELETE USER =====
 export async function deleteUser(req, res) {
   try {
     const { id } = req.params;
-
-    const result = await pool.query("DELETE FROM users WHERE id = $1", [id]);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: "User tidak ditemukan." });
-    }
-
+    await pool.query("DELETE FROM users WHERE id = $1", [id]);
     res.json({ message: "User berhasil dihapus." });
   } catch (err) {
     console.error("❌ Delete user error:", err);
