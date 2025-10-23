@@ -1,111 +1,60 @@
 // ==========================================================
-// 🏠 Dashboard v5.3.6
-// Fix: Add Progress Achievement per Staff & Role-based View
+// 📊 Dashboard JS — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
+
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (!token || token === "undefined") return (window.location.href = "/login.html");
-
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  document.getElementById("year").textContent = new Date().getFullYear();
-  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
-
-  const totalSalesEl = document.getElementById("totalSales");
-  const totalProfitEl = document.getElementById("totalProfit");
-  const totalToursEl = document.getElementById("totalTours");
-  const totalRegionsEl = document.getElementById("totalRegions");
-  const container = document.getElementById("achievementContainer");
+  if (!token) return (window.location.href = "login.html");
 
   try {
-    // Ambil summary utama
-    const summaryRes = await fetch("/api/dashboard/summary", { headers });
-    const summary = await summaryRes.json();
-
-    totalSalesEl.textContent = summary.totalSales?.toLocaleString("id-ID") || 0;
-    totalProfitEl.textContent = summary.totalProfit?.toLocaleString("id-ID") || 0;
-    totalToursEl.textContent = summary.totalTours || 0;
-    totalRegionsEl.textContent = summary.totalRegions || 0;
-
-    // Ambil data progress per staff
-    const perfRes = await fetch("/api/dashboard/staff-progress", { headers });
-    const perfData = await perfRes.json();
-
-    renderProgress(perfData, user.role);
-    renderSalesChart(perfData);
-  } catch (err) {
-    console.error("❌ Dashboard load error:", err);
-  }
-
-  // ==========================================================
-  // RENDER PROGRESS
-  // ==========================================================
-  function renderProgress(data, role) {
-    container.innerHTML = "";
-
-    const filtered = role === "staff" ? data.filter(d => d.staff_name === (user.staff_name || user.username)) : data;
-
-    filtered.forEach((item) => {
-      const salesPct = item.target_sales > 0 ? (item.total_sales / item.target_sales) * 100 : 0;
-      const profitPct = item.target_profit > 0 ? (item.total_profit / item.target_profit) * 100 : 0;
-
-      const div = document.createElement("div");
-      div.className = "progress-card";
-      div.innerHTML = `
-        <h5>${item.staff_name}</h5>
-        <div class="progress-group">
-          <label>Sales: ${item.total_sales.toLocaleString("id-ID")} / ${item.target_sales.toLocaleString("id-ID")}</label>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: ${Math.min(salesPct, 100)}%"></div>
-          </div>
-        </div>
-        <div class="progress-group">
-          <label>Profit: ${item.total_profit.toLocaleString("id-ID")} / ${item.target_profit.toLocaleString("id-ID")}</label>
-          <div class="progress-bar profit">
-            <div class="progress-fill" style="width: ${Math.min(profitPct, 100)}%"></div>
-          </div>
-        </div>
-      `;
-      container.appendChild(div);
+    const res = await fetch("/api/dashboard/summary", {
+      headers: { Authorization: "Bearer " + token }
     });
-  }
+    const data = await res.json();
 
-  // ==========================================================
-  // SALES TREND CHART
-  // ==========================================================
-  function renderSalesChart(data) {
-    const ctx = document.getElementById("salesChart");
-    const labels = data.map(d => d.month);
-    const sales = data.map(d => d.total_sales);
-    const profit = data.map(d => d.total_profit);
+    if (!res.ok) throw new Error(data.message || "Gagal memuat data dashboard");
 
-    new Chart(ctx, {
-      type: "line",
+    document.getElementById("totalSales").textContent = `Rp${data.total_sales.toLocaleString()}`;
+    document.getElementById("totalProfit").textContent = `Rp${data.total_profit.toLocaleString()}`;
+    document.getElementById("totalTours").textContent = data.total_tours;
+    document.getElementById("totalDocs").textContent = data.total_docs;
+
+    // ===== CHART TARGET vs REALISASI =====
+    const ctxTarget = document.getElementById("targetChart");
+    new Chart(ctxTarget, {
+      type: "bar",
       data: {
-        labels,
+        labels: ["Sales", "Profit"],
         datasets: [
           {
-            label: "Sales",
-            data: sales,
-            borderColor: "#007bff",
-            backgroundColor: "rgba(0,123,255,0.2)",
-            fill: true,
-            tension: 0.3,
+            label: "Target",
+            data: [data.target_sales, data.target_profit],
+            backgroundColor: "#2563eb"
           },
           {
-            label: "Profit",
-            data: profit,
-            borderColor: "#28a745",
-            backgroundColor: "rgba(40,167,69,0.2)",
-            fill: true,
-            tension: 0.3,
-          },
-        ],
+            label: "Realisasi",
+            data: [data.total_sales, data.total_profit],
+            backgroundColor: "#10b981"
+          }
+        ]
       },
-      options: {
-        plugins: { legend: { position: "bottom" } },
-        scales: { y: { beginAtZero: true } },
-      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
     });
+
+    // ===== CHART REGION =====
+    const regionNames = data.pax_region.map(r => r.region);
+    const regionCounts = data.pax_region.map(r => r.pax_count);
+    const ctxRegion = document.getElementById("regionChart");
+
+    new Chart(ctxRegion, {
+      type: "pie",
+      data: {
+        labels: regionNames,
+        datasets: [{ data: regionCounts, backgroundColor: ["#2563eb","#10b981","#f59e0b","#ef4444","#8b5cf6"] }]
+      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    });
+  } catch (err) {
+    console.error("❌ Dashboard load error:", err);
   }
 });
