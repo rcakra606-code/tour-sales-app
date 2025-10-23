@@ -1,158 +1,51 @@
 // ==========================================================
-// 📊 Report Tour Controller — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
-// Fitur:
-// - Rekap data tour berdasarkan region, bulan, dan status
-// - Hitung total pax, sales, profit per region
-// - API untuk dashboard & export laporan
+// ✈️ Report Tour Controller — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
 
-import pkg from "pg";
-const { Pool } = pkg;
+import { pool } from "../server.js";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-// ==========================================================
-// 🔹 GET /api/report/tours/summary — Ringkasan Dashboard
-// ==========================================================
-export async function getTourSummary(req, res) {
+// ===== GET ALL TOURS =====
+export async function getAllTours(req, res) {
   try {
-    const { month, region } = req.query;
-    let filters = [];
-    let values = [];
-    let i = 1;
-
-    if (month) {
-      filters.push(`TO_CHAR(departure_date, 'YYYY-MM') = $${i++}`);
-      values.push(month);
-    }
-    if (region) {
-      filters.push(`LOWER(region) = LOWER($${i++})`);
-      values.push(region);
-    }
-
-    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
-
-    const query = `
-      SELECT
-        COUNT(*) AS total_tours,
-        COALESCE(SUM(tour_price), 0) AS total_revenue,
-        COALESCE(SUM(sales_amount), 0) AS total_sales,
-        COALESCE(SUM(profit_amount), 0) AS total_profit,
-        COALESCE(SUM(
-          CASE
-            WHEN all_passengers IS NOT NULL AND LENGTH(all_passengers) > 0
-            THEN array_length(string_to_array(all_passengers, ','), 1)
-            ELSE 0
-          END
-        ), 0) AS total_pax
-      FROM tours
-      ${whereClause};
-    `;
-
-    const result = await pool.query(query, values);
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("❌ Report tour summary error:", err);
-    res.status(500).json({ message: "Gagal memuat ringkasan laporan tour." });
-  }
-}
-
-// ==========================================================
-// 🔹 GET /api/report/tours/region — Rekap Per Region
-// ==========================================================
-export async function getTourByRegion(req, res) {
-  try {
-    const { month } = req.query;
-    let whereClause = "";
-    let values = [];
-
-    if (month) {
-      whereClause = "WHERE TO_CHAR(departure_date, 'YYYY-MM') = $1";
-      values.push(month);
-    }
-
-    const query = `
-      SELECT
-        region,
-        COUNT(*) AS total_tours,
-        COALESCE(SUM(tour_price), 0) AS total_revenue,
-        COALESCE(SUM(sales_amount), 0) AS total_sales,
-        COALESCE(SUM(profit_amount), 0) AS total_profit,
-        COALESCE(SUM(
-          CASE
-            WHEN all_passengers IS NOT NULL AND LENGTH(all_passengers) > 0
-            THEN array_length(string_to_array(all_passengers, ','), 1)
-            ELSE 0
-          END
-        ), 0) AS total_pax
-      FROM tours
-      GROUP BY region
-      ORDER BY total_tours DESC;
-    `;
-
-    const result = await pool.query(query, values);
+    const result = await pool.query(
+      `SELECT * FROM tours ORDER BY registration_date DESC`
+    );
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Report tour by region error:", err);
-    res.status(500).json({ message: "Gagal memuat data rekap per region." });
+    console.error("❌ Get tours error:", err);
+    res.status(500).json({ message: "Gagal memuat data tour." });
   }
 }
 
-// ==========================================================
-// 🔹 GET /api/report/tours/status — Rekap Berdasarkan Status
-// ==========================================================
-export async function getTourByStatus(req, res) {
+// ===== ADD TOUR =====
+export async function addTour(req, res) {
   try {
-    const query = `
-      SELECT
-        departure_status,
-        COUNT(*) AS total_tours,
-        COALESCE(SUM(tour_price), 0) AS total_revenue
-      FROM tours
-      GROUP BY departure_status
-      ORDER BY departure_status;
-    `;
+    const {
+      registrationDate,
+      leadPassenger,
+      allPassengers,
+      tourCode,
+      region,
+      departureDate,
+      bookingCode,
+      tourPrice,
+      discountRemarks,
+      paymentProof,
+      documentReceived,
+      visaProcessStart,
+      visaProcessEnd,
+      documentRemarks,
+      staff_name,
+      salesAmount,
+      profitAmount,
+      departureStatus
+    } = req.body;
 
-    const result = await pool.query(query);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Report tour by status error:", err);
-    res.status(500).json({ message: "Gagal memuat data rekap status tour." });
-  }
-}
+    if (!leadPassenger)
+      return res.status(400).json({ message: "Nama lead passenger wajib diisi." });
 
-// ==========================================================
-// 🔹 GET /api/report/tours/detail — Detail Semua Tour (Export)
-// ==========================================================
-export async function getTourDetails(req, res) {
-  try {
-    const { month, region, status } = req.query;
-    let filters = [];
-    let values = [];
-    let i = 1;
-
-    if (month) {
-      filters.push(`TO_CHAR(departure_date, 'YYYY-MM') = $${i++}`);
-      values.push(month);
-    }
-    if (region) {
-      filters.push(`LOWER(region) = LOWER($${i++})`);
-      values.push(region);
-    }
-    if (status) {
-      filters.push(`LOWER(departure_status) = LOWER($${i++})`);
-      values.push(status);
-    }
-
-    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
-
-    const query = `
-      SELECT
-        id,
+    await pool.query(
+      `INSERT INTO tours (
         registration_date,
         lead_passenger,
         all_passengers,
@@ -161,20 +54,54 @@ export async function getTourDetails(req, res) {
         departure_date,
         booking_code,
         tour_price,
+        discount_remarks,
+        payment_proof,
+        document_received,
+        visa_process_start,
+        visa_process_end,
+        document_remarks,
+        staff_name,
         sales_amount,
         profit_amount,
-        departure_status,
-        staff,
-        created_at
-      FROM tours
-      ${whereClause}
-      ORDER BY departure_date DESC;
-    `;
+        departure_status
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+      [
+        registrationDate,
+        leadPassenger,
+        allPassengers,
+        tourCode,
+        region,
+        departureDate,
+        bookingCode,
+        tourPrice,
+        discountRemarks,
+        paymentProof,
+        documentReceived,
+        visaProcessStart,
+        visaProcessEnd,
+        documentRemarks,
+        staff_name,
+        salesAmount,
+        profitAmount,
+        departureStatus
+      ]
+    );
 
-    const result = await pool.query(query, values);
-    res.json(result.rows);
+    res.json({ message: "Data tour berhasil disimpan." });
   } catch (err) {
-    console.error("❌ Report tour details error:", err);
-    res.status(500).json({ message: "Gagal memuat data tour." });
+    console.error("❌ Add tour error:", err);
+    res.status(500).json({ message: "Gagal menyimpan data tour." });
+  }
+}
+
+// ===== DELETE TOUR =====
+export async function deleteTour(req, res) {
+  try {
+    const { id } = req.params;
+    await pool.query("DELETE FROM tours WHERE id = $1", [id]);
+    res.json({ message: "Data tour berhasil dihapus." });
+  } catch (err) {
+    console.error("❌ Delete tour error:", err);
+    res.status(500).json({ message: "Gagal menghapus data tour." });
   }
 }
