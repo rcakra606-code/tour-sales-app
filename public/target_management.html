@@ -1,130 +1,164 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Target Management | Travel Dashboard</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <script defer src="./js/ui.js"></script>
-  <script defer src="./js/target_management.js"></script>
+  <link rel="stylesheet" href="./css/style.css">
 </head>
-
-<body class="light-mode">
-  <!-- Sidebar -->
-  <!-- ===================================================== -->
-<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
-<!-- ===================================================== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>TravelDashboard</h2>
-    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
-  </div>
-
-  <nav>
-    <ul>
-      <li>
-        <a href="dashboard.html">
-          <span>🏠</span>
-          <span>Dashboard</span>
-        </a>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>📊</span>
-          <span>Reports</span>
-        </a>
-        <ul>
-          <li><a href="report_tour.html">Tour Report</a></li>
-          <li><a href="report_sales.html">Sales Report</a></li>
-          <li><a href="report_document.html">Document Report</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>⚙️</span>
-          <span>Management</span>
-        </a>
-        <ul>
-          <li><a href="user-management.html">User Management</a></li>
-          <li><a href="region_management.html">Region Management</a></li>
-          <li><a href="target_management.html">Target Management</a></li>
-          <li><a href="tour_form.html">Tour Management</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>💼</span>
-          <span>Executive</span>
-        </a>
-        <ul>
-          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-          <li><a href="audit_log.html">Audit Log</a></li>
-        </ul>
-      </li>
-
-      <li>
-        <a href="profile.html">
-          <span>👤</span>
-          <span>Profile</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="logout.html">
-          <span>🚪</span>
-          <span>Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="theme-switch">
-    <label>
-      <input type="checkbox" id="themeSwitch" />
-      🌙 Dark Mode
-    </label>
-  </div>
-</aside>
-
-  <!-- Main -->
-  <main>
-    <header>
-      <h1>🎯 Target Penjualan & Profit</h1>
-      <div class="theme-switch">
-        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
       </div>
-    </header>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li class="has-children">
+            <a href="#">Reports</a>
+            <ul>
+              <li><a href="report_tour.html">Tour Report</a></li>
+              <li><a href="report_sales.html">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
+            </ul>
+          </li>
+          <li class="has-children expanded">
+            <a href="#">Management</a>
+            <ul>
+              <li><a href="user-management.html">User Management</a></li>
+              <li><a href="region_management.html">Region Management</a></li>
+              <li><a href="target_management.html" class="active">Target Management</a></li>
+              <li><a href="tour_form.html">Tour Management</a></li>
+            </ul>
+          </li>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-    <!-- Form Target -->
-    <form id="targetForm">
-      <select id="staff_name" name="staff_name"></select>
-      <input type="number" id="month" name="month" min="1" max="12" placeholder="Bulan (1-12)" />
-      <input type="number" id="year" name="year" placeholder="Tahun" />
-      <input type="number" id="target_sales" name="target_sales" placeholder="Target Sales (angka)" />
-      <input type="number" id="target_profit" name="target_profit" placeholder="Target Profit (angka)" />
-      <button type="submit">Tambah Target</button>
-    </form>
-    <p id="targetMsg"></p>
+    <!-- MAIN -->
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Target Management</h1>
+        </div>
+      </div>
 
-    <!-- Tabel Target -->
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Staff</th>
-          <th>Bulan</th>
-          <th>Tahun</th>
-          <th>Target Sales</th>
-          <th>Target Profit</th>
-          <th>Dibuat</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="targetTableBody"></tbody>
-    </table>
-  </main>
+      <section class="card">
+        <h2>Tambah Target Bulanan</h2>
+        <form id="targetForm" class="form-grid" data-endpoint="/api/targets">
+          <div class="form-row">
+            <label>Nama Staff</label>
+            <input type="text" name="staff_name" required>
+          </div>
+          <div class="form-row">
+            <label>Bulan</label>
+            <select name="month" required>
+              <option value="">-- Pilih Bulan --</option>
+              <option>Januari</option><option>Februari</option><option>Maret</option><option>April</option>
+              <option>Mei</option><option>Juni</option><option>Juli</option><option>Agustus</option>
+              <option>September</option><option>Oktober</option><option>November</option><option>Desember</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Tahun</label>
+            <input type="number" name="year" value="2025" required>
+          </div>
+          <div class="form-row">
+            <label>Target Sales (Rp)</label>
+            <input type="number" name="target_sales" required>
+          </div>
+          <div class="form-row">
+            <label>Target Profit (Rp)</label>
+            <input type="number" name="target_profit" required>
+          </div>
+          <div class="form-row full-row form-actions">
+            <button type="reset" class="btn secondary">Reset</button>
+            <button type="submit" class="btn primary">Simpan</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Daftar Target</h2>
+        <div class="form-actions">
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+        <table class="table" id="targetTable">
+          <thead>
+            <tr>
+              <th>Staff</th><th>Bulan</th><th>Tahun</th><th>Sales Target</th><th>Profit Target</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="./js/ui.js"></script>
+  <script>
+    const toastWrap=document.getElementById('toastWrap');
+    const token=localStorage.getItem('token');
+    const tbody=document.querySelector('#targetTable tbody');
+
+    function toast(msg,type='info',t=3200){
+      const el=document.createElement('div');
+      el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
+      el.textContent=msg;toastWrap.appendChild(el);setTimeout(()=>el.remove(),t);
+    }
+
+    async function loadTargets(){
+      try{
+        const res=await fetch('/api/targets',{headers:{'Authorization':'Bearer '+token}});
+        const data=await res.json();
+        tbody.innerHTML='';
+        data.forEach(t=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${t.staff_name||''}</td><td>${t.month}</td><td>${t.year}</td><td>${t.target_sales}</td><td>${t.target_profit}</td>`;
+          tbody.appendChild(tr);
+        });
+      }catch(e){}
+    }
+
+    document.getElementById('targetForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const f=e.target;const fd=new FormData(f);const o={};fd.forEach((v,k)=>o[k]=v);
+      try{
+        const res=await fetch(f.dataset.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(o)});
+        const d=await res.json();
+        if(!res.ok)throw new Error(d.message||'Gagal');
+        toast('Target berhasil disimpan','success');
+        f.reset();loadTargets();
+      }catch(err){toast(err.message,'error');}
+    });
+
+    document.getElementById('exportCSV').addEventListener('click',()=>{
+      const rows=[["Staff","Bulan","Tahun","Sales Target","Profit Target"]];
+      document.querySelectorAll("#targetTable tbody tr").forEach(tr=>{
+        const r=Array.from(tr.children).map(td=>td.textContent);rows.push(r);
+      });
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const blob=new Blob([csv],{type:'text/csv'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download="targets.csv";
+      a.click();
+    });
+
+    loadTargets();
+  </script>
 </body>
 </html>
