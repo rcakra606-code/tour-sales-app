@@ -1,19 +1,18 @@
-// ==========================================================
-// 🔐 Auth Routes — Travel Dashboard Enterprise v5.4.8
-// ==========================================================
-
 import express from "express";
-import { login, verifyToken, register } from "../controllers/authController.js";
+import { login, verifyToken, refreshToken, register } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// 🔹 POST /api/auth/login
+// === LOGIN ===
 router.post("/login", login);
 
-// 🔹 GET /api/auth/verify
+// === VERIFY TOKEN ===
 router.get("/verify", verifyToken);
 
-// 🔹 POST /api/auth/register (admin only, opsional)
+// === REFRESH TOKEN ===
+router.post("/refresh", refreshToken);
+
+// === REGISTER (opsional, hanya admin) ===
 router.post("/register", register);
 
 export default router;
