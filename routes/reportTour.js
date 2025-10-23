@@ -1,20 +1,11 @@
-// ==========================================================
-// 📊 Report Tour Routes — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
 import express from "express";
+import { getAllTours, addTour, deleteTour } from "../controllers/reportTourController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
-import {
-  getTourSummary,
-  getTourByRegion,
-  getTourByStatus,
-  getTourDetails,
-} from "../controllers/reportTourController.js";
 
 const router = express.Router();
 
-router.get("/summary", authenticate, getTourSummary);
-router.get("/region", authenticate, getTourByRegion);
-router.get("/status", authenticate, getTourByStatus);
-router.get("/detail", authenticate, getTourDetails);
+router.get("/", authenticate, getAllTours);
+router.post("/", authenticate, addTour);
+router.delete("/:id", authenticate, deleteTour);
 
 export default router;
