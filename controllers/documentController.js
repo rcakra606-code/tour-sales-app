@@ -1,125 +1,83 @@
-// controllers/documentController.js
-import pkg from "pg";
-const { Pool } = pkg;
+// ==========================================================
+// 📑 Document Controller — Travel Dashboard Enterprise v5.4.9
+// ==========================================================
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+import { pool } from "../server.js";
 
-/**
- * GET /api/documents
- * Ambil semua data dokumen (admin/semiadmin) atau milik staff sendiri
- */
+// ===== GET ALL DOCUMENTS =====
 export async function getDocuments(req, res) {
   try {
     const role = req.user.role;
-    const staff = req.user.staff_name || req.user.username;
+    const staffName = req.user.staff_name;
+    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
+    const params = role === "staff" ? [staffName] : [];
 
-    let query = `
+    const result = await pool.query(
+      `
       SELECT 
-        id, received_date, sent_date, guest_name, document_type, process_type,
-        booking_code, invoice_number, guest_phone, estimated_finish,
-        staff_name, tour_code
+        id, receive_date, send_date, guest_name, passport_visa, 
+        process_type, booking_code_dms, invoice_number, phone_number, 
+        estimated_finish, staff_name, tour_code, document_remarks, created_at
       FROM documents
-    `;
+      ${whereClause}
+      ORDER BY receive_date DESC
+      `,
+      params
+    );
 
-    let params = [];
-    if (role === "staff") {
-      query += " WHERE LOWER(staff_name) = LOWER($1)";
-      params = [staff];
-    }
-    query += " ORDER BY received_date DESC";
-
-    const { rows } = await pool.query(query, params);
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
-    console.error("❌ GET /api/documents error:", err);
-    res.status(500).json({ message: "Gagal memuat data dokumen" });
+    console.error("❌ GET documents error:", err);
+    res.status(500).json({ message: "Gagal memuat data dokumen." });
   }
 }
 
-/**
- * POST /api/documents
- * Simpan data dokumen baru
- */
+// ===== CREATE DOCUMENT =====
 export async function createDocument(req, res) {
   try {
-    const {
-      receivedDate,
-      sentDate,
-      guestName,
-      documentType,
-      processType,
-      bookingCode,
-      invoiceNumber,
-      guestPhone,
-      estimatedFinish,
-      staffName,
-      tourCode,
-    } = req.body;
+    const data = req.body;
+    const staffName = req.user.role === "staff" ? req.user.staff_name : data.staff_name;
 
-    if (!receivedDate || !guestName || !staffName) {
-      return res.status(400).json({ message: "Tanggal terima, nama tamu, dan staff wajib diisi" });
-    }
-
-    const q = `
+    await pool.query(
+      `
       INSERT INTO documents (
-        received_date, sent_date, guest_name, document_type, process_type,
-        booking_code, invoice_number, guest_phone, estimated_finish,
-        staff_name, tour_code
+        receive_date, send_date, guest_name, passport_visa,
+        process_type, booking_code_dms, invoice_number, phone_number,
+        estimated_finish, staff_name, tour_code, document_remarks
       )
-      VALUES (
-        $1,$2,$3,$4,$5,
-        $6,$7,$8,$9,
-        $10,$11
-      )
-      RETURNING id, guest_name, booking_code, document_type, staff_name;
-    `;
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      `,
+      [
+        data.receive_date || null,
+        data.send_date || null,
+        data.guest_name || "",
+        data.passport_visa || "",
+        data.process_type || "",
+        data.booking_code_dms || "",
+        data.invoice_number || "",
+        data.phone_number || "",
+        data.estimated_finish || null,
+        staffName || "",
+        data.tour_code || "",
+        data.document_remarks || ""
+      ]
+    );
 
-    const values = [
-      receivedDate,
-      sentDate,
-      guestName,
-      documentType,
-      processType,
-      bookingCode,
-      invoiceNumber,
-      guestPhone,
-      estimatedFinish,
-      staffName,
-      tourCode,
-    ];
-
-    const { rows } = await pool.query(q, values);
-    res.status(201).json({
-      message: "Data dokumen berhasil disimpan",
-      data: rows[0],
-    });
+    res.json({ message: "Dokumen berhasil disimpan." });
   } catch (err) {
-    console.error("❌ POST /api/documents error:", err);
-    res.status(500).json({ message: "Gagal menyimpan data dokumen" });
+    console.error("❌ Create document error:", err);
+    res.status(500).json({ message: "Gagal menyimpan dokumen." });
   }
 }
 
-/**
- * DELETE /api/documents/:id
- * Hapus data dokumen (admin/semiadmin)
- */
+// ===== DELETE DOCUMENT =====
 export async function deleteDocument(req, res) {
   try {
-    const role = req.user.role;
-    if (!["admin", "semiadmin"].includes(role)) {
-      return res.status(403).json({ message: "Hanya Admin atau SemiAdmin yang dapat menghapus data" });
-    }
-
     const { id } = req.params;
-    if (!id) return res.status(400).json({ message: "ID tidak valid" });
-
-    await pool.query(`DELETE FROM documents WHERE id = $1;`, [id]);
-    res.json({ message: "Data dokumen berhasil dihapus" });
+    await pool.query("DELETE FROM documents WHERE id = $1", [id]);
+    res.json({ message: "Dokumen berhasil dihapus." });
   } catch (err) {
-    console.error("❌ DELETE /api/documents error:", err);
-    res.status(500).json({ message: "Gagal menghapus data dokumen" });
+    console.error("❌ Delete document error:", err);
+    res.status(500).json({ message: "Gagal menghapus dokumen." });
   }
 }
