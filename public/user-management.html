@@ -1,131 +1,150 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>User Management | Travel Dashboard</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <script defer src="./js/ui.js"></script>
-  <script defer src="./js/user-management.js"></script>
+  <link rel="stylesheet" href="./css/style.css">
 </head>
-
-<body class="light-mode">
-  <!-- Sidebar -->
-  <!-- ===================================================== -->
-<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
-<!-- ===================================================== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>TravelDashboard</h2>
-    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
-  </div>
-
-  <nav>
-    <ul>
-      <li>
-        <a href="dashboard.html">
-          <span>🏠</span>
-          <span>Dashboard</span>
-        </a>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>📊</span>
-          <span>Reports</span>
-        </a>
-        <ul>
-          <li><a href="report_tour.html">Tour Report</a></li>
-          <li><a href="report_sales.html">Sales Report</a></li>
-          <li><a href="report_document.html">Document Report</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>⚙️</span>
-          <span>Management</span>
-        </a>
-        <ul>
-          <li><a href="user-management.html">User Management</a></li>
-          <li><a href="region_management.html">Region Management</a></li>
-          <li><a href="target_management.html">Target Management</a></li>
-          <li><a href="tour_form.html">Tour Management</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>💼</span>
-          <span>Executive</span>
-        </a>
-        <ul>
-          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-          <li><a href="audit_log.html">Audit Log</a></li>
-        </ul>
-      </li>
-
-      <li>
-        <a href="profile.html">
-          <span>👤</span>
-          <span>Profile</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="logout.html">
-          <span>🚪</span>
-          <span>Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="theme-switch">
-    <label>
-      <input type="checkbox" id="themeSwitch" />
-      🌙 Dark Mode
-    </label>
-  </div>
-</aside>
-
-  <!-- Main -->
-  <main>
-    <header>
-      <h1>👥 Manajemen Pengguna</h1>
-      <div class="theme-switch">
-        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
       </div>
-    </header>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li class="has-children">
+            <a href="#">Reports</a>
+            <ul>
+              <li><a href="report_tour.html">Tour Report</a></li>
+              <li><a href="report_sales.html">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
+            </ul>
+          </li>
+          <li class="has-children expanded">
+            <a href="#">Management</a>
+            <ul>
+              <li><a href="user-management.html" class="active">User Management</a></li>
+              <li><a href="region_management.html">Region Management</a></li>
+              <li><a href="target_management.html">Target Management</a></li>
+              <li><a href="tour_form.html">Tour Management</a></li>
+            </ul>
+          </li>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-    <!-- Form Tambah User -->
-    <form id="userForm">
-      <input id="username" name="username" placeholder="Username" required />
-      <input id="staff_name" name="staff_name" placeholder="Nama Staff" required />
-      <input type="password" id="password" name="password" placeholder="Password" required />
-      <select id="role" name="role">
-        <option value="staff">Staff</option>
-        <option value="semi-admin">Semi Admin</option>
-        <option value="admin">Admin</option>
-      </select>
-      <button type="submit">Tambah User</button>
-    </form>
-    <p id="userMsg"></p>
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>User Management</h1>
+        </div>
+      </div>
 
-    <!-- Tabel User -->
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Username</th>
-          <th>Nama Staff</th>
-          <th>Role</th>
-          <th>Tanggal Dibuat</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="userTableBody"></tbody>
-    </table>
-  </main>
+      <section class="card">
+        <h2>Tambah User Baru</h2>
+        <form id="userForm" class="form-grid" data-endpoint="/api/users">
+          <div class="form-row"><label>Username</label><input type="text" name="username" required></div>
+          <div class="form-row"><label>Nama Staff</label><input type="text" name="staff_name" required></div>
+          <div class="form-row"><label>Password</label><input type="password" name="password" required></div>
+          <div class="form-row"><label>Role</label>
+            <select name="role" required>
+              <option value="staff">Staff</option>
+              <option value="semi_admin">Semi Admin</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div class="form-row full-row form-actions">
+            <button type="reset" class="btn secondary">Reset</button>
+            <button type="submit" class="btn primary">Simpan</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Daftar User</h2>
+        <div class="form-actions">
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+        <table class="table" id="userTable">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Nama Staff</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="./js/ui.js"></script>
+  <script>
+    const toastWrap=document.getElementById('toastWrap');
+    const token=localStorage.getItem('token');
+    const tbody=document.querySelector('#userTable tbody');
+
+    function toast(msg,type='info',t=3200){
+      const el=document.createElement('div');
+      el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
+      el.textContent=msg;toastWrap.appendChild(el);setTimeout(()=>el.remove(),t);
+    }
+
+    async function loadUsers(){
+      try{
+        const res=await fetch('/api/users',{headers:{'Authorization':'Bearer '+token}});
+        const data=await res.json();
+        tbody.innerHTML='';
+        data.forEach(u=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${u.username}</td><td>${u.staff_name||''}</td><td>${u.role}</td>`;
+          tbody.appendChild(tr);
+        });
+      }catch(e){}
+    }
+
+    document.getElementById('userForm').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const f=e.target;const fd=new FormData(f);const o={};fd.forEach((v,k)=>o[k]=v);
+      try{
+        const res=await fetch(f.dataset.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(o)});
+        const d=await res.json();
+        if(!res.ok)throw new Error(d.message||'Gagal');
+        toast('User berhasil ditambahkan','success');
+        f.reset();loadUsers();
+      }catch(err){toast(err.message,'error');}
+    });
+
+    document.getElementById('exportCSV').addEventListener('click',()=>{
+      const rows=[["Username","Nama Staff","Role"]];
+      document.querySelectorAll("#userTable tbody tr").forEach(tr=>{
+        const r=Array.from(tr.children).map(td=>td.textContent);rows.push(r);
+      });
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const blob=new Blob([csv],{type:'text/csv'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download="users.csv";
+      a.click();
+    });
+
+    loadUsers();
+  </script>
 </body>
 </html>
