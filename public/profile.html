@@ -1,153 +1,111 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile | Travel Dashboard</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Profil Pengguna | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css">
 </head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="user-management.html">User Management</a></li>
+          <li><a href="profile.html" class="active">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-<body class="theme-light">
-  <!-- ====================== SIDEBAR ====================== -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h2>TravelDashboard</h2>
-      <button data-toggle="sidebar">☰</button>
-    </div>
-    <nav>
-      <ul>
-        <li><a href="dashboard.html"><span>🏠</span><span>Dashboard</span></a></li>
-
-        <li class="has-children">
-          <a href="#"><span>📊</span><span>Reports</span></a>
-          <ul>
-            <li><a href="report_tour.html">Tour Report</a></li>
-            <li><a href="report_sales.html">Sales Report</a></li>
-            <li><a href="report_document.html">Document Report</a></li>
-          </ul>
-        </li>
-
-        <li class="has-children">
-          <a href="#"><span>⚙️</span><span>Management</span></a>
-          <ul>
-            <li><a href="user-management.html">User Management</a></li>
-            <li><a href="region_management.html">Region Management</a></li>
-            <li><a href="target_management.html">Target Management</a></li>
-            <li><a href="tour_form.html">Tour Management</a></li>
-          </ul>
-        </li>
-
-        <li class="has-children">
-          <a href="#"><span>💼</span><span>Executive</span></a>
-          <ul>
-            <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-            <li><a href="audit_log.html">Audit Log</a></li>
-          </ul>
-        </li>
-
-        <li class="active"><a href="profile.html"><span>👤</span><span>Profile</span></a></li>
-        <li><a href="logout.html"><span>🚪</span><span>Logout</span></a></li>
-      </ul>
-    </nav>
-
-    <div class="theme-switch">
-      <label>
-        <input type="checkbox" id="themeSwitch" />
-        🌙 Dark Mode
-      </label>
-    </div>
-  </aside>
-
-  <!-- ====================== MAIN CONTENT ====================== -->
-  <main>
-    <header>
-      <h1>👤 Profil Pengguna</h1>
-      <button data-toggle="sidebar" class="mobile-toggle">☰</button>
-    </header>
-
-    <section class="card">
-      <h2>Informasi Akun</h2>
-      <form id="profileForm">
-        <div class="form-group">
-          <label>Username</label>
-          <input type="text" id="username" disabled />
+    <!-- MAIN -->
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Profil Pengguna</h1>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label>Nama Staff</label>
-          <input type="text" id="staff_name" placeholder="Nama Lengkap Anda" />
+      <section class="card">
+        <h2>Informasi Pengguna</h2>
+        <div id="profileInfo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;">
+          <div><strong>Username:</strong> <span id="username"></span></div>
+          <div><strong>Nama Staff:</strong> <span id="staffName"></span></div>
+          <div><strong>Role:</strong> <span id="role"></span></div>
         </div>
+      </section>
 
-        <div class="form-group">
-          <label>Role</label>
-          <input type="text" id="role" disabled />
-        </div>
+      <section class="card">
+        <h2>Ubah Password</h2>
+        <form id="passwordForm" class="form-grid" data-endpoint="/api/profile/password">
+          <div class="form-row">
+            <label>Password Lama</label>
+            <input type="password" name="oldPassword" required>
+          </div>
+          <div class="form-row">
+            <label>Password Baru</label>
+            <input type="password" name="newPassword" required>
+          </div>
+          <div class="form-row full-row form-actions">
+            <button type="reset" class="btn secondary">Reset</button>
+            <button type="submit" class="btn primary">Simpan</button>
+          </div>
+        </form>
+      </section>
 
-        <div class="form-group">
-          <label>Password Baru</label>
-          <input type="password" id="password" placeholder="Isi jika ingin ubah password" />
-        </div>
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
 
-        <button type="submit" class="btn-primary">💾 Simpan Perubahan</button>
-      </form>
-      <p id="message" class="message"></p>
-    </section>
-  </main>
-
+  <div class="toast-wrap" id="toastWrap"></div>
   <script src="./js/ui.js"></script>
   <script>
-    const token = localStorage.getItem("token");
-    const apiBase = "/api/profile";
-    const msgBox = document.getElementById("message");
+    const token = localStorage.getItem('token');
+    const toastWrap = document.getElementById('toastWrap');
 
-    // ===== Fetch profil user =====
-    async function loadProfile() {
-      try {
-        const res = await fetch(apiBase, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Gagal memuat profil");
-        const data = await res.json();
-
-        document.getElementById("username").value = data.username || "";
-        document.getElementById("staff_name").value = data.staff_name || "";
-        document.getElementById("role").value = data.role || "";
-      } catch (err) {
-        msgBox.textContent = "❌ " + err.message;
-        msgBox.classList.add("error");
-      }
+    function toast(msg,type='info',t=3000){
+      const el=document.createElement('div');
+      el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
+      el.textContent=msg;
+      toastWrap.appendChild(el);
+      setTimeout(()=>el.remove(),t);
     }
 
-    // ===== Update profil user =====
-    document.getElementById("profileForm").addEventListener("submit", async (e) => {
+    async function loadProfile(){
+      try{
+        const res = await fetch('/api/profile',{headers:{Authorization:'Bearer '+token}});
+        if(!res.ok) throw new Error('Gagal memuat profil');
+        const d = await res.json();
+        document.getElementById('username').textContent = d.username || '-';
+        document.getElementById('staffName').textContent = d.staff_name || '-';
+        document.getElementById('role').textContent = d.role || '-';
+      }catch(e){ toast(e.message,'error'); }
+    }
+
+    document.getElementById('passwordForm').addEventListener('submit', async e=>{
       e.preventDefault();
-      const staff_name = document.getElementById("staff_name").value.trim();
-      const password = document.getElementById("password").value.trim();
-
-      try {
-        const res = await fetch(apiBase, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ staff_name, password }),
-        });
-
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Gagal memperbarui profil");
-
-        msgBox.textContent = "✅ Profil berhasil diperbarui.";
-        msgBox.classList.add("success");
-        document.getElementById("password").value = "";
-        loadProfile();
-      } catch (err) {
-        msgBox.textContent = "❌ " + err.message;
-        msgBox.classList.add("error");
-      }
+      const f=e.target;const fd=new FormData(f);const o={};
+      fd.forEach((v,k)=>o[k]=v);
+      try{
+        const res=await fetch(f.dataset.endpoint,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(o)});
+        const d=await res.json();
+        if(!res.ok) throw new Error(d.message||'Gagal update password');
+        toast('Password berhasil diperbarui','success');
+        f.reset();
+      }catch(err){toast(err.message,'error');}
     });
 
-    // ===== Inisialisasi =====
     loadProfile();
   </script>
 </body>
