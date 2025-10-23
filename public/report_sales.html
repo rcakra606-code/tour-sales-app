@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sales Report | Travel Dashboard</title>
-  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
   <div class="app">
@@ -31,16 +31,10 @@
               <li><a href="user-management.html">User Management</a></li>
               <li><a href="region_management.html">Region Management</a></li>
               <li><a href="target_management.html">Target Management</a></li>
-              <li><a href="tour_form.html">Tour Management</a></li>
             </ul>
           </li>
-          <li class="has-children">
-            <a href="#">Executive</a>
-            <ul>
-              <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-              <li><a href="audit_log.html">Audit Log</a></li>
-            </ul>
-          </li>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="audit_log.html">Audit Log</a></li>
           <li><a href="profile.html">Profile</a></li>
           <li><a href="logout.html">Logout</a></li>
         </ul>
@@ -59,39 +53,30 @@
         </div>
       </div>
 
-      <!-- FORM INPUT SALES -->
+      <!-- INPUT SALES -->
       <section class="card">
-        <h2>Tambah Data Penjualan</h2>
+        <h2>Input Data Sales</h2>
         <form id="salesForm" class="form-grid" data-endpoint="/api/sales">
           <div class="form-row">
-            <label>Tanggal Transaksi</label>
-            <input type="date" name="transaction_date" required>
-          </div>
-          <div class="form-row">
-            <label>Nomor Invoice</label>
-            <input type="text" name="invoice_number" required>
-          </div>
-          <div class="form-row">
-            <label>Nama Customer</label>
-            <input type="text" name="customer_name" required>
-          </div>
-          <div class="form-row">
-            <label>Kode Tour</label>
-            <input type="text" name="tour_code">
-          </div>
-          <div class="form-row">
-            <label>Jumlah Penjualan (Rp)</label>
-            <input type="number" name="sales_amount" step="0.01" required>
-          </div>
-          <div class="form-row">
-            <label>Profit (Rp)</label>
-            <input type="number" name="profit_amount" step="0.01" required>
-          </div>
-          <div class="form-row">
             <label>Nama Staff</label>
-            <input type="text" name="staff_name" required>
+            <select id="staffSelect" name="staff_name" required></select>
           </div>
-
+          <div class="form-row">
+            <label>Tanggal Transaksi</label>
+            <input type="date" name="transaction_date" required />
+          </div>
+          <div class="form-row">
+            <label>Invoice</label>
+            <input type="text" name="invoice_no" placeholder="INV-2025-001" required />
+          </div>
+          <div class="form-row">
+            <label>Total Sales (Rp)</label>
+            <input type="number" name="sales_amount" required />
+          </div>
+          <div class="form-row">
+            <label>Total Profit (Rp)</label>
+            <input type="number" name="profit_amount" required />
+          </div>
           <div class="form-row full-row form-actions">
             <button type="reset" class="btn secondary">Reset</button>
             <button type="submit" class="btn primary">Simpan</button>
@@ -99,87 +84,57 @@
         </form>
       </section>
 
-      <!-- TABEL SALES -->
+      <!-- FILTER -->
       <section class="card">
-        <h2>Data Penjualan</h2>
-        <div class="form-actions">
-          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        <h2>Filter & Data Sales</h2>
+        <div class="form-grid" style="margin-bottom:10px">
+          <div class="form-row">
+            <label>Bulan</label>
+            <select id="filterMonth">
+              <option value="">Semua</option>
+              <option value="1">Januari</option><option value="2">Februari</option>
+              <option value="3">Maret</option><option value="4">April</option>
+              <option value="5">Mei</option><option value="6">Juni</option>
+              <option value="7">Juli</option><option value="8">Agustus</option>
+              <option value="9">September</option><option value="10">Oktober</option>
+              <option value="11">November</option><option value="12">Desember</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Tahun</label>
+            <input id="filterYear" type="number" value="2025" />
+          </div>
+          <div class="form-row">
+            <label>Staff</label>
+            <select id="filterStaff"></select>
+          </div>
+          <div class="form-row full-row form-actions">
+            <button class="btn primary" id="filterBtn">Terapkan</button>
+            <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+          </div>
         </div>
+
         <table class="table" id="salesTable">
           <thead>
             <tr>
               <th>Tanggal</th>
-              <th>Invoice</th>
-              <th>Customer</th>
-              <th>Tour</th>
-              <th>Sales (Rp)</th>
-              <th>Profit (Rp)</th>
               <th>Staff</th>
+              <th>Invoice</th>
+              <th>Sales</th>
+              <th>Profit</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </section>
 
-      <footer>© 2025 Travel Dashboard</footer>
+      <footer>© 2025 Travel Dashboard Enterprise</footer>
     </main>
   </div>
 
   <div class="toast-wrap" id="toastWrap"></div>
   <script src="./js/ui.js"></script>
-  <script>
-    const toastWrap = document.getElementById('toastWrap');
-    const tableBody = document.querySelector("#salesTable tbody");
-    const token = localStorage.getItem('token');
-
-    function toast(msg, type='info', t=3200){
-      const el=document.createElement('div'); el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
-      el.textContent=msg; toastWrap.appendChild(el); setTimeout(()=>el.remove(),t);
-    }
-
-    async function loadSales(){
-      try{
-        const res = await fetch('/api/sales',{headers:{'Authorization':'Bearer '+token}});
-        const data = await res.json();
-        tableBody.innerHTML='';
-        data.forEach(s=>{
-          const tr=document.createElement('tr');
-          tr.innerHTML=`<td>${s.transaction_date||''}</td><td>${s.invoice_number||''}</td>
-          <td>${s.customer_name||''}</td><td>${s.tour_code||''}</td>
-          <td>${s.sales_amount||0}</td><td>${s.profit_amount||0}</td><td>${s.staff_name||''}</td>`;
-          tableBody.appendChild(tr);
-        });
-      }catch(e){console.warn(e);}
-    }
-
-    document.getElementById("salesForm").addEventListener("submit",async e=>{
-      e.preventDefault();
-      const form=e.target;const fd=new FormData(form);const obj={};
-      fd.forEach((v,k)=>obj[k]=v);
-      try{
-        const res=await fetch(form.dataset.endpoint,{
-          method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-          body:JSON.stringify(obj)
-        });
-        const data=await res.json();
-        if(!res.ok)throw new Error(data.message||'Gagal');
-        toast('Data berhasil disimpan','success');
-        form.reset();
-        loadSales();
-      }catch(err){toast(err.message,'error');}
-    });
-
-    document.getElementById("exportCSV").addEventListener("click",()=>{
-      const rows=[["Tanggal","Invoice","Customer","Tour","Sales","Profit","Staff"]];
-      document.querySelectorAll("#salesTable tbody tr").forEach(tr=>{
-        const row=Array.from(tr.children).map(td=>td.textContent);rows.push(row);
-      });
-      const csv=rows.map(r=>r.join(",")).join("\n");
-      const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);a.download="sales_report.csv";a.click();
-    });
-
-    loadSales();
-  </script>
+  <script src="./js/report_sales.js"></script>
 </body>
 </html>
