@@ -7,52 +7,70 @@ import { pool } from "../server.js";
 // ===== DASHBOARD SUMMARY =====
 export async function getDashboardSummary(req, res) {
   try {
-    const user = req.user;
-    const role = user.role;
-    const staffName = user.staff_name;
+    const role = req.user.role;
+    const staffName = req.user.staff_name;
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
 
-    // Filter untuk staff hanya tampilkan datanya sendiri
-    const whereClause = role === "staff" ? `WHERE staff_name = '${staffName}'` : "";
+    let whereClause = "";
+    let params = [];
 
-    const salesRes = await pool.query(
-      `SELECT COALESCE(SUM(sales_amount),0) AS total_sales,
-              COALESCE(SUM(profit_amount),0) AS total_profit
-       FROM sales ${whereClause}`
-    );
+    if (role === "staff") {
+      whereClause = "WHERE staff_name = $1";
+      params = [staffName];
+    }
 
-    const tourRes = await pool.query(
-      `SELECT COUNT(*) AS total_tours,
-              COALESCE(SUM(sales_amount),0) AS tour_sales,
-              COALESCE(SUM(profit_amount),0) AS tour_profit
-       FROM tours ${whereClause}`
-    );
+    const tourQuery = `
+      SELECT COUNT(*) AS total_tours, 
+             COALESCE(SUM(sales_amount), 0) AS total_sales, 
+             COALESCE(SUM(profit_amount), 0) AS total_profit 
+      FROM tours ${whereClause};
+    `;
+    const salesQuery = `
+      SELECT COUNT(*) AS total_sales_records,
+             COALESCE(SUM(sales_amount), 0) AS total_sales_amount,
+             COALESCE(SUM(profit_amount), 0) AS total_profit_amount
+      FROM sales ${whereClause};
+    `;
+    const targetQuery = `
+      SELECT target_sales, target_profit 
+      FROM targets 
+      ${role === "staff" ? "WHERE staff_name = $1" : ""}
+      AND month = $2 AND year = $3
+      LIMIT 1;
+    `;
 
-    const docRes = await pool.query(
-      `SELECT COUNT(*) AS total_docs FROM documents ${whereClause}`
-    );
+    const [tourRes, salesRes, targetRes] = await Promise.all([
+      pool.query(tourQuery, params),
+      pool.query(salesQuery, params),
+      pool.query(
+        role === "staff"
+          ? targetQuery
+          : "SELECT COALESCE(SUM(target_sales),0) AS target_sales, COALESCE(SUM(target_profit),0) AS target_profit FROM targets WHERE month=$1 AND year=$2",
+        role === "staff" ? [staffName, currentMonth, currentYear] : [currentMonth, currentYear]
+      ),
+    ]);
 
-    const regionRes = await pool.query(
-      `SELECT region, COUNT(*) AS pax_count
-       FROM tours ${whereClause ? whereClause + " AND" : "WHERE"} region IS NOT NULL
-       GROUP BY region ORDER BY pax_count DESC`
-    );
+    const tour = tourRes.rows[0];
+    const sales = salesRes.rows[0];
+    const target = targetRes.rows[0] || { target_sales: 0, target_profit: 0 };
 
-    const targetRes = await pool.query(
-      `SELECT COALESCE(SUM(target_sales),0) AS target_sales,
-              COALESCE(SUM(target_profit),0) AS target_profit
-       FROM targets ${whereClause}`
-    );
+    const totalSales = parseFloat(tour.total_sales || 0) + parseFloat(sales.total_sales_amount || 0);
+    const totalProfit = parseFloat(tour.total_profit || 0) + parseFloat(sales.total_profit_amount || 0);
+
+    const progressSales =
+      target.target_sales > 0 ? (totalSales / target.target_sales) * 100 : 0;
+    const progressProfit =
+      target.target_profit > 0 ? (totalProfit / target.target_profit) * 100 : 0;
 
     res.json({
-      user: staffName,
-      role,
-      total_sales: Number(salesRes.rows[0].total_sales),
-      total_profit: Number(salesRes.rows[0].total_profit),
-      total_tours: Number(tourRes.rows[0].total_tours),
-      total_docs: Number(docRes.rows[0].total_docs),
-      pax_region: regionRes.rows,
-      target_sales: Number(targetRes.rows[0].target_sales),
-      target_profit: Number(targetRes.rows[0].target_profit)
+      total_tours: parseInt(tour.total_tours || 0),
+      total_sales: totalSales.toFixed(2),
+      total_profit: totalProfit.toFixed(2),
+      target_sales: target.target_sales,
+      target_profit: target.target_profit,
+      progress_sales: progressSales.toFixed(2),
+      progress_profit: progressProfit.toFixed(2),
     });
   } catch (err) {
     console.error("❌ Dashboard summary error:", err);
@@ -60,17 +78,48 @@ export async function getDashboardSummary(req, res) {
   }
 }
 
-// ===== DASHBOARD REGION SUMMARY =====
+// ===== REGION STATS (TOUR PER REGION) =====
 export async function getTourRegionStats(req, res) {
   try {
+    const role = req.user.role;
+    const staffName = req.user.staff_name;
+    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
+    const params = role === "staff" ? [staffName] : [];
+
+    const result = await pool.query(
+      `
+      SELECT region, COUNT(*) AS total_tour, COALESCE(SUM(sales_amount), 0) AS total_sales
+      FROM tours
+      ${whereClause}
+      GROUP BY region
+      ORDER BY total_tour DESC
+      `,
+      params
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Dashboard region stats error:", err);
+    res.status(500).json({ message: "Gagal memuat data tour per region." });
+  }
+}
+
+// ===== MONTHLY PERFORMANCE (FOR CHART) =====
+export async function getMonthlyPerformance(req, res) {
+  try {
     const result = await pool.query(`
-      SELECT region, COUNT(*) AS pax_count, SUM(sales_amount) AS total_sales
-      FROM tours WHERE region IS NOT NULL
-      GROUP BY region ORDER BY pax_count DESC
+      SELECT 
+        TO_CHAR(transaction_date, 'YYYY-MM') AS month,
+        SUM(sales_amount) AS total_sales,
+        SUM(profit_amount) AS total_profit
+      FROM sales
+      WHERE transaction_date IS NOT NULL
+      GROUP BY 1
+      ORDER BY month ASC;
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Dashboard region error:", err);
-    res.status(500).json({ message: "Gagal memuat data region." });
+    console.error("❌ Monthly performance error:", err);
+    res.status(500).json({ message: "Gagal memuat performa bulanan." });
   }
 }
