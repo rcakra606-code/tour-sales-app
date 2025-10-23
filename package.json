@@ -1,45 +1,40 @@
 {
   "name": "travel-dashboard-enterprise",
-  "version": "5.4.8",
-  "description": "Travel Dashboard Enterprise — Fullstack system for managing tour, sales, documents, executive reporting, with NeonDB and Render auto-deploy integration.",
-  "type": "module",
+  "version": "5.4.9",
+  "description": "Travel Dashboard Enterprise — Render + NeonDB Integration (v5.4.9)",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node scripts/auto-repair-deploy.js",
+    "start": "node server.js",
     "dev": "nodemon server.js",
     "init-db": "node scripts/initDatabase.js",
+    "reset-db": "node scripts/resetDatabase.js",
+    "auto-reset": "node scripts/autoResetAndSeed.js",
     "setup-admin": "node scripts/setup-admin.js",
-    "clean-structure": "node scripts/auto-clean-structure.js"
+    "test-db": "node scripts/test-db.js",
+    "verify-routes": "node scripts/verify-routes.js",
+    "postinstall": "npm run auto-reset && npm start"
   },
-  "keywords": [
-    "travel",
-    "dashboard",
-    "enterprise",
-    "render",
-    "neondb",
-    "express",
-    "postgresql",
-    "auto-deploy"
-  ],
-  "author": "Travel Dashboard Enterprise Team",
-  "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "compression": "^1.7.4",
+    "body-parser": "^1.20.3",
+    "compression": "^1.7.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3"
+    "morgan": "^1.10.0",
+    "pg": "^8.11.3",
+    "pg-pool": "^3.6.2",
+    "winston": "^3.10.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.4"
   },
   "engines": {
-    "node": ">=18.x"
+    "node": ">=20.x"
   },
-  "render": {
-    "startCommand": "npm start",
-    "buildCommand": "npm install"
-  }
+  "author": "Travel Dashboard Dev Team",
+  "license": "MIT"
 }
