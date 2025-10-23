@@ -1,103 +1,108 @@
 // ==========================================================
-// 📄 Report Document Logic v5.3.4
-// CRUD + Search + Export CSV
+// 📑 Document Management — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
+
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (!token || token === "undefined") return (window.location.href = "/login.html");
-
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  document.getElementById("year").textContent = new Date().getFullYear();
-  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
-
+  const role = localStorage.getItem("role");
+  const staffSelect = document.getElementById("staff_name");
   const form = document.getElementById("documentForm");
-  const tableBody = document.querySelector("#documentTable tbody");
-  const searchInput = document.getElementById("searchDocument");
+  const msg = document.getElementById("documentMsg");
+  const tableBody = document.getElementById("documentTableBody");
 
-  async function loadDocuments() {
-    const res = await fetch("/api/documents", { headers });
+  // ===== LOAD STAFF =====
+  async function loadStaffOptions() {
+    if (role === "staff") {
+      const staff = localStorage.getItem("staff_name");
+      staffSelect.innerHTML = `<option selected>${staff}</option>`;
+      staffSelect.disabled = true;
+      return;
+    }
+
+    const res = await fetch("/api/users/staff-list", {
+      headers: { Authorization: "Bearer " + token }
+    });
     const data = await res.json();
-    renderDocuments(data);
+    staffSelect.innerHTML = data
+      .map((u) => `<option value="${u.staff_name}">${u.staff_name} (${u.role})</option>`)
+      .join("");
   }
 
-  function renderDocuments(data) {
-    tableBody.innerHTML = "";
-    data.forEach((d) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${d.receivedDate || "-"}</td>
-        <td>${d.guestName || "-"}</td>
-        <td>${d.bookingCode || "-"}</td>
-        <td>${d.documentType || "-"}</td>
-        <td>${d.processType || "-"}</td>
-        <td>${d.staffName || "-"}</td>
-        <td>${d.estimatedFinish || "-"}</td>
-        <td>
-          <button class="btn small danger" data-id="${d.id}" data-action="delete">🗑️</button>
-        </td>`;
-      tableBody.appendChild(tr);
+  // ===== LOAD DOCUMENTS =====
+  async function loadDocuments() {
+    const res = await fetch("/api/report/documents", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const data = await res.json();
+
+    tableBody.innerHTML = data
+      .map(
+        (d, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.receive_date ? d.receive_date.split("T")[0] : "-"}</td>
+        <td>${d.send_date ? d.send_date.split("T")[0] : "-"}</td>
+        <td>${d.guest_name}</td>
+        <td>${d.passport_visa}</td>
+        <td>${d.process_type}</td>
+        <td>${d.booking_code_dms}</td>
+        <td>${d.invoice_number}</td>
+        <td>${d.phone_number}</td>
+        <td>${d.estimated_finish ? d.estimated_finish.split("T")[0] : "-"}</td>
+        <td>${d.staff_name}</td>
+        <td><button class="delete-btn" data-id="${d.id}">🗑️</button></td>
+      </tr>`
+      )
+      .join("");
+
+    document.querySelectorAll(".delete-btn").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.target.dataset.id;
+        if (!confirm("Hapus data dokumen ini?")) return;
+        await fetch(`/api/report/documents/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: "Bearer " + token }
+        });
+        loadDocuments();
+      });
     });
   }
 
+  await loadStaffOptions();
+  await loadDocuments();
+
+  // ===== SUBMIT FORM =====
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    msg.textContent = "";
 
-    const docData = {
-      receivedDate: form.receivedDate.value,
-      sentDate: form.sentDate.value,
-      guestName: form.guestName.value,
-      documentType: form.documentType.value,
-      processType: form.processType.value,
-      bookingCode: form.bookingCode.value,
-      invoiceNumber: form.invoiceNumber.value,
-      guestPhone: form.guestPhone.value,
-      estimatedFinish: form.estimatedFinish.value,
-      staffName: form.staffName.value,
-      tourCode: form.tourCode.value,
+    const body = {
+      receive_date: form.receive_date.value,
+      send_date: form.send_date.value,
+      guest_name: form.guest_name.value,
+      passport_visa: form.passport_visa.value,
+      process_type: form.process_type.value,
+      booking_code_dms: form.booking_code_dms.value,
+      invoice_number: form.invoice_number.value,
+      phone_number: form.phone_number.value,
+      estimated_finish: form.estimated_finish.value,
+      staff_name: staffSelect.value,
+      tour_code: form.tour_code.value,
+      document_remarks: form.document_remarks.value
     };
 
-    await fetch("/api/documents", { method: "POST", headers, body: JSON.stringify(docData) });
+    const res = await fetch("/api/report/documents", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    msg.textContent = data.message || (res.ok ? "Dokumen berhasil disimpan." : "Gagal menyimpan dokumen.");
     form.reset();
     loadDocuments();
   });
-
-  // Delete
-  tableBody.addEventListener("click", async (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    const id = btn.dataset.id;
-    if (btn.dataset.action === "delete" && confirm("Hapus data dokumen ini?")) {
-      await fetch(`/api/documents/${id}`, { method: "DELETE", headers });
-      loadDocuments();
-    }
-  });
-
-  // Search
-  searchInput.addEventListener("input", () => {
-    const q = searchInput.value.toLowerCase();
-    const rows = tableBody.querySelectorAll("tr");
-    rows.forEach((r) => {
-      r.style.display = r.innerText.toLowerCase().includes(q) ? "" : "none";
-    });
-  });
-
-  // Export CSV
-  document.getElementById("exportDocument").addEventListener("click", () => {
-    const rows = [["Tgl Terima", "Tamu", "Booking DMS", "Negara", "Proses", "Staff", "Estimasi"]];
-    document.querySelectorAll("#documentTable tbody tr").forEach((tr) => {
-      const cols = Array.from(tr.children).map((td) => td.innerText);
-      rows.push(cols.slice(0, 7));
-    });
-
-    const csv = rows.map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `document-report-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-  });
-
-  loadDocuments();
 });
