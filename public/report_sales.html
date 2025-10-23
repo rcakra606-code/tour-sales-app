@@ -1,133 +1,185 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Report Sales | Travel Dashboard</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <script defer src="./js/ui.js"></script>
-  <script defer src="./js/report_sales.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sales Report | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css">
 </head>
-
-<body class="light-mode">
-  <!-- Sidebar -->
-  <!-- ===================================================== -->
-<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
-<!-- ===================================================== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>TravelDashboard</h2>
-    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
-  </div>
-
-  <nav>
-    <ul>
-      <li>
-        <a href="dashboard.html">
-          <span>🏠</span>
-          <span>Dashboard</span>
-        </a>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>📊</span>
-          <span>Reports</span>
-        </a>
-        <ul>
-          <li><a href="report_tour.html">Tour Report</a></li>
-          <li><a href="report_sales.html">Sales Report</a></li>
-          <li><a href="report_document.html">Document Report</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>⚙️</span>
-          <span>Management</span>
-        </a>
-        <ul>
-          <li><a href="user-management.html">User Management</a></li>
-          <li><a href="region_management.html">Region Management</a></li>
-          <li><a href="target_management.html">Target Management</a></li>
-          <li><a href="tour_form.html">Tour Management</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>💼</span>
-          <span>Executive</span>
-        </a>
-        <ul>
-          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-          <li><a href="audit_log.html">Audit Log</a></li>
-        </ul>
-      </li>
-
-      <li>
-        <a href="profile.html">
-          <span>👤</span>
-          <span>Profile</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="logout.html">
-          <span>🚪</span>
-          <span>Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="theme-switch">
-    <label>
-      <input type="checkbox" id="themeSwitch" />
-      🌙 Dark Mode
-    </label>
-  </div>
-</aside>
-
-  <!-- Main -->
-  <main>
-    <header>
-      <h1>💰 Laporan Penjualan</h1>
-      <div class="theme-switch">
-        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
       </div>
-    </header>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li class="has-children expanded">
+            <a href="#">Reports</a>
+            <ul>
+              <li><a href="report_tour.html">Tour Report</a></li>
+              <li><a href="report_sales.html" class="active">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
+            </ul>
+          </li>
+          <li class="has-children">
+            <a href="#">Management</a>
+            <ul>
+              <li><a href="user-management.html">User Management</a></li>
+              <li><a href="region_management.html">Region Management</a></li>
+              <li><a href="target_management.html">Target Management</a></li>
+              <li><a href="tour_form.html">Tour Management</a></li>
+            </ul>
+          </li>
+          <li class="has-children">
+            <a href="#">Executive</a>
+            <ul>
+              <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+              <li><a href="audit_log.html">Audit Log</a></li>
+            </ul>
+          </li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-    <!-- Form -->
-    <form id="salesForm">
-      <input type="date" id="transaction_date" name="transaction_date" />
-      <input id="invoice_number" name="invoice_number" placeholder="Nomor Invoice" />
-      <input id="customer_name" name="customer_name" placeholder="Nama Customer" />
-      <input id="sales_category" name="sales_category" placeholder="Kategori" />
-      <input id="sales_amount" name="sales_amount" type="number" placeholder="Total Penjualan" />
-      <input id="profit_amount" name="profit_amount" type="number" placeholder="Profit" />
-      <select id="staff_name" name="staff_name"></select>
-      <button type="submit">Tambah Data Sales</button>
-    </form>
-    <p id="salesMsg"></p>
+    <!-- MAIN -->
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Sales Report</h1>
+        </div>
+      </div>
 
-    <!-- Tabel -->
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Tanggal</th>
-          <th>Invoice</th>
-          <th>Customer</th>
-          <th>Kategori</th>
-          <th>Sales</th>
-          <th>Profit</th>
-          <th>Staff</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="salesTableBody"></tbody>
-    </table>
-  </main>
+      <!-- FORM INPUT SALES -->
+      <section class="card">
+        <h2>Tambah Data Penjualan</h2>
+        <form id="salesForm" class="form-grid" data-endpoint="/api/sales">
+          <div class="form-row">
+            <label>Tanggal Transaksi</label>
+            <input type="date" name="transaction_date" required>
+          </div>
+          <div class="form-row">
+            <label>Nomor Invoice</label>
+            <input type="text" name="invoice_number" required>
+          </div>
+          <div class="form-row">
+            <label>Nama Customer</label>
+            <input type="text" name="customer_name" required>
+          </div>
+          <div class="form-row">
+            <label>Kode Tour</label>
+            <input type="text" name="tour_code">
+          </div>
+          <div class="form-row">
+            <label>Jumlah Penjualan (Rp)</label>
+            <input type="number" name="sales_amount" step="0.01" required>
+          </div>
+          <div class="form-row">
+            <label>Profit (Rp)</label>
+            <input type="number" name="profit_amount" step="0.01" required>
+          </div>
+          <div class="form-row">
+            <label>Nama Staff</label>
+            <input type="text" name="staff_name" required>
+          </div>
+
+          <div class="form-row full-row form-actions">
+            <button type="reset" class="btn secondary">Reset</button>
+            <button type="submit" class="btn primary">Simpan</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- TABEL SALES -->
+      <section class="card">
+        <h2>Data Penjualan</h2>
+        <div class="form-actions">
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+        <table class="table" id="salesTable">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Invoice</th>
+              <th>Customer</th>
+              <th>Tour</th>
+              <th>Sales (Rp)</th>
+              <th>Profit (Rp)</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="./js/ui.js"></script>
+  <script>
+    const toastWrap = document.getElementById('toastWrap');
+    const tableBody = document.querySelector("#salesTable tbody");
+    const token = localStorage.getItem('token');
+
+    function toast(msg, type='info', t=3200){
+      const el=document.createElement('div'); el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
+      el.textContent=msg; toastWrap.appendChild(el); setTimeout(()=>el.remove(),t);
+    }
+
+    async function loadSales(){
+      try{
+        const res = await fetch('/api/sales',{headers:{'Authorization':'Bearer '+token}});
+        const data = await res.json();
+        tableBody.innerHTML='';
+        data.forEach(s=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${s.transaction_date||''}</td><td>${s.invoice_number||''}</td>
+          <td>${s.customer_name||''}</td><td>${s.tour_code||''}</td>
+          <td>${s.sales_amount||0}</td><td>${s.profit_amount||0}</td><td>${s.staff_name||''}</td>`;
+          tableBody.appendChild(tr);
+        });
+      }catch(e){console.warn(e);}
+    }
+
+    document.getElementById("salesForm").addEventListener("submit",async e=>{
+      e.preventDefault();
+      const form=e.target;const fd=new FormData(form);const obj={};
+      fd.forEach((v,k)=>obj[k]=v);
+      try{
+        const res=await fetch(form.dataset.endpoint,{
+          method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify(obj)
+        });
+        const data=await res.json();
+        if(!res.ok)throw new Error(data.message||'Gagal');
+        toast('Data berhasil disimpan','success');
+        form.reset();
+        loadSales();
+      }catch(err){toast(err.message,'error');}
+    });
+
+    document.getElementById("exportCSV").addEventListener("click",()=>{
+      const rows=[["Tanggal","Invoice","Customer","Tour","Sales","Profit","Staff"]];
+      document.querySelectorAll("#salesTable tbody tr").forEach(tr=>{
+        const row=Array.from(tr.children).map(td=>td.textContent);rows.push(row);
+      });
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download="sales_report.csv";a.click();
+    });
+
+    loadSales();
+  </script>
 </body>
 </html>
