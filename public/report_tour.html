@@ -2,135 +2,167 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Report Tour | Travel Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tour Report | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css">
-  <script defer src="./js/ui.js"></script>
-  <script defer src="./js/report_tour.js"></script>
 </head>
-
-<!-- ===================================================== -->
-<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
-<!-- ===================================================== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>TravelDashboard</h2>
-    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
-  </div>
-
-  <nav>
-    <ul>
-      <li>
-        <a href="dashboard.html">
-          <span>🏠</span>
-          <span>Dashboard</span>
-        </a>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>📊</span>
-          <span>Reports</span>
-        </a>
-        <ul>
-          <li><a href="report_tour.html">Tour Report</a></li>
-          <li><a href="report_sales.html">Sales Report</a></li>
-          <li><a href="report_document.html">Document Report</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>⚙️</span>
-          <span>Management</span>
-        </a>
-        <ul>
-          <li><a href="user-management.html">User Management</a></li>
-          <li><a href="region_management.html">Region Management</a></li>
-          <li><a href="target_management.html">Target Management</a></li>
-          <li><a href="tour_form.html">Tour Management</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>💼</span>
-          <span>Executive</span>
-        </a>
-        <ul>
-          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-          <li><a href="audit_log.html">Audit Log</a></li>
-        </ul>
-      </li>
-
-      <li>
-        <a href="profile.html">
-          <span>👤</span>
-          <span>Profile</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="logout.html">
-          <span>🚪</span>
-          <span>Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="theme-switch">
-    <label>
-      <input type="checkbox" id="themeSwitch" />
-      🌙 Dark Mode
-    </label>
-  </div>
-</aside>
-  
-  <main>
-    <header>
-      <h1>✈️ Laporan Tour</h1>
-      <div class="theme-switch">
-        <label><input type="checkbox" id="themeSwitch"> 🌙 Mode</label>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
       </div>
-    </header>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li class="has-children expanded">
+            <a href="#">Reports</a>
+            <ul>
+              <li><a href="report_tour.html" class="active">Tour Report</a></li>
+              <li><a href="report_sales.html">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
+            </ul>
+          </li>
+          <li class="has-children">
+            <a href="#">Management</a>
+            <ul>
+              <li><a href="user-management.html">User Management</a></li>
+              <li><a href="region_management.html">Region Management</a></li>
+              <li><a href="target_management.html">Target Management</a></li>
+              <li><a href="tour_form.html">Tour Management</a></li>
+            </ul>
+          </li>
+          <li class="has-children">
+            <a href="#">Executive</a>
+            <ul>
+              <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+              <li><a href="audit_log.html">Audit Log</a></li>
+            </ul>
+          </li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-    <form id="tourForm">
-      <input type="date" id="registrationDate" name="registrationDate">
-      <input type="text" id="leadPassenger" placeholder="Nama Lead Passenger">
-      <input type="text" id="allPassengers" placeholder="Nama Semua Penumpang">
-      <input type="text" id="tourCode" placeholder="Kode Tour">
-      <select id="region" name="region"></select>
-      <input type="date" id="departureDate" placeholder="Tanggal Berangkat">
-      <input type="text" id="bookingCode" placeholder="Kode Booking">
-      <input type="number" id="tourPrice" placeholder="Harga Tour">
-      <input type="text" id="discountRemarks" placeholder="Diskon / Catatan">
-      <input type="text" id="paymentProof" placeholder="Bukti Pembayaran">
-      <input type="date" id="documentReceived" placeholder="Tanggal Terima Dokumen">
-      <input type="date" id="visaProcessStart" placeholder="Mulai Proses Visa">
-      <input type="date" id="visaProcessEnd" placeholder="Selesai Proses Visa">
-      <textarea id="documentRemarks" placeholder="Catatan Dokumen"></textarea>
-      <select id="staff_name" name="staff_name"></select>
-      <input type="number" id="salesAmount" placeholder="Total Sales">
-      <input type="number" id="profitAmount" placeholder="Total Profit">
-      <select id="departureStatus">
-        <option value="PENDING">PENDING</option>
-        <option value="DEPARTED">DEPARTED</option>
-        <option value="RETURNED">RETURNED</option>
-      </select>
-      <button type="submit">Tambah Tour</button>
-    </form>
-    <p id="tourMsg"></p>
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Tour Report</h1>
+        </div>
+      </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>#</th><th>Lead Passenger</th><th>Region</th><th>Harga</th>
-          <th>Sales</th><th>Profit</th><th>Status</th><th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="tourTableBody"></tbody>
-    </table>
-  </main>
+      <section class="card">
+        <h2>Tambah Data Tour</h2>
+        <form id="tourForm" class="form-grid" data-endpoint="/api/tours">
+          <div class="form-row"><label>Tanggal Registrasi</label><input type="date" name="registration_date" required></div>
+          <div class="form-row"><label>Lead Passenger</label><input type="text" name="lead_passenger" required></div>
+          <div class="form-row"><label>All Passengers</label><input type="text" name="all_passengers"></div>
+          <div class="form-row"><label>Tour Code</label><input type="text" name="tour_code"></div>
+          <div class="form-row"><label>Region</label><select name="region_id" id="regionSelect"></select></div>
+          <div class="form-row"><label>Departure Date</label><input type="date" name="departure_date"></div>
+          <div class="form-row"><label>Booking Code</label><input type="text" name="booking_code"></div>
+          <div class="form-row"><label>Tour Price</label><input type="number" name="tour_price" step="0.01"></div>
+          <div class="form-row"><label>Sales Amount</label><input type="number" name="sales_amount" step="0.01"></div>
+          <div class="form-row"><label>Profit Amount</label><input type="number" name="profit_amount" step="0.01"></div>
+          <div class="form-row"><label>Staff</label><input type="text" name="staff_name"></div>
+
+          <div class="form-row full-row form-actions">
+            <button type="reset" class="btn secondary">Reset</button>
+            <button type="submit" class="btn primary">Simpan</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Data Tour</h2>
+        <div class="form-actions">
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+        <table class="table" id="tourTable">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Lead Passenger</th>
+              <th>Tour Code</th>
+              <th>Region</th>
+              <th>Sales</th>
+              <th>Profit</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="./js/ui.js"></script>
+  <script>
+    const toastWrap = document.getElementById('toastWrap');
+    const token = localStorage.getItem('token');
+    const tableBody = document.querySelector("#tourTable tbody");
+
+    function toast(msg,type='info',t=3200){
+      const el=document.createElement('div');el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
+      el.textContent=msg;toastWrap.appendChild(el);setTimeout(()=>el.remove(),t);
+    }
+
+    async function loadRegions(){
+      try{
+        const res=await fetch('/api/regions',{headers:{'Authorization':'Bearer '+token}});
+        const data=await res.json();const sel=document.getElementById('regionSelect');
+        sel.innerHTML='<option value="">-- pilih region --</option>';
+        data.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.region_name||r.name;sel.appendChild(o);});
+      }catch(e){}
+    }
+
+    async function loadTours(){
+      try{
+        const res=await fetch('/api/tours',{headers:{'Authorization':'Bearer '+token}});
+        const data=await res.json();
+        tableBody.innerHTML='';
+        data.forEach(t=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`<td>${t.registration_date||''}</td><td>${t.lead_passenger||''}</td>
+          <td>${t.tour_code||''}</td><td>${t.region_name||''}</td><td>${t.sales_amount||0}</td><td>${t.profit_amount||0}</td><td>${t.staff_name||''}</td>`;
+          tableBody.appendChild(tr);
+        });
+      }catch(e){}
+    }
+
+    document.getElementById("tourForm").addEventListener("submit",async e=>{
+      e.preventDefault();
+      const form=e.target;const fd=new FormData(form);const obj={};fd.forEach((v,k)=>obj[k]=v);
+      try{
+        const res=await fetch(form.dataset.endpoint,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(obj)});
+        const data=await res.json();
+        if(!res.ok)throw new Error(data.message||'Gagal');
+        toast('Data tour disimpan','success');
+        form.reset();loadTours();
+      }catch(err){toast(err.message,'error');}
+    });
+
+    document.getElementById("exportCSV").addEventListener("click",()=>{
+      const rows=[["Tanggal","Lead","Tour Code","Region","Sales","Profit","Staff"]];
+      document.querySelectorAll("#tourTable tbody tr").forEach(tr=>{
+        const row=Array.from(tr.children).map(td=>td.textContent);rows.push(row);
+      });
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const blob=new Blob([csv],{type:'text/csv'});const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download="tour_report.csv";a.click();
+    });
+
+    loadRegions();loadTours();
+  </script>
 </body>
 </html>
