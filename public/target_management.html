@@ -1,278 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Target Management | Travel Dashboard Enterprise</title>
-
-  <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/sidebar.css" />
-
-  <style>
-    :root {
-      --bg-color: #f9fafb;
-      --card-bg: #ffffff;
-      --text-color: #111827;
-      --header-bg: #1f2937;
-      --shadow-color: rgba(0, 0, 0, 0.05);
-    }
-
-    [data-theme="dark"] {
-      --bg-color: #111827;
-      --card-bg: #1f2937;
-      --text-color: #f9fafb;
-      --header-bg: #0f172a;
-      --shadow-color: rgba(255, 255, 255, 0.08);
-    }
-
-    body {
-      font-family: "Inter", sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    header {
-      background: var(--header-bg);
-      color: white;
-      padding: 14px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .container {
-      max-width: 1100px;
-      margin: 30px auto;
-      padding: 0 16px;
-    }
-
-    .card {
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px var(--shadow-color);
-      margin-bottom: 20px;
-    }
-
-    input, select, button {
-      padding: 6px 10px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      font-size: 14px;
-    }
-
-    button.primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button.primary:hover { background: #1d4ed8; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      text-align: left;
-    }
-
-    tr:hover { background: rgba(37,99,235,0.05); }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
-    }
-  </style>
+  <title>Target Management | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <script defer src="./js/ui.js"></script>
+  <script defer src="./js/target_management.js"></script>
 </head>
 
-<body>
-  <header>
-    <h1>🎯 Target Management</h1>
-    <div>
-      <button id="toggleThemeBtn" class="primary">🌙</button>
-      <button id="logoutBtn" class="primary" style="background:#dc2626;">Logout</button>
+<body class="light-mode">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>Travel Dashboard</h2>
+      <button id="toggleSidebar">☰</button>
     </div>
-  </header>
+    <nav>
+      <ul>
+        <li><a href="dashboard.html">🏠 Dashboard</a></li>
+        <li><a href="report_tour.html">✈️ Report Tour</a></li>
+        <li><a href="report_sales.html">💰 Report Sales</a></li>
+        <li><a href="report_document.html">📑 Report Document</a></li>
+        <li><a href="region_management.html">🌍 Region Management</a></li>
+        <li><a href="target_management.html" class="active">🎯 Target Management</a></li>
+        <li><a href="executive-dashboard.html">👔 Executive Dashboard</a></li>
+        <li><a href="user-management.html">👥 User Management</a></li>
+        <li><a href="profile.html">👤 Profile</a></li>
+        <li><a href="logout.html">🚪 Logout</a></li>
+      </ul>
+    </nav>
+  </aside>
 
-  <div class="main-content">
-    <main class="container">
-      <section class="card">
-        <h2>🧾 Input Target Bulanan</h2>
-        <form id="targetForm">
-          <div class="grid-3">
-            <div>
-              <label>Staff</label>
-              <input type="text" id="staff_name" placeholder="Nama staff" required>
-            </div>
-            <div>
-              <label>Bulan</label>
-              <select id="month" required></select>
-            </div>
-            <div>
-              <label>Tahun</label>
-              <select id="year" required></select>
-            </div>
-            <div>
-              <label>Target Sales</label>
-              <input type="number" id="target_sales" step="0.01" placeholder="0">
-            </div>
-            <div>
-              <label>Target Profit</label>
-              <input type="number" id="target_profit" step="0.01" placeholder="0">
-            </div>
-            <div>
-              <label>Target Tours</label>
-              <input type="number" id="target_tours" placeholder="0">
-            </div>
-          </div>
-          <button type="submit" class="primary" style="margin-top:12px;">💾 Simpan Target</button>
-        </form>
-      </section>
+  <!-- Main -->
+  <main>
+    <header>
+      <h1>🎯 Target Penjualan & Profit</h1>
+      <div class="theme-switch">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+      </div>
+    </header>
 
-      <section class="card">
-        <h2>📊 Data Target Bulanan</h2>
-        <table id="targetTable">
-          <thead>
-            <tr>
-              <th>Staff</th>
-              <th>Bulan</th>
-              <th>Tahun</th>
-              <th>Sales</th>
-              <th>Profit</th>
-              <th>Tours</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
-    </main>
-  </div>
+    <!-- Form Target -->
+    <form id="targetForm">
+      <select id="staff_name" name="staff_name"></select>
+      <input type="number" id="month" name="month" min="1" max="12" placeholder="Bulan (1-12)" />
+      <input type="number" id="year" name="year" placeholder="Tahun" />
+      <input type="number" id="target_sales" name="target_sales" placeholder="Target Sales (angka)" />
+      <input type="number" id="target_profit" name="target_profit" placeholder="Target Profit (angka)" />
+      <button type="submit">Tambah Target</button>
+    </form>
+    <p id="targetMsg"></p>
 
-  <!-- Scripts -->
-  <script src="/js/sidebar.js"></script>
-  <script src="/js/theme.js" type="module"></script>
-
-  <script>
-  const token = localStorage.getItem("token") || "";
-
-  function api(path, method="GET", body){
-    return fetch(path, {
-      method,
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-      body: body ? JSON.stringify(body) : undefined
-    });
-  }
-
-  async function loadTargets(){
-    const res = await api("/api/targets");
-    if (!res.ok) return;
-    const data = await res.json();
-    const tbody = document.querySelector("#targetTable tbody");
-    tbody.innerHTML = "";
-    data.forEach(t=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${t.staff_name}</td>
-        <td>${t.month}</td>
-        <td>${t.year}</td>
-        <td>${t.target_sales}</td>
-        <td>${t.target_profit}</td>
-        <td>${t.target_tours}</td>
-        <td>
-          <button onclick="editTarget(${t.id}, '${t.staff_name}', ${t.month}, ${t.year}, ${t.target_sales}, ${t.target_profit}, ${t.target_tours})">✏️ Edit</button>
-          <button onclick="deleteTarget(${t.id})" style="color:#dc2626;">🗑️ Hapus</button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function fillMonthYearSelectors(){
-    const monthSel = document.getElementById("month");
-    const yearSel = document.getElementById("year");
-    for (let i=1;i<=12;i++) monthSel.appendChild(new Option(i,i));
-    const now = new Date();
-    for (let y=now.getFullYear()-2; y<=now.getFullYear()+1; y++) yearSel.appendChild(new Option(y,y));
-    monthSel.value = now.getMonth()+1;
-    yearSel.value = now.getFullYear();
-  }
-
-  async function saveTarget(e){
-    e.preventDefault();
-    const body = {
-      staff_name: document.getElementById("staff_name").value,
-      month: parseInt(document.getElementById("month").value),
-      year: parseInt(document.getElementById("year").value),
-      target_sales: parseFloat(document.getElementById("target_sales").value || 0),
-      target_profit: parseFloat(document.getElementById("target_profit").value || 0),
-      target_tours: parseInt(document.getElementById("target_tours").value || 0)
-    };
-    const res = await api("/api/targets", "POST", body);
-    if (res.ok){
-      alert("Target berhasil disimpan!");
-      loadTargets();
-      document.getElementById("targetForm").reset();
-    } else alert("Gagal menyimpan target.");
-  }
-
-  async function deleteTarget(id){
-    if (!confirm("Hapus target ini?")) return;
-    const res = await api(`/api/targets/${id}`, "DELETE");
-    if (res.ok){
-      alert("Target dihapus.");
-      loadTargets();
-    } else alert("Gagal menghapus target.");
-  }
-
-  function editTarget(id, staff, month, year, sales, profit, tours){
-    document.getElementById("staff_name").value = staff;
-    document.getElementById("month").value = month;
-    document.getElementById("year").value = year;
-    document.getElementById("target_sales").value = sales;
-    document.getElementById("target_profit").value = profit;
-    document.getElementById("target_tours").value = tours;
-  }
-
-  document.getElementById("targetForm").addEventListener("submit", saveTarget);
-  document.getElementById("logoutBtn").onclick = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login.html";
-  };
-
-  document.addEventListener("DOMContentLoaded", ()=>{
-    fillMonthYearSelectors();
-    loadTargets();
-  });
-  <script>
-  // Sidebar collapse toggle
-  const sidebar = document.getElementById("sidebar");
-  const sidebarToggle = document.getElementById("sidebarToggle");
-  sidebarToggle?.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-  });
-
-  // Theme toggle
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle?.addEventListener("click", () => {
-    document.body.classList.toggle("theme-dark");
-  });
-
-  // Expand/collapse submenu
-  document.querySelectorAll(".expand-toggle").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const submenu = btn.nextElementSibling;
-      submenu.classList.toggle("open");
-    });
-  });
-</script>
+    <!-- Tabel Target -->
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Staff</th>
+          <th>Bulan</th>
+          <th>Tahun</th>
+          <th>Target Sales</th>
+          <th>Target Profit</th>
+          <th>Dibuat</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="targetTableBody"></tbody>
+    </table>
+  </main>
 </body>
 </html>
