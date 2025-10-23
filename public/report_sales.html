@@ -6,245 +6,71 @@
   <title>Report Sales | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
   <script defer src="./js/ui.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script defer src="./js/report_sales.js"></script>
 </head>
 
 <body class="light-mode">
-  <!-- ===================================================== -->
-  <!-- 🧭 SIDEBAR -->
-  <!-- ===================================================== -->
-  <aside id="sidebar" class="sidebar expanded">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
     <div class="sidebar-header">
       <h2>Travel Dashboard</h2>
       <button id="toggleSidebar">☰</button>
     </div>
-    <ul class="sidebar-menu">
-      <li><a href="dashboard.html">🏠 Dashboard</a></li>
-      <li class="active"><a href="report_sales.html">💹 Laporan Sales</a></li>
-      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
-      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
-      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
-      <li><a href="region_management.html">🌍 Region Management</a></li>
-      <li><a href="user-management.html">👥 User Management</a></li>
-      <li><a href="profile.html">👤 Profil</a></li>
-      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
-    </ul>
-    <div class="theme-toggle">
-      <span>🌞</span>
-      <label class="switch">
-        <input type="checkbox" id="themeSwitch" />
-        <span class="slider round"></span>
-      </label>
-      <span>🌙</span>
-    </div>
+    <nav>
+      <ul>
+        <li><a href="dashboard.html">🏠 Dashboard</a></li>
+        <li><a href="report_tour.html">✈️ Report Tour</a></li>
+        <li><a href="report_sales.html" class="active">💰 Report Sales</a></li>
+        <li><a href="report_document.html">📑 Report Document</a></li>
+        <li><a href="region_management.html">🌍 Region Management</a></li>
+        <li><a href="target_management.html">🎯 Target Management</a></li>
+        <li><a href="executive-dashboard.html">👔 Executive Dashboard</a></li>
+        <li><a href="user-management.html">👥 User Management</a></li>
+        <li><a href="profile.html">👤 Profile</a></li>
+        <li><a href="logout.html">🚪 Logout</a></li>
+      </ul>
+    </nav>
   </aside>
 
-  <!-- ===================================================== -->
-  <!-- 📋 MAIN CONTENT -->
-  <!-- ===================================================== -->
-  <main id="main-content">
+  <!-- Main -->
+  <main>
     <header>
-      <h1>💹 Laporan Sales</h1>
-      <p>Kelola transaksi penjualan, target bulanan, dan laporan profit per staff.</p>
+      <h1>💰 Laporan Penjualan</h1>
+      <div class="theme-switch">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+      </div>
     </header>
 
-    <!-- 🔹 FILTER -->
-    <section class="filter-section">
-      <div class="filter-grid">
-        <input type="month" id="filterMonth" />
-        <input type="text" id="filterStaff" placeholder="Cari nama staff..." />
-        <button id="filterBtn">🔍 Filter</button>
-        <button id="exportBtn">📦 Export Excel</button>
-      </div>
-    </section>
+    <!-- Form -->
+    <form id="salesForm">
+      <input type="date" id="transaction_date" name="transaction_date" />
+      <input id="invoice_number" name="invoice_number" placeholder="Nomor Invoice" />
+      <input id="customer_name" name="customer_name" placeholder="Nama Customer" />
+      <input id="sales_category" name="sales_category" placeholder="Kategori" />
+      <input id="sales_amount" name="sales_amount" type="number" placeholder="Total Penjualan" />
+      <input id="profit_amount" name="profit_amount" type="number" placeholder="Profit" />
+      <select id="staff_name" name="staff_name"></select>
+      <button type="submit">Tambah Data Sales</button>
+    </form>
+    <p id="salesMsg"></p>
 
-    <!-- 🔹 FORM INPUT SALES -->
-    <section class="form-section">
-      <h3 id="formTitle">Tambah Data Sales</h3>
-      <form id="salesForm">
-        <div class="form-grid">
-          <div><label>Invoice Number</label><input type="text" id="invoiceNumber" placeholder="Nomor invoice" required /></div>
-          <div><label>Kategori</label><input type="text" id="category" placeholder="Kategori (misal: Tour, Hotel, Tiket)" /></div>
-          <div><label>Tanggal Transaksi</label><input type="date" id="transactionDate" required /></div>
-          <div><label>Sales Amount</label><input type="number" id="salesAmount" placeholder="Jumlah penjualan" /></div>
-          <div><label>Profit Amount</label><input type="number" id="profitAmount" placeholder="Jumlah profit" /></div>
-          <div><label>Nama Staff</label><input type="text" id="staffName" disabled /></div>
-        </div>
-        <div class="form-buttons">
-          <button type="submit" id="saveBtn">💾 Simpan</button>
-          <button type="button" id="resetBtn" class="secondary">🔄 Reset</button>
-        </div>
-        <p id="formMsg" class="message"></p>
-      </form>
-    </section>
-
-    <!-- 🔹 FORM TARGET SALES -->
-    <section class="form-section">
-      <h3>🎯 Target Bulanan Staff</h3>
-      <form id="targetForm">
-        <div class="form-grid">
-          <div><label>Bulan</label><input type="month" id="targetMonth" required /></div>
-          <div><label>Nama Staff</label><input type="text" id="targetStaff" placeholder="Nama staff" required /></div>
-          <div><label>Target Sales</label><input type="number" id="targetSales" placeholder="Target sales (angka tanpa format)" /></div>
-          <div><label>Target Profit</label><input type="number" id="targetProfit" placeholder="Target profit (angka tanpa format)" /></div>
-        </div>
-        <div class="form-buttons">
-          <button type="submit" id="targetSaveBtn">💾 Simpan Target</button>
-        </div>
-        <p id="targetMsg" class="message"></p>
-      </form>
-    </section>
-
-    <!-- 🔹 TABEL DATA -->
-    <section class="table-section">
-      <h3>Daftar Transaksi Sales</h3>
-      <table id="salesTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Invoice</th>
-            <th>Tanggal</th>
-            <th>Kategori</th>
-            <th>Sales</th>
-            <th>Profit</th>
-            <th>Staff</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
-
-  <!-- ===================================================== -->
-  <!-- ⚙️ SCRIPT -->
-  <!-- ===================================================== -->
-  <script>
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    const staffName = localStorage.getItem("staff_name");
-    if (!token) window.location.href = "login.html";
-
-    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
-    document.getElementById("staffName").value = staffName;
-
-    const salesTable = document.querySelector("#salesTable tbody");
-    const salesForm = document.getElementById("salesForm");
-    const formMsg = document.getElementById("formMsg");
-    const filterBtn = document.getElementById("filterBtn");
-    const exportBtn = document.getElementById("exportBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const targetForm = document.getElementById("targetForm");
-    const targetMsg = document.getElementById("targetMsg");
-    let editId = null;
-
-    // =====================================================
-    // 🧾 LOAD SALES
-    // =====================================================
-    async function loadSales(filters = {}) {
-      const params = new URLSearchParams(filters).toString();
-      const res = await fetch("/api/report/sales/detail?" + params, { headers });
-      const data = await res.json();
-
-      salesTable.innerHTML = data.map(s => `
+    <!-- Tabel -->
+    <table>
+      <thead>
         <tr>
-          <td>${s.id}</td>
-          <td>${s.invoice_number}</td>
-          <td>${new Date(s.transaction_date).toLocaleDateString("id-ID")}</td>
-          <td>${s.category}</td>
-          <td>${s.sales_amount.toLocaleString("id-ID")}</td>
-          <td>${s.profit_amount.toLocaleString("id-ID")}</td>
-          <td>${s.staff_name}</td>
-          <td>
-            <button onclick="editSales(${s.id})">✏️</button>
-            ${role === "admin" ? `<button class="danger" onclick="deleteSales(${s.id})">🗑️</button>` : ""}
-          </td>
+          <th>#</th>
+          <th>Tanggal</th>
+          <th>Invoice</th>
+          <th>Customer</th>
+          <th>Kategori</th>
+          <th>Sales</th>
+          <th>Profit</th>
+          <th>Staff</th>
+          <th>Aksi</th>
         </tr>
-      `).join("");
-    }
-
-    // =====================================================
-    // 💾 SAVE / UPDATE SALES
-    // =====================================================
-    salesForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const data = {
-        invoice_number: invoiceNumber.value,
-        category: category.value,
-        transaction_date: transactionDate.value,
-        sales_amount: parseFloat(salesAmount.value) || 0,
-        profit_amount: parseFloat(profitAmount.value) || 0,
-        staff_name: staffName
-      };
-
-      const method = editId ? "PUT" : "POST";
-      const url = editId ? `/api/sales/${editId}` : "/api/sales";
-      const res = await fetch(url, { method, headers, body: JSON.stringify(data) });
-      const result = await res.json();
-
-      formMsg.textContent = result.message;
-      formMsg.style.color = res.ok ? "green" : "red";
-      if (res.ok) {
-        salesForm.reset();
-        editId = null;
-        loadSales();
-      }
-    });
-
-    // =====================================================
-    // 🎯 SAVE TARGET
-    // =====================================================
-    targetForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const data = {
-        month: targetMonth.value,
-        staff_name: targetStaff.value,
-        target_sales: targetSales.value,
-        target_profit: targetProfit.value
-      };
-
-      const res = await fetch("/api/targets", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(data),
-      });
-      const result = await res.json();
-
-      targetMsg.textContent = result.message;
-      targetMsg.style.color = res.ok ? "green" : "red";
-      if (res.ok) targetForm.reset();
-    });
-
-    // =====================================================
-    // 🗑️ DELETE SALES
-    // =====================================================
-    window.deleteSales = async function(id) {
-      if (!confirm("Yakin ingin menghapus data ini?")) return;
-      await fetch(`/api/sales/${id}`, { method: "DELETE", headers });
-      loadSales();
-    };
-
-    // =====================================================
-    // 🔍 FILTER
-    // =====================================================
-    filterBtn.addEventListener("click", () => {
-      loadSales({
-        month: filterMonth.value,
-        staff: filterStaff.value,
-      });
-    });
-
-    // =====================================================
-    // 📦 EXPORT TO EXCEL
-    // =====================================================
-    exportBtn.addEventListener("click", () => {
-      const table = document.getElementById("salesTable");
-      const wb = XLSX.utils.table_to_book(table, { sheet: "Sales" });
-      XLSX.writeFile(wb, "report_sales.xlsx");
-    });
-
-    // 🚀 INIT
-    loadSales();
-  </script>
+      </thead>
+      <tbody id="salesTableBody"></tbody>
+    </table>
+  </main>
 </body>
 </html>
