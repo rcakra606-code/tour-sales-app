@@ -1,61 +1,99 @@
 // ==========================================================
-// 👤 Profile Page Logic — v5.3.6
+// 👤 Profile Page — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
-document.addEventListener("DOMContentLoaded", () => {
+
+document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  if (!token) return (window.location.href = "login.html");
 
-  const profileForm = document.getElementById("profileForm");
   const usernameField = document.getElementById("username");
-  const staffNameField = document.getElementById("staffName");
+  const staffField = document.getElementById("staff_name");
   const roleField = document.getElementById("role");
-  const userIdField = document.getElementById("userId");
-  const createdAtField = document.getElementById("createdAt");
+  const profileMsg = document.getElementById("profileMsg");
+  const passwordMsg = document.getElementById("passwordMsg");
 
+  // ===== GET PROFILE INFO =====
   async function loadProfile() {
     try {
-      const res = await fetch("/api/profile", { headers });
+      const res = await fetch("/api/profile", {
+        headers: { Authorization: "Bearer " + token }
+      });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal memuat profil");
+      if (!res.ok) throw new Error(data.message);
 
-      usernameField.value = data.username || "-";
-      staffNameField.value = data.staff_name || "";
-      roleField.value = data.role || "-";
-      userIdField.textContent = data.id || "-";
-      createdAtField.textContent = data.created_at
-        ? new Date(data.created_at).toLocaleString("id-ID")
-        : "-";
-
-      document.getElementById("activeUser").textContent =
-        `${data.staff_name || data.username} (${data.role})`;
+      usernameField.value = data.username;
+      staffField.value = data.staff_name || "";
+      roleField.value = data.role;
     } catch (err) {
-      console.error("❌ loadProfile error:", err);
-      alert("Gagal memuat profil");
+      console.error("❌ Load profile error:", err);
+      profileMsg.textContent = "Gagal memuat data profil.";
     }
   }
 
-  profileForm.addEventListener("submit", async (e) => {
+  await loadProfile();
+
+  // ===== UPDATE PROFILE =====
+  document.getElementById("profileForm").addEventListener("submit", async (e) => {
     e.preventDefault();
+    profileMsg.textContent = "";
 
-    const staff_name = staffNameField.value.trim();
-    const newPassword = document.getElementById("newPassword").value.trim();
-
-    if (!staff_name) return alert("Nama staff wajib diisi");
+    const staff_name = staffField.value.trim();
+    if (!staff_name) return (profileMsg.textContent = "Nama staff wajib diisi.");
 
     try {
       const res = await fetch("/api/profile", {
         method: "PUT",
-        headers,
-        body: JSON.stringify({ staff_name, newPassword }),
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ staff_name })
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message);
-      alert("✅ Profil berhasil diperbarui");
-      loadProfile();
+
+      const data = await res.json();
+      profileMsg.textContent = data.message || (res.ok ? "Profil berhasil diperbarui." : "Gagal memperbarui profil.");
+
+      if (res.ok) {
+        localStorage.setItem("staff_name", staff_name);
+      }
     } catch (err) {
-      alert("❌ Gagal memperbarui profil: " + err.message);
+      console.error("❌ Update profile error:", err);
+      profileMsg.textContent = "Terjadi kesalahan saat memperbarui profil.";
     }
   });
 
-  loadProfile();
+  // ===== UPDATE PASSWORD =====
+  document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    passwordMsg.textContent = "";
+
+    const old_password = document.getElementById("old_password").value.trim();
+    const new_password = document.getElementById("new_password").value.trim();
+
+    if (!old_password || !new_password)
+      return (passwordMsg.textContent = "Lengkapi kedua kolom password.");
+
+    try {
+      const res = await fetch("/api/profile/password", {
+        method: "PUT",
+        headers: {
+          "Authorization": "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ old_password, new_password })
+      });
+
+      const data = await res.json();
+      passwordMsg.textContent = data.message || (res.ok ? "Password berhasil diubah." : "Gagal mengubah password.");
+
+      if (res.ok) {
+        document.getElementById("old_password").value = "";
+        document.getElementById("new_password").value = "";
+      }
+    } catch (err) {
+      console.error("❌ Update password error:", err);
+      passwordMsg.textContent = "Terjadi kesalahan saat mengubah password.";
+    }
+  });
 });
