@@ -2,7 +2,7 @@
 // 🎯 Target Routes — Travel Dashboard Enterprise v5.4.6
 // ==========================================================
 import express from "express";
-import { authenticate, authorize } from "../middleware/authMiddleware.js";
+import { authenticate, authorizeAdmin } from "../middleware/authMiddleware.js";
 import {
   getTargets,
   createTarget,
