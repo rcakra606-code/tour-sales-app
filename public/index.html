@@ -5,23 +5,102 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Travel Dashboard Enterprise</title>
   <link rel="stylesheet" href="./css/style.css" />
-  <script type="module" src="./js/ui.js"></script>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      height: 100vh;
+      background: linear-gradient(135deg, #2563eb, #1e3a8a);
+      color: #fff;
+      text-align: center;
+      font-family: "Poppins", sans-serif;
+      overflow: hidden;
+      transition: background 0.4s;
+    }
+
+    .welcome-container {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #2563eb;
+    }
+
+    footer {
+      position: absolute;
+      bottom: 20px;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    body.dark-mode {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #e2e8f0;
+    }
+  </style>
 </head>
-<body class="light-mode">
-  <div class="loader">
-    <h1>🚀 Memuat Sistem Travel Dashboard...</h1>
+
+<body>
+  <div class="welcome-container">
+    <h1>🌍 Travel Dashboard Enterprise</h1>
+    <p>Platform manajemen tour & sales profesional.</p>
+    <button id="enterBtn">Masuk ke Aplikasi</button>
   </div>
 
-  <script>
-    // Saat index diakses, redirect otomatis
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+  <footer>© 2025 Travel Dashboard Enterprise v5.4.9</footer>
 
-    if (!token) {
-      window.location.href = "login.html";
-    } else {
-      window.location.href = "dashboard.html";
-    }
+  <script>
+    // Auto redirect jika sudah login
+    document.addEventListener("DOMContentLoaded", () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        window.location.href = "dashboard.html";
+      }
+    });
+
+    // Tombol manual masuk
+    const enterBtn = document.getElementById("enterBtn");
+    enterBtn.addEventListener("click", () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        window.location.href = "dashboard.html";
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    // Theme restore
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") document.body.classList.add("dark-mode");
   </script>
 </body>
 </html>
