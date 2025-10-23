@@ -1,20 +1,11 @@
-// ==========================================================
-// 💹 Report Sales Routes — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
 import express from "express";
+import { getAllSales, addSales, deleteSales } from "../controllers/reportSalesController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
-import {
-  getSalesSummary,
-  getSalesByStaff,
-  getSalesTargetComparison,
-  getSalesDetail,
-} from "../controllers/reportSalesController.js";
 
 const router = express.Router();
 
-router.get("/summary", authenticate, getSalesSummary);
-router.get("/staff", authenticate, getSalesByStaff);
-router.get("/target", authenticate, getSalesTargetComparison);
-router.get("/detail", authenticate, getSalesDetail);
+router.get("/", authenticate, getAllSales);
+router.post("/", authenticate, addSales);
+router.delete("/:id", authenticate, deleteSales);
 
 export default router;
