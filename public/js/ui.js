@@ -1,47 +1,43 @@
+// ==========================================================
+// 🧭 UI Handler — Sidebar, Theme Mode, JWT Check
+// ==========================================================
+
 document.addEventListener("DOMContentLoaded", () => {
   const body = document.body;
   const sidebar = document.getElementById("sidebar");
   const toggleSidebar = document.getElementById("toggleSidebar");
   const themeSwitch = document.getElementById("themeSwitch");
 
-  // ===== SIDEBAR =====
-  if (sidebar && toggleSidebar) {
+  // === SIDEBAR TOGGLE ===
+  if (toggleSidebar) {
     toggleSidebar.addEventListener("click", () => {
       sidebar.classList.toggle("collapsed");
-      localStorage.setItem("sidebar-collapsed", sidebar.classList.contains("collapsed"));
     });
-
-    const sidebarState = localStorage.getItem("sidebar-collapsed");
-    if (sidebarState === "true") sidebar.classList.add("collapsed");
   }
 
-  // ===== THEME MODE =====
-  function setTheme(mode) {
-    if (mode === "dark") {
-      body.classList.add("dark-mode");
-      body.classList.remove("light-mode");
-      if (themeSwitch) themeSwitch.checked = true;
-    } else {
-      body.classList.add("light-mode");
-      body.classList.remove("dark-mode");
-      if (themeSwitch) themeSwitch.checked = false;
-    }
-    localStorage.setItem("theme", mode);
-  }
-
+  // === THEME SWITCH ===
   if (themeSwitch) {
-    themeSwitch.addEventListener("change", e =>
-      setTheme(e.target.checked ? "dark" : "light")
-    );
+    themeSwitch.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        body.classList.add("dark-mode");
+        localStorage.setItem("theme", "dark");
+      } else {
+        body.classList.remove("dark-mode");
+        localStorage.setItem("theme", "light");
+      }
+    });
   }
 
-  setTheme(localStorage.getItem("theme") || "light");
+  // === LOAD THEME STATE ===
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "dark") {
+    body.classList.add("dark-mode");
+    if (themeSwitch) themeSwitch.checked = true;
+  }
 
-  // ===== RESPONSIVE FIX =====
-  window.addEventListener("resize", () => {
-    if (!sidebar) return;
-    if (window.innerWidth < 900) sidebar.classList.add("collapsed");
-    else if (localStorage.getItem("sidebar-collapsed") === "false")
-      sidebar.classList.remove("collapsed");
-  });
+  // === JWT TOKEN VALIDATION ===
+  const token = localStorage.getItem("token");
+  if (!token && !window.location.href.includes("login.html")) {
+    window.location.href = "login.html";
+  }
 });
