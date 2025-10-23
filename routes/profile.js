@@ -1,12 +1,6 @@
-// ==========================================================
-// 👤 Profile Routes — v5.4.6
-// ==========================================================
 import express from "express";
+import { getProfile, updateProfile } from "../controllers/profileController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
-import {
-  getProfile,
-  updateProfile,
-} from "../controllers/profileController.js";
 
 const router = express.Router();
 
