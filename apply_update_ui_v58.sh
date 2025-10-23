@@ -798,4 +798,549 @@ cat > public/dashboard.html <<'HTML_EOF'
 </html>
 HTML_EOF
 
-# 
+# ============================
+# public/js/dashboard.js
+# ============================
+cat > public/js/dashboard.js <<'JS_EOF'
+(async () => {
+  const toastWrap = document.getElementById("toastWrap");
+  const toast = (msg, type = "info", t = 3000) => {
+    const el = document.createElement("div");
+    el.className = "toast " + (type === "success" ? "success" : type === "error" ? "error" : "info");
+    el.textContent = msg;
+    toastWrap.appendChild(el);
+    setTimeout(() => el.remove(), t);
+  };
+
+  const summaryWrap = document.getElementById("summaryCards");
+  const tableBody = document.querySelector("#recentTable tbody");
+  const userLabel = document.getElementById("currentUser");
+  let chart;
+
+  async function loadSummary() {
+    try {
+      const res = await secureFetch("/api/dashboard/summary");
+      if (!res.ok) throw new Error("Gagal memuat data summary");
+      const data = await res.json();
+
+      summaryWrap.innerHTML = `
+        <div class="card"><h3>Total Tour</h3><div>${data.total_tours || 0}</div></div>
+        <div class="card"><h3>Total Sales</h3><div>${data.total_sales || 0}</div></div>
+        <div class="card"><h3>Total Profit</h3><div>${data.total_profit || 0}</div></div>
+        <div class="card"><h3>Total Dokumen</h3><div>${data.total_documents || 0}</div></div>
+      `;
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function loadChart() {
+    try {
+      const res = await secureFetch("/api/dashboard/chart");
+      const data = await res.json();
+      const months = data.map((d) => d.month);
+      const sales = data.map((d) => d.sales);
+      const profit = data.map((d) => d.profit);
+      const ctx = document.getElementById("dashboardChart").getContext("2d");
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: months,
+          datasets: [
+            { label: "Sales", data: sales, borderWidth: 2, tension: 0.3 },
+            { label: "Profit", data: profit, borderWidth: 2, tension: 0.3 },
+          ],
+        },
+        options: { responsive: true, plugins: { legend: { position: "bottom" } } },
+      });
+    } catch {
+      toast("Gagal memuat grafik", "error");
+    }
+  }
+
+  async function loadRecent() {
+    try {
+      const res = await secureFetch("/api/dashboard/recent");
+      if (!res.ok) throw new Error("Gagal memuat aktivitas terbaru");
+      const data = await res.json();
+      tableBody.innerHTML = "";
+      data.forEach((a) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${a.date || "-"}</td>
+          <td>${a.category || "-"}</td>
+          <td>${a.description || "-"}</td>
+          <td>${a.staff_name || "-"}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function loadUser() {
+    try {
+      const res = await secureFetch("/api/profile");
+      if (res.ok) {
+        const user = await res.json();
+        userLabel.textContent = `👤 ${user.staff_name || user.username} (${user.role})`;
+      }
+    } catch {}
+  }
+
+  await Promise.all([loadSummary(), loadChart(), loadRecent(), loadUser()]);
+})();
+JS_EOF
+
+# ============================
+# public/report_sales.html
+# ============================
+cat > public/report_sales.html <<'HTML_EOF'
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sales Report | Travel Dashboard</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li class="has-children expanded">
+            <a href="#">Reports</a>
+            <ul>
+              <li><a href="report_tour.html">Tour Report</a></li>
+              <li><a href="report_sales.html" class="active">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
+            </ul>
+          </li>
+          <li class="has-children">
+            <a href="#">Management</a>
+            <ul>
+              <li><a href="user-management.html">User Management</a></li>
+              <li><a href="region_management.html">Region Management</a></li>
+              <li><a href="target_management.html">Target Management</a></li>
+            </ul>
+          </li>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
+
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Sales Report</h1>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>Tambah Data Sales</h2>
+        <form id="salesForm" class="form-grid" data-endpoint="/api/sales">
+          <div class="form-row">
+            <label>Tanggal Transaksi</label>
+            <input type="date" name="transaction_date" required />
+          </div>
+          <div class="form-row">
+            <label>Invoice</label>
+            <input type="text" name="invoice" placeholder="No. Invoice" required />
+          </div>
+          <div class="form-row">
+            <label>Nama Staff</label>
+            <select name="staff_name" id="staffDropdown" required>
+              <option value="">-- Pilih Staff --</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Total Sales (Rp)</label>
+            <input type="number" name="sales_amount" placeholder="0" required />
+          </div>
+          <div class="form-row">
+            <label>Total Profit (Rp)</label>
+            <input type="number" name="profit_amount" placeholder="0" required />
+          </div>
+          <div class="form-row full-row form-actions">
+            <button type="reset" class="btn secondary">Reset</button>
+            <button type="submit" class="btn primary">Simpan</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Data Sales</h2>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+          <input type="text" id="searchInput" placeholder="Cari invoice / staff..." style="flex:1;min-width:180px;">
+          <input type="month" id="filterMonth">
+          <button class="btn secondary" id="filterBtn">Filter</button>
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+
+        <table class="table" id="salesTable">
+          <thead>
+            <tr>
+              <th>Tanggal</th><th>Invoice</th><th>Staff</th><th>Sales</th><th>Profit</th><th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="./js/ui.js"></script>
+  <script src="./js/report_sales.js"></script>
+</body>
+</html>
+HTML_EOF
+
+# ============================
+# public/js/report_sales.js
+# ============================
+cat > public/js/report_sales.js <<'JS_EOF'
+(async () => {
+  const toastWrap = document.getElementById("toastWrap");
+  const tbody = document.querySelector("#salesTable tbody");
+  const toast = (msg, type = "info", t = 3000) => {
+    const el = document.createElement("div");
+    el.className = "toast " + (type === "success" ? "success" : type === "error" ? "error" : "info");
+    el.textContent = msg;
+    toastWrap.appendChild(el);
+    setTimeout(() => el.remove(), t);
+  };
+
+  async function loadStaff() {
+    try {
+      const res = await secureFetch("/api/users");
+      if(!res.ok) throw new Error("Gagal");
+      const data = await res.json();
+      const select = document.getElementById("staffDropdown");
+      select.innerHTML = '<option value="">-- Pilih Staff --</option>';
+      data.forEach(u => {
+        if (u.role) {
+          select.innerHTML += `<option value="${u.staff_name || u.username}">${u.staff_name || u.username}</option>`;
+        }
+      });
+    } catch (e) {
+      toast("Gagal memuat daftar staff", "error");
+    }
+  }
+
+  async function loadSales(query = "", month = "") {
+    try {
+      let url = `/api/sales`;
+      const params = [];
+      if (query) params.push(`q=${encodeURIComponent(query)}`);
+      if (month) params.push(`month=${encodeURIComponent(month)}`);
+      if (params.length) url += `?${params.join("&")}`;
+
+      const res = await secureFetch(url);
+      if(!res.ok) throw new Error("Gagal");
+      const data = await res.json();
+      tbody.innerHTML = "";
+      data.forEach((s) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${s.transaction_date || "-"}</td>
+          <td>${s.invoice || "-"}</td>
+          <td>${s.staff_name || "-"}</td>
+          <td>${Number(s.sales_amount || 0).toLocaleString("id-ID")}</td>
+          <td>${Number(s.profit_amount || 0).toLocaleString("id-ID")}</td>
+          <td><button class="btn secondary" onclick="deleteSale(${s.id})">Hapus</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      toast("Gagal memuat data sales", "error");
+    }
+  }
+
+  document.getElementById("salesForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const fd = new FormData(f);
+    const data = {};
+    fd.forEach((v, k) => (data[k] = v));
+    try {
+      const res = await secureFetch(f.dataset.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message || "Gagal menambahkan sales");
+      toast("Data sales berhasil ditambahkan", "success");
+      f.reset();
+      loadSales();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  });
+
+  window.deleteSale = async function(id) {
+    if (!confirm("Yakin ingin menghapus data ini?")) return;
+    try {
+      const res = await secureFetch(`/api/sales/${id}`, { method: "DELETE" });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message || "Gagal hapus data");
+      toast("Data berhasil dihapus", "success");
+      loadSales();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  };
+
+  document.getElementById("filterBtn").addEventListener("click", () => {
+    const q = document.getElementById("searchInput").value;
+    const m = document.getElementById("filterMonth").value;
+    loadSales(q, m);
+  });
+
+  document.getElementById("exportCSV").addEventListener("click", () => {
+    const rows = [["Tanggal", "Invoice", "Staff", "Sales", "Profit"]];
+    document.querySelectorAll("#salesTable tbody tr").forEach((tr) => {
+      rows.push(Array.from(tr.children).map((td) => td.textContent));
+    });
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "sales_report.csv";
+    a.click();
+  });
+
+  await loadStaff();
+  await loadSales();
+})();
+JS_EOF
+
+# ============================
+# scripts/initDatabase.js
+# ============================
+cat > scripts/initDatabase.js <<'INITJS'
+/**
+ * initDatabase.js
+ * - Connects using DATABASE_URL
+ * - Drops and recreates schema tables for a clean reset
+ * - Creates default admin user
+ *
+ * WARNING: This will DROP tables if they exist.
+ */
+import { execSync } from "child_process";
+import pg from "pg";
+import bcrypt from "bcryptjs";
+
+const { Pool } = pg;
+
+async function main(){
+  try{
+    const DATABASE_URL = process.env.DATABASE_URL;
+    if(!DATABASE_URL){
+      console.warn("DATABASE_URL not set, skipping DB init.");
+      return;
+    }
+    const pool = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+
+    console.log("Connected to DB, running reset...");
+
+    // Run SQL to drop/create tables (simple schema)
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Drop tables if exist
+      await client.query(`DROP TABLE IF EXISTS logs;`);
+      await client.query(`DROP TABLE IF EXISTS targets;`);
+      await client.query(`DROP TABLE IF EXISTS documents;`);
+      await client.query(`DROP TABLE IF EXISTS sales;`);
+      await client.query(`DROP TABLE IF EXISTS tours;`);
+      await client.query(`DROP TABLE IF EXISTS regions;`);
+      await client.query(`DROP TABLE IF EXISTS users;`);
+
+      // Users
+      await client.query(`
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(100) UNIQUE NOT NULL,
+          staff_name VARCHAR(200),
+          password_hash VARCHAR(200) NOT NULL,
+          role VARCHAR(50) NOT NULL DEFAULT 'staff',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Regions
+      await client.query(`
+        CREATE TABLE regions (
+          id SERIAL PRIMARY KEY,
+          code VARCHAR(50),
+          name VARCHAR(150) NOT NULL
+        );
+      `);
+
+      // Tours
+      await client.query(`
+        CREATE TABLE tours (
+          id SERIAL PRIMARY KEY,
+          registration_date DATE,
+          lead_passenger VARCHAR(255),
+          all_passengers INTEGER DEFAULT 1,
+          tour_code VARCHAR(100),
+          region_id INTEGER REFERENCES regions(id),
+          departure_date DATE,
+          booking_code VARCHAR(100),
+          tour_price NUMERIC DEFAULT 0,
+          discount_remarks TEXT,
+          payment_proof TEXT,
+          document_received BOOLEAN DEFAULT false,
+          visa_process_start DATE,
+          visa_process_end DATE,
+          document_remarks TEXT,
+          staff_name VARCHAR(200),
+          sales_amount NUMERIC DEFAULT 0,
+          profit_amount NUMERIC DEFAULT 0,
+          departure_status VARCHAR(50) DEFAULT 'PENDING',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Sales
+      await client.query(`
+        CREATE TABLE sales (
+          id SERIAL PRIMARY KEY,
+          transaction_date DATE,
+          invoice VARCHAR(100),
+          staff_name VARCHAR(200),
+          sales_amount NUMERIC DEFAULT 0,
+          profit_amount NUMERIC DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Documents
+      await client.query(`
+        CREATE TABLE documents (
+          id SERIAL PRIMARY KEY,
+          received_date DATE,
+          sent_date DATE,
+          guest_name VARCHAR(255),
+          passport_or_visa VARCHAR(255),
+          process_type VARCHAR(50),
+          booking_code_dms VARCHAR(100),
+          invoice_no VARCHAR(100),
+          guest_phone VARCHAR(50),
+          eta DATE,
+          staff_name VARCHAR(200),
+          tour_code VARCHAR(100),
+          remarks TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Targets
+      await client.query(`
+        CREATE TABLE targets (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id),
+          year INTEGER,
+          month INTEGER,
+          sales_target NUMERIC DEFAULT 0,
+          profit_target NUMERIC DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+
+      // Logs
+      await client.query(`
+        CREATE TABLE logs (
+          id SERIAL PRIMARY KEY,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          "user" VARCHAR(200),
+          action VARCHAR(150),
+          detail TEXT,
+          ip VARCHAR(100)
+        );
+      `);
+
+      // Seed admin user
+      const pw = 'Admin123';
+      const hash = bcrypt.hashSync(pw, 10);
+      await client.query(
+        `INSERT INTO users (username, staff_name, password_hash, role) VALUES ($1,$2,$3,$4) ON CONFLICT (username) DO NOTHING`,
+        ['admin','Super Admin', hash, 'superadmin']
+      );
+
+      await client.query('COMMIT');
+      console.log("Database reset complete, admin seeded (username: admin, password: Admin123)");
+    } catch (err) {
+      await client.query('ROLLBACK');
+      console.error("DB init failed:", err);
+    } finally {
+      client.release();
+      await pool.end();
+    }
+  }catch(e){
+    console.error("initDatabase error:", e);
+  }
+}
+
+main();
+INITJS
+
+# ============================
+# package.json update: add postinstall (if exists, merge)
+# ============================
+echo "5) Updating package.json scripts (adding postinstall to run initDatabase)."
+node -e "
+const fs=require('fs');
+const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+p.scripts=p.scripts||{};
+if(!p.scripts.postinstall){
+  p.scripts.postinstall='node scripts/initDatabase.js || true';
+  console.log(' - postinstall added');
+} else {
+  console.log(' - postinstall exists, skipping add');
+}
+fs.writeFileSync('package.json',JSON.stringify(p,null,2));
+"
+
+# ============================
+# git add, commit, create patch
+# ============================
+echo "6) Staging changes..."
+git add -A
+
+echo "7) Commit changes..."
+git commit -m "v5.8: UI updates (Corporate Blue), secureFetch, dashboard/report_sales, initDatabase, postinstall"
+
+echo "8) Creating patch file update-ui-v58.patch (in repo root)..."
+git format-patch -1 HEAD --stdout > update-ui-v58.patch
+
+echo "9) Operation complete."
+echo " - Branch: $BRANCH"
+echo " - Backup of overwritten files stored at: $BACKUP_DIR"
+echo " - Patch file created: $(pwd)/update-ui-v58.patch"
+echo ""
+echo "NEXT STEPS:"
+echo " 1) Inspect the patch file: less update-ui-v58.patch"
+echo " 2) Push the branch: git push origin $BRANCH"
+echo " 3) Open PR on GitHub from $BRANCH -> main and merge."
+echo " 4) Render will auto-deploy. Monitor logs at Render dashboard."
