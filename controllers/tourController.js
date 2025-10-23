@@ -1,216 +1,91 @@
 // ==========================================================
-// ✈️ Tour Controller — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
-// Fitur:
-// - Ambil semua data tour (filter per region, staff, bulan, status)
-// - Tambah, update, hapus data tour
-// - Terhubung dengan tabel region & reporting
+// ✈️ Tour Controller — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
 
-import pkg from "pg";
-const { Pool } = pkg;
+import { pool } from "../server.js";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-// ==========================================================
-// 🔹 GET /api/tours — Ambil Semua Tour
-// ==========================================================
+// ===== GET ALL TOURS =====
 export async function getTours(req, res) {
   try {
-    const { region, staff, month, status } = req.query;
-    let filters = [];
-    let values = [];
-    let i = 1;
+    const role = req.user.role;
+    const staffName = req.user.staff_name;
+    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
+    const params = role === "staff" ? [staffName] : [];
 
-    if (region) {
-      filters.push(`LOWER(region) = LOWER($${i++})`);
-      values.push(region);
-    }
-    if (staff) {
-      filters.push(`LOWER(staff) = LOWER($${i++})`);
-      values.push(staff);
-    }
-    if (month) {
-      filters.push(`TO_CHAR(departure_date, 'YYYY-MM') = $${i++}`);
-      values.push(month);
-    }
-    if (status) {
-      filters.push(`LOWER(departure_status) = LOWER($${i++})`);
-      values.push(status);
-    }
-
-    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
-
-    const query = `
-      SELECT id, registration_date, lead_passenger, all_passengers, tour_code,
-             region, departure_date, booking_code, tour_price, discount_remarks,
-             payment_proof, document_received, visa_process_start, visa_process_end,
-             document_remarks, staff, sales_amount, profit_amount, departure_status, created_at
+    const result = await pool.query(
+      `
+      SELECT 
+        id, registration_date, lead_passenger, all_passengers,
+        tour_code, region, departure_date, booking_code,
+        tour_price, discount_remarks, payment_proof,
+        document_received, visa_process_start, visa_process_end,
+        document_remarks, staff_name, sales_amount, profit_amount,
+        departure_status, created_at
       FROM tours
       ${whereClause}
-      ORDER BY departure_date DESC;
-    `;
+      ORDER BY registration_date DESC
+      `,
+      params
+    );
 
-    const { rows } = await pool.query(query, values);
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error("❌ GET tours error:", err);
     res.status(500).json({ message: "Gagal memuat data tour." });
   }
 }
 
-// ==========================================================
-// 🔹 POST /api/tours — Tambah Tour Baru
-// ==========================================================
+// ===== CREATE TOUR =====
 export async function createTour(req, res) {
   try {
-    const {
-      registrationDate,
-      leadPassenger,
-      allPassengers,
-      tourCode,
-      region,
-      departureDate,
-      bookingCode,
-      tourPrice,
-      discountRemarks,
-      paymentProof,
-      documentReceived,
-      visaProcessStart,
-      visaProcessEnd,
-      documentRemarks,
-      staff,
-      salesAmount,
-      profitAmount,
-      departureStatus,
-    } = req.body;
+    const data = req.body;
 
     await pool.query(
       `
       INSERT INTO tours (
-        registration_date, lead_passenger, all_passengers, tour_code, region,
-        departure_date, booking_code, tour_price, discount_remarks, payment_proof,
-        document_received, visa_process_start, visa_process_end, document_remarks,
-        staff, sales_amount, profit_amount, departure_status
-      ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
-        $11,$12,$13,$14,$15,$16,$17,$18
+        registration_date, lead_passenger, all_passengers,
+        tour_code, region, departure_date, booking_code,
+        tour_price, discount_remarks, payment_proof,
+        document_received, visa_process_start, visa_process_end,
+        document_remarks, staff_name, sales_amount, profit_amount,
+        departure_status
       )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       `,
       [
-        registrationDate || null,
-        leadPassenger || "",
-        allPassengers || "",
-        tourCode || "",
-        region || "",
-        departureDate || null,
-        bookingCode || "",
-        parseFloat(tourPrice) || 0,
-        discountRemarks || "",
-        paymentProof || "",
-        documentReceived || null,
-        visaProcessStart || null,
-        visaProcessEnd || null,
-        documentRemarks || "",
-        staff || "",
-        parseFloat(salesAmount) || 0,
-        parseFloat(profitAmount) || 0,
-        departureStatus || "PENDING",
+        data.registration_date || data.registrationDate || null,
+        data.lead_passenger || data.leadPassenger || "",
+        data.all_passengers || data.allPassengers || "",
+        data.tour_code || data.tourCode || "",
+        data.region || "",
+        data.departure_date || data.departureDate || null,
+        data.booking_code || data.bookingCode || "",
+        parseFloat(data.tour_price || data.tourPrice || 0),
+        data.discount_remarks || data.discountRemarks || "",
+        data.payment_proof || data.paymentProof || "",
+        data.document_received || data.documentReceived || null,
+        data.visa_process_start || data.visaProcessStart || null,
+        data.visa_process_end || data.visaProcessEnd || null,
+        data.document_remarks || data.documentRemarks || "",
+        data.staff_name || data.staff || req.user.staff_name,
+        parseFloat(data.sales_amount || data.salesAmount || 0),
+        parseFloat(data.profit_amount || data.profitAmount || 0),
+        data.departure_status || data.departureStatus || "PENDING"
       ]
     );
 
-    res.json({ message: "Data tour berhasil ditambahkan." });
+    res.json({ message: "Data tour berhasil disimpan." });
   } catch (err) {
     console.error("❌ Create tour error:", err);
-    res.status(500).json({ message: "Gagal menambahkan data tour." });
+    res.status(500).json({ message: "Gagal menyimpan data tour." });
   }
 }
 
-// ==========================================================
-// 🔹 PUT /api/tours/:id — Update Data Tour
-// ==========================================================
-export async function updateTour(req, res) {
-  try {
-    const { id } = req.params;
-    const {
-      registrationDate,
-      leadPassenger,
-      allPassengers,
-      tourCode,
-      region,
-      departureDate,
-      bookingCode,
-      tourPrice,
-      discountRemarks,
-      paymentProof,
-      documentReceived,
-      visaProcessStart,
-      visaProcessEnd,
-      documentRemarks,
-      staff,
-      salesAmount,
-      profitAmount,
-      departureStatus,
-    } = req.body;
-
-    const result = await pool.query(
-      `
-      UPDATE tours SET
-        registration_date=$1, lead_passenger=$2, all_passengers=$3, tour_code=$4, region=$5,
-        departure_date=$6, booking_code=$7, tour_price=$8, discount_remarks=$9, payment_proof=$10,
-        document_received=$11, visa_process_start=$12, visa_process_end=$13, document_remarks=$14,
-        staff=$15, sales_amount=$16, profit_amount=$17, departure_status=$18
-      WHERE id=$19
-      RETURNING id;
-      `,
-      [
-        registrationDate || null,
-        leadPassenger || "",
-        allPassengers || "",
-        tourCode || "",
-        region || "",
-        departureDate || null,
-        bookingCode || "",
-        parseFloat(tourPrice) || 0,
-        discountRemarks || "",
-        paymentProof || "",
-        documentReceived || null,
-        visaProcessStart || null,
-        visaProcessEnd || null,
-        documentRemarks || "",
-        staff || "",
-        parseFloat(salesAmount) || 0,
-        parseFloat(profitAmount) || 0,
-        departureStatus || "PENDING",
-        id,
-      ]
-    );
-
-    if (result.rowCount === 0)
-      return res.status(404).json({ message: "Data tour tidak ditemukan." });
-
-    res.json({ message: "Data tour berhasil diperbarui." });
-  } catch (err) {
-    console.error("❌ Update tour error:", err);
-    res.status(500).json({ message: "Gagal memperbarui data tour." });
-  }
-}
-
-// ==========================================================
-// 🔹 DELETE /api/tours/:id — Hapus Data Tour
-// ==========================================================
+// ===== DELETE TOUR =====
 export async function deleteTour(req, res) {
   try {
     const { id } = req.params;
-
-    const result = await pool.query("DELETE FROM tours WHERE id = $1", [id]);
-
-    if (result.rowCount === 0)
-      return res.status(404).json({ message: "Data tour tidak ditemukan." });
-
+    await pool.query("DELETE FROM tours WHERE id = $1", [id]);
     res.json({ message: "Data tour berhasil dihapus." });
   } catch (err) {
     console.error("❌ Delete tour error:", err);
