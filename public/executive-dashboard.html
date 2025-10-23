@@ -1,120 +1,190 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Executive Dashboard | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script defer src="./js/ui.js"></script>
-  <script defer src="./js/executive-dashboard.js"></script>
 </head>
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li class="has-children expanded">
+            <a href="#">Reports</a>
+            <ul>
+              <li><a href="report_tour.html">Tour Report</a></li>
+              <li><a href="report_sales.html">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
+            </ul>
+          </li>
+          <li class="has-children">
+            <a href="#">Management</a>
+            <ul>
+              <li><a href="user-management.html">User Management</a></li>
+              <li><a href="region_management.html">Region Management</a></li>
+              <li><a href="target_management.html">Target Management</a></li>
+            </ul>
+          </li>
+          <li class="has-children expanded">
+            <a href="#">Executive</a>
+            <ul>
+              <li><a href="executive-dashboard.html" class="active">Executive Dashboard</a></li>
+              <li><a href="audit_log.html">Audit Log</a></li>
+            </ul>
+          </li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-<body class="light-mode">
-  <!-- Sidebar -->
-  <!-- ===================================================== -->
-<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
-<!-- ===================================================== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>TravelDashboard</h2>
-    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
+    <!-- MAIN -->
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Executive Dashboard</h1>
+        </div>
+      </div>
+
+      <!-- SUMMARY CARDS -->
+      <section class="card" id="summaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"></section>
+
+      <!-- CHART + TOP STAFF -->
+      <section style="display:grid;grid-template-columns:2fr 1fr;gap:12px">
+        <div class="card">
+          <h2>Monthly Performance</h2>
+          <canvas id="monthlyChart" height="200"></canvas>
+        </div>
+        <div class="card">
+          <h2>Top Staff</h2>
+          <table class="table" id="topStaffTable">
+            <thead><tr><th>Staff</th><th>Sales</th><th>Profit</th><th>%Achv</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- DETAIL -->
+      <section class="card" style="margin-top:12px">
+        <h2>Detail Monthly Breakdown</h2>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <select id="selectYear"><option>2025</option><option>2024</option></select>
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+        <table class="table" id="execDetailTable">
+          <thead><tr><th>Bulan</th><th>Staff</th><th>Sales</th><th>Profit</th><th>Target</th><th>%Achv</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
   </div>
 
-  <nav>
-    <ul>
-      <li>
-        <a href="dashboard.html">
-          <span>🏠</span>
-          <span>Dashboard</span>
-        </a>
-      </li>
+  <div class="toast-wrap" id="toastWrap"></div>
 
-      <li class="has-children">
-        <a href="#">
-          <span>📊</span>
-          <span>Reports</span>
-        </a>
-        <ul>
-          <li><a href="report_tour.html">Tour Report</a></li>
-          <li><a href="report_sales.html">Sales Report</a></li>
-          <li><a href="report_document.html">Document Report</a></li>
-        </ul>
-      </li>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="./js/ui.js"></script>
+  <script>
+    const token = localStorage.getItem('token');
+    const toastWrap = document.getElementById('toastWrap');
 
-      <li class="has-children">
-        <a href="#">
-          <span>⚙️</span>
-          <span>Management</span>
-        </a>
-        <ul>
-          <li><a href="user-management.html">User Management</a></li>
-          <li><a href="region_management.html">Region Management</a></li>
-          <li><a href="target_management.html">Target Management</a></li>
-          <li><a href="tour_form.html">Tour Management</a></li>
-        </ul>
-      </li>
+    const toast = (msg, type='info', t=3000) => {
+      const el = document.createElement('div');
+      el.className = 'toast ' + (type==='success'?'success':type==='error'?'error':'info');
+      el.textContent = msg;
+      toastWrap.appendChild(el);
+      setTimeout(()=>el.remove(), t);
+    };
 
-      <li class="has-children">
-        <a href="#">
-          <span>💼</span>
-          <span>Executive</span>
-        </a>
-        <ul>
-          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-          <li><a href="audit_log.html">Audit Log</a></li>
-        </ul>
-      </li>
+    const formatNumber = n => Number(n||0).toLocaleString('id-ID');
 
-      <li>
-        <a href="profile.html">
-          <span>👤</span>
-          <span>Profile</span>
-        </a>
-      </li>
+    async function loadSummary(){
+      try{
+        const res = await fetch('/api/executive/summary',{headers:{Authorization:'Bearer '+token}});
+        const d = await res.json();
+        const wrap = document.getElementById('summaryCards');
+        wrap.innerHTML = `
+          <div class="card"><h3>Total Sales</h3><div>${formatNumber(d.total_sales)}</div></div>
+          <div class="card"><h3>Total Profit</h3><div>${formatNumber(d.total_profit)}</div></div>
+          <div class="card"><h3>Total Tours</h3><div>${d.total_tours}</div></div>
+          <div class="card"><h3>Customers</h3><div>${d.total_customers}</div></div>
+        `;
+      }catch(e){toast('Gagal load summary','error');}
+    }
 
-      <li>
-        <a href="logout.html">
-          <span>🚪</span>
-          <span>Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
+    let chart;
+    async function loadPerformance(year){
+      try{
+        const res = await fetch('/api/executive/monthly-performance?year='+year,{headers:{Authorization:'Bearer '+token}});
+        const d = await res.json();
+        const months = Array.from({length:12},(_,i)=>i+1);
+        const sales = months.map(m => Number(d.find(x=>x.month==m)?.sales||0));
+        const profit = months.map(m => Number(d.find(x=>x.month==m)?.profit||0));
 
-  <div class="theme-switch">
-    <label>
-      <input type="checkbox" id="themeSwitch" />
-      🌙 Dark Mode
-    </label>
-  </div>
-</aside>
+        if(chart) chart.destroy();
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        chart = new Chart(ctx, {
+          type:'line',
+          data:{labels:months.map(m=>'M'+m),
+          datasets:[
+            {label:'Sales',data:sales,borderWidth:2},
+            {label:'Profit',data:profit,borderWidth:2}
+          ]},
+          options:{responsive:true,plugins:{legend:{position:'bottom'}}}
+        });
 
-  <!-- Main -->
-  <main>
-    <header>
-      <h1>👔 Executive Dashboard</h1>
-      <div class="theme-switch">
-        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
-      </div>
-    </header>
+        const tbody = document.querySelector('#execDetailTable tbody');
+        tbody.innerHTML='';
+        d.forEach(r=>{
+          const achv = r.target_sales ? Math.round(r.sales/r.target_sales*100) : 0;
+          tbody.innerHTML += `<tr><td>${r.month}</td><td>${r.staff_name||''}</td><td>${formatNumber(r.sales)}</td><td>${formatNumber(r.profit)}</td><td>${formatNumber(r.target_sales)}</td><td>${achv}%</td></tr>`;
+        });
 
-    <section class="dashboard-stats">
-      <div class="chart-container">
-        <h3>📊 Performa Staff (Sales & Profit)</h3>
-        <canvas id="staffChart"></canvas>
-      </div>
+        const staffMap={};
+        d.forEach(r=>{
+          const s=r.staff_name||'—';
+          staffMap[s]=staffMap[s]||{sales:0,profit:0,target:0};
+          staffMap[s].sales+=Number(r.sales||0);
+          staffMap[s].profit+=Number(r.profit||0);
+          staffMap[s].target+=Number(r.target_sales||0);
+        });
+        const top=Object.entries(staffMap).map(([s,v])=>({...v,staff:s})).sort((a,b)=>b.sales-a.sales).slice(0,5);
+        const topBody=document.querySelector('#topStaffTable tbody');
+        topBody.innerHTML='';
+        top.forEach(t=>{
+          const achv=t.target?Math.round(t.sales/t.target*100):0;
+          topBody.innerHTML+=`<tr><td>${t.staff}</td><td>${formatNumber(t.sales)}</td><td>${formatNumber(t.profit)}</td><td>${achv}%</td></tr>`;
+        });
+      }catch(e){toast('Gagal load data','error');}
+    }
 
-      <div class="chart-container">
-        <h3>🎯 Progress Target vs Realisasi</h3>
-        <canvas id="targetProgressChart"></canvas>
-      </div>
+    document.getElementById('selectYear').addEventListener('change',e=>loadPerformance(e.target.value));
+    document.getElementById('exportCSV').addEventListener('click',()=>{
+      const rows=[["Bulan","Staff","Sales","Profit","Target","%Achv"]];
+      document.querySelectorAll('#execDetailTable tbody tr').forEach(tr=>{
+        rows.push(Array.from(tr.children).map(td=>td.textContent));
+      });
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const blob=new Blob([csv],{type:'text/csv'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download='executive.csv';a.click();
+    });
 
-      <div class="chart-container">
-        <h3>📆 Performa Bulanan</h3>
-        <canvas id="monthlyChart"></canvas>
-      </div>
-    </section>
-  </main>
+    loadSummary();
+    loadPerformance(2025);
+  </script>
 </body>
 </html>
