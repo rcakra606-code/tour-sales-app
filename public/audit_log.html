@@ -1,117 +1,109 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Audit Log | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
-  <script defer src="./js/ui.js"></script>
-  <script defer src="./js/audit_log.js"></script>
 </head>
-
-<body class="light-mode">
-  <!-- Sidebar -->
-  <!-- ===================================================== -->
-<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
-<!-- ===================================================== -->
-<aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>TravelDashboard</h2>
-    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
-  </div>
-
-  <nav>
-    <ul>
-      <li>
-        <a href="dashboard.html">
-          <span>🏠</span>
-          <span>Dashboard</span>
-        </a>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>📊</span>
-          <span>Reports</span>
-        </a>
-        <ul>
-          <li><a href="report_tour.html">Tour Report</a></li>
-          <li><a href="report_sales.html">Sales Report</a></li>
-          <li><a href="report_document.html">Document Report</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>⚙️</span>
-          <span>Management</span>
-        </a>
-        <ul>
-          <li><a href="user-management.html">User Management</a></li>
-          <li><a href="region_management.html">Region Management</a></li>
-          <li><a href="target_management.html">Target Management</a></li>
-          <li><a href="tour_form.html">Tour Management</a></li>
-        </ul>
-      </li>
-
-      <li class="has-children">
-        <a href="#">
-          <span>💼</span>
-          <span>Executive</span>
-        </a>
-        <ul>
-          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
-          <li><a href="audit_log.html">Audit Log</a></li>
-        </ul>
-      </li>
-
-      <li>
-        <a href="profile.html">
-          <span>👤</span>
-          <span>Profile</span>
-        </a>
-      </li>
-
-      <li>
-        <a href="logout.html">
-          <span>🚪</span>
-          <span>Logout</span>
-        </a>
-      </li>
-    </ul>
-  </nav>
-
-  <div class="theme-switch">
-    <label>
-      <input type="checkbox" id="themeSwitch" />
-      🌙 Dark Mode
-    </label>
-  </div>
-</aside>
-
-  <!-- Main -->
-  <main>
-    <header>
-      <h1>🧾 Audit Log Aktivitas Pengguna</h1>
-      <div class="theme-switch">
-        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">TravelDashboard</div>
+        <button class="btn-compact" data-toggle="sidebar">☰</button>
       </div>
-    </header>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="audit_log.html" class="active">Audit Log</a></li>
+          <li><a href="profile.html">Profile</a></li>
+          <li><a href="logout.html">Logout</a></li>
+        </ul>
+      </nav>
+      <div class="theme-area">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+      </div>
+    </aside>
 
-    <section class="chart-container">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Waktu</th>
-            <th>User</th>
-            <th>Aksi</th>
-            <th>Detail</th>
-          </tr>
-        </thead>
-        <tbody id="logTableBody"></tbody>
-      </table>
-    </section>
-  </main>
+    <main>
+      <div class="header">
+        <div class="left">
+          <button class="toggle" data-toggle="sidebar">☰</button>
+          <h1>Audit Log</h1>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>Filter Log</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="qSearch" type="text" placeholder="Cari user/action..." style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border)">
+          <input id="fromDate" type="date">
+          <input id="toDate" type="date">
+          <button class="btn primary" id="btnFilter">Filter</button>
+          <button class="btn secondary" id="exportCSV">📄 Export CSV</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Riwayat Aktivitas</h2>
+        <table class="table" id="logTable">
+          <thead><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th><th>IP</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+          <button class="btn secondary" id="prevPage">Prev</button>
+          <div class="kv" id="pageInfo">Page 1</div>
+          <button class="btn secondary" id="nextPage">Next</button>
+        </div>
+      </section>
+
+      <footer>© 2025 Travel Dashboard</footer>
+    </main>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="./js/ui.js"></script>
+  <script>
+    const token=localStorage.getItem('token');
+    const toastWrap=document.getElementById('toastWrap');
+    const tbody=document.querySelector('#logTable tbody');
+    let page=1;
+
+    const toast=(m,t='info')=>{
+      const e=document.createElement('div');e.className='toast '+t;e.textContent=m;toastWrap.appendChild(e);setTimeout(()=>e.remove(),3000);
+    };
+
+    async function loadLogs(){
+      const q=document.getElementById('qSearch').value;
+      const from=document.getElementById('fromDate').value;
+      const to=document.getElementById('toDate').value;
+      const res=await fetch(`/api/logs?page=${page}&q=${q}&from=${from}&to=${to}`,{headers:{Authorization:'Bearer '+token}});
+      const data=await res.json();
+      tbody.innerHTML='';
+      data.forEach(l=>{
+        tbody.innerHTML+=`<tr><td>${l.created_at||''}</td><td>${l.user||''}</td><td>${l.action||''}</td><td>${l.detail||''}</td><td>${l.ip||''}</td></tr>`;
+      });
+      document.getElementById('pageInfo').textContent='Page '+page;
+    }
+
+    document.getElementById('btnFilter').addEventListener('click',()=>{page=1;loadLogs();});
+    document.getElementById('prevPage').addEventListener('click',()=>{if(page>1){page--;loadLogs();}});
+    document.getElementById('nextPage').addEventListener('click',()=>{page++;loadLogs();});
+
+    document.getElementById('exportCSV').addEventListener('click',()=>{
+      const rows=[["Waktu","User","Aksi","Detail","IP"]];
+      document.querySelectorAll('#logTable tbody tr').forEach(tr=>{
+        rows.push(Array.from(tr.children).map(td=>td.textContent));
+      });
+      const csv=rows.map(r=>r.join(",")).join("\n");
+      const blob=new Blob([csv],{type:'text/csv'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);a.download='audit_logs.csv';a.click();
+    });
+
+    loadLogs();
+  </script>
 </body>
 </html>
