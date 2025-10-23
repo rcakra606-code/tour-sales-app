@@ -5,246 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Executive Dashboard | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
-  <script defer src="./js/ui.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="./js/ui.js"></script>
+  <script defer src="./js/executive-dashboard.js"></script>
 </head>
 
 <body class="light-mode">
-  <!-- ===================================================== -->
-  <!-- 🧭 SIDEBAR -->
-  <!-- ===================================================== -->
-  <aside id="sidebar" class="sidebar expanded">
+  <aside id="sidebar" class="sidebar">
     <div class="sidebar-header">
-      <h2>Travel Dashboard</h2>
+      <h2>Executive View</h2>
       <button id="toggleSidebar">☰</button>
     </div>
-    <ul class="sidebar-menu">
-      <li><a href="dashboard.html">🏠 Dashboard</a></li>
-      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
-      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
-      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
-      <li class="active"><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
-      <li><a href="region_management.html">🌍 Region Management</a></li>
-      <li><a href="user-management.html">👥 User Management</a></li>
-      <li><a href="profile.html">👤 Profil</a></li>
-      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
-    </ul>
-    <div class="theme-toggle">
-      <span>🌞</span>
-      <label class="switch">
-        <input type="checkbox" id="themeSwitch" />
-        <span class="slider round"></span>
-      </label>
-      <span>🌙</span>
-    </div>
+    <nav>
+      <ul>
+        <li><a href="dashboard.html">🏠 Dashboard</a></li>
+        <li><a href="executive-dashboard.html" class="active">👔 Executive Dashboard</a></li>
+        <li><a href="target_management.html">🎯 Target Management</a></li>
+        <li><a href="profile.html">👤 Profile</a></li>
+      </ul>
+    </nav>
   </aside>
 
-  <!-- ===================================================== -->
-  <!-- 📋 MAIN CONTENT -->
-  <!-- ===================================================== -->
-  <main id="main-content">
+  <main>
     <header>
-      <h1>📊 Executive Dashboard</h1>
-      <p>Ringkasan performa perusahaan berdasarkan data Sales, Tour, dan Target.</p>
+      <h1>👔 Executive Summary</h1>
+      <div class="theme-switch">
+        <label>
+          <input type="checkbox" id="themeSwitch" /> 🌙 Mode
+        </label>
+      </div>
     </header>
 
-    <!-- 🔹 FILTER -->
-    <section class="filter-section">
-      <div class="filter-grid">
-        <input type="month" id="filterMonth" />
-        <button id="loadBtn">📅 Muat Data</button>
+    <section class="dashboard-stats">
+      <div class="chart-container">
+        <h3>Performa Staff</h3>
+        <canvas id="staffChart"></canvas>
       </div>
-    </section>
 
-    <!-- 🔹 KPI CARDS -->
-    <section class="kpi-section">
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <h3>Total Sales</h3>
-          <p id="kpiSales">Rp 0</p>
-        </div>
-        <div class="kpi-card">
-          <h3>Total Profit</h3>
-          <p id="kpiProfit">Rp 0</p>
-        </div>
-        <div class="kpi-card">
-          <h3>Total Tour</h3>
-          <p id="kpiTour">0</p>
-        </div>
-        <div class="kpi-card">
-          <h3>Target Bulan Ini</h3>
-          <p id="kpiTarget">Rp 0</p>
-        </div>
+      <div class="chart-container">
+        <h3>Progress Target</h3>
+        <canvas id="targetProgressChart"></canvas>
       </div>
-    </section>
 
-    <!-- 🔹 GRAFIK PERFORMANCE -->
-    <section class="chart-section">
-      <h2>📈 Performa Bulanan (Sales & Profit)</h2>
-      <canvas id="chartMonthly"></canvas>
-    </section>
-
-    <section class="chart-section">
-      <h2>🌍 Performa Region</h2>
-      <canvas id="chartRegion"></canvas>
-    </section>
-
-    <!-- 🔹 STAFF PERFORMANCE TABLE -->
-    <section class="table-section">
-      <h2>👥 Kinerja Staff</h2>
-      <table id="staffTable">
-        <thead>
-          <tr>
-            <th>Nama Staff</th>
-            <th>Target Sales</th>
-            <th>Actual Sales</th>
-            <th>Target Profit</th>
-            <th>Actual Profit</th>
-            <th>Sales (%)</th>
-            <th>Profit (%)</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="chart-container">
+        <h3>Performa Bulanan</h3>
+        <canvas id="monthlyChart"></canvas>
+      </div>
     </section>
   </main>
-
-  <!-- ===================================================== -->
-  <!-- ⚙️ SCRIPT -->
-  <!-- ===================================================== -->
-  <script>
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    if (!token || (role !== "admin" && role !== "semiadmin")) {
-      window.location.href = "login.html";
-    }
-
-    const headers = { "Authorization": "Bearer " + token, "Content-Type": "application/json" };
-
-    const filterMonth = document.getElementById("filterMonth");
-    const loadBtn = document.getElementById("loadBtn");
-    const staffTable = document.querySelector("#staffTable tbody");
-
-    let chartMonthly, chartRegion;
-
-    // =====================================================
-    // 🧩 LOAD EXECUTIVE OVERVIEW
-    // =====================================================
-    async function loadOverview(month = "") {
-      const res = await fetch(`/api/executive/overview?month=${month}`, { headers });
-      const data = await res.json();
-
-      document.getElementById("kpiSales").textContent = "Rp " + Number(data.total_sales_amount || 0).toLocaleString("id-ID");
-      document.getElementById("kpiProfit").textContent = "Rp " + Number(data.total_profit || 0).toLocaleString("id-ID");
-      document.getElementById("kpiTour").textContent = data.total_tours || 0;
-      document.getElementById("kpiTarget").textContent = "Rp " + Number(data.total_target_sales || 0).toLocaleString("id-ID");
-    }
-
-    // =====================================================
-    // 📊 LOAD MONTHLY PERFORMANCE CHART
-    // =====================================================
-    async function loadMonthlyChart() {
-      const res = await fetch("/api/executive/monthly-performance", { headers });
-      const data = await res.json();
-
-      const labels = data.map(d => d.bulan);
-      const sales = data.map(d => Number(d.total_sales));
-      const profit = data.map(d => Number(d.total_profit));
-
-      if (chartMonthly) chartMonthly.destroy();
-      const ctx = document.getElementById("chartMonthly").getContext("2d");
-      chartMonthly = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels,
-          datasets: [
-            {
-              label: "Sales",
-              data: sales,
-              borderWidth: 2,
-              borderColor: "#007bff",
-              fill: false,
-            },
-            {
-              label: "Profit",
-              data: profit,
-              borderWidth: 2,
-              borderColor: "#28a745",
-              fill: false,
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: "bottom" } }
-        }
-      });
-    }
-
-    // =====================================================
-    // 🌍 LOAD REGION PERFORMANCE CHART
-    // =====================================================
-    async function loadRegionChart(month = "") {
-      const res = await fetch(`/api/executive/region-performance?month=${month}`, { headers });
-      const data = await res.json();
-
-      const labels = data.map(r => r.region);
-      const sales = data.map(r => Number(r.total_sales));
-
-      if (chartRegion) chartRegion.destroy();
-      const ctx = document.getElementById("chartRegion").getContext("2d");
-      chartRegion = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels,
-          datasets: [{
-            label: "Total Sales",
-            data: sales,
-            backgroundColor: "#17a2b8"
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: "bottom" } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    // =====================================================
-    // 👥 LOAD STAFF PERFORMANCE TABLE
-    // =====================================================
-    async function loadStaffPerformance(month = "") {
-      const res = await fetch(`/api/executive/performance?month=${month}`, { headers });
-      const data = await res.json();
-
-      staffTable.innerHTML = data.map(s => `
-        <tr>
-          <td>${s.staff_name}</td>
-          <td>${Number(s.target_sales).toLocaleString("id-ID")}</td>
-          <td>${Number(s.actual_sales).toLocaleString("id-ID")}</td>
-          <td>${Number(s.target_profit).toLocaleString("id-ID")}</td>
-          <td>${Number(s.actual_profit).toLocaleString("id-ID")}</td>
-          <td>${s.achievement_sales}%</td>
-          <td>${s.achievement_profit}%</td>
-        </tr>
-      `).join("");
-    }
-
-    // =====================================================
-    // 🚀 INIT
-    // =====================================================
-    loadOverview();
-    loadMonthlyChart();
-    loadRegionChart();
-    loadStaffPerformance();
-
-    loadBtn.addEventListener("click", () => {
-      const month = filterMonth.value;
-      loadOverview(month);
-      loadRegionChart(month);
-      loadStaffPerformance(month);
-    });
-  </script>
 </body>
 </html>
