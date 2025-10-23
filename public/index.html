@@ -1,106 +1,69 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Travel Dashboard Enterprise</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Travel Dashboard | Memuat Sistem</title>
   <link rel="stylesheet" href="./css/style.css" />
   <style>
+    /* Loader style tambahan */
     body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      height: 100vh;
-      background: linear-gradient(135deg, #2563eb, #1e3a8a);
-      color: #fff;
-      text-align: center;
-      font-family: "Poppins", sans-serif;
-      overflow: hidden;
-      transition: background 0.4s;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      background:var(--bg);
+      transition:background 0.3s ease;
     }
-
-    .welcome-container {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 2rem 3rem;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      max-width: 500px;
-      width: 90%;
+    .loader-wrap {
+      text-align:center;
+      color:var(--text);
+      font-family:'Inter',sans-serif;
+      animation:fadeIn 0.4s ease-in;
     }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
+    .loader {
+      border:6px solid var(--border);
+      border-top:6px solid var(--accent);
+      border-radius:50%;
+      width:70px;height:70px;
+      margin:auto;
+      animation:spin 1s linear infinite;
     }
-
-    p {
-      margin-bottom: 1.5rem;
-      font-size: 1rem;
+    @keyframes spin {
+      0%{transform:rotate(0deg)}
+      100%{transform:rotate(360deg)}
     }
-
-    button {
-      background: #3b82f6;
-      color: white;
-      border: none;
-      padding: 0.8rem 1.5rem;
-      font-size: 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.3s ease;
+    @keyframes fadeIn {
+      from{opacity:0} to{opacity:1}
     }
-
-    button:hover {
-      background: #2563eb;
+    .title {
+      font-size:1.3rem;
+      margin-top:20px;
+      font-weight:600;
     }
-
-    footer {
-      position: absolute;
-      bottom: 20px;
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    body.dark-mode {
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: #e2e8f0;
+    .note {
+      opacity:0.6;
+      font-size:0.9rem;
     }
   </style>
 </head>
-
 <body>
-  <div class="welcome-container">
-    <h1>🌍 Travel Dashboard Enterprise</h1>
-    <p>Platform manajemen tour & sales profesional.</p>
-    <button id="enterBtn">Masuk ke Aplikasi</button>
+  <div class="loader-wrap">
+    <div class="loader"></div>
+    <div class="title">Memuat Sistem Travel Dashboard...</div>
+    <div class="note">Silakan tunggu sebentar</div>
   </div>
 
-  <footer>© 2025 Travel Dashboard Enterprise v5.4.9</footer>
-
   <script>
-    // Auto redirect jika sudah login
-    document.addEventListener("DOMContentLoaded", () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        window.location.href = "dashboard.html";
-      }
-    });
-
-    // Tombol manual masuk
-    const enterBtn = document.getElementById("enterBtn");
-    enterBtn.addEventListener("click", () => {
+    // Delay sedikit biar UX halus
+    setTimeout(() => {
       const token = localStorage.getItem("token");
       if (token) {
         window.location.href = "dashboard.html";
       } else {
         window.location.href = "login.html";
       }
-    });
-
-    // Theme restore
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") document.body.classList.add("dark-mode");
+    }, 1200);
   </script>
 </body>
 </html>
