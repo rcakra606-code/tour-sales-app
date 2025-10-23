@@ -13,10 +13,10 @@ import {
 
 const router = express.Router();
 
-router.get("/", authenticate, authorize(["admin", "semiadmin"]), getTargets);
+router.get("/", authenticate, authorizeAdmin, getTargets);
 router.get("/:staff_name", authenticate, getStaffTarget);
-router.post("/", authenticate, authorize(["admin", "semiadmin"]), createTarget);
-router.put("/:id", authenticate, authorize(["admin", "semiadmin"]), updateTarget);
-router.delete("/:id", authenticate, authorize(["admin"]), deleteTarget);
+router.post("/", authenticate, authorizeAdmin, createTarget);
+router.put("/:id", authenticate, authorizeAdmin, updateTarget);
+router.delete("/:id", authenticate, authorizeAdmin, deleteTarget);
 
 export default router;
