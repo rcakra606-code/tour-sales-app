@@ -6,216 +6,63 @@
   <title>Region Management | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
   <script defer src="./js/ui.js"></script>
+  <script defer src="./js/region_management.js"></script>
 </head>
 
 <body class="light-mode">
-  <!-- ===================================================== -->
-  <!-- 🧭 SIDEBAR -->
-  <!-- ===================================================== -->
-  <aside id="sidebar" class="sidebar expanded">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
     <div class="sidebar-header">
       <h2>Travel Dashboard</h2>
       <button id="toggleSidebar">☰</button>
     </div>
-    <ul class="sidebar-menu">
-      <li><a href="dashboard.html">🏠 Dashboard</a></li>
-      <li><a href="report_sales.html">💹 Laporan Sales</a></li>
-      <li><a href="report_tour.html">✈️ Laporan Tour</a></li>
-      <li><a href="report_document.html">📑 Laporan Dokumen</a></li>
-      <li><a href="executive-dashboard.html">📊 Executive Dashboard</a></li>
-      <li><a href="user-management.html">👥 User Management</a></li>
-      <li class="active"><a href="region_management.html">🌍 Region Management</a></li>
-      <li><a href="profile.html">👤 Profil</a></li>
-      <li><a href="login.html" id="logoutBtn">🚪 Logout</a></li>
-    </ul>
-    <div class="theme-toggle">
-      <span>🌞</span>
-      <label class="switch">
-        <input type="checkbox" id="themeSwitch" />
-        <span class="slider round"></span>
-      </label>
-      <span>🌙</span>
-    </div>
+
+    <nav>
+      <ul>
+        <li><a href="dashboard.html">🏠 Dashboard</a></li>
+        <li><a href="report_tour.html">✈️ Report Tour</a></li>
+        <li><a href="report_sales.html">💰 Report Sales</a></li>
+        <li><a href="report_document.html">📑 Report Document</a></li>
+        <li><a href="region_management.html" class="active">🌍 Region Management</a></li>
+        <li><a href="target_management.html">🎯 Target Management</a></li>
+        <li><a href="executive-dashboard.html">👔 Executive Dashboard</a></li>
+        <li><a href="user-management.html">👥 User Management</a></li>
+        <li><a href="profile.html">👤 Profile</a></li>
+        <li><a href="logout.html">🚪 Logout</a></li>
+      </ul>
+    </nav>
   </aside>
 
-  <!-- ===================================================== -->
-  <!-- 📋 MAIN CONTENT -->
-  <!-- ===================================================== -->
-  <main id="main-content">
+  <!-- Main -->
+  <main>
     <header>
-      <h1>🌍 Region Management</h1>
-      <p>Kelola daftar region untuk integrasi tour dan laporan.</p>
+      <h1>🌍 Manajemen Region</h1>
+      <div class="theme-switch">
+        <label><input type="checkbox" id="themeSwitch" /> 🌙 Mode</label>
+      </div>
     </header>
 
-    <!-- 🔹 FORM TAMBAH / EDIT REGION -->
-    <section class="form-section">
-      <h3 id="formTitle">Tambah Region</h3>
-      <form id="regionForm">
-        <div class="form-grid">
-          <div>
-            <label for="regionName">Nama Region</label>
-            <input type="text" id="regionName" required placeholder="Masukkan nama region" />
-          </div>
-        </div>
-        <div style="margin-top: 10px;">
-          <button type="submit" id="saveBtn">💾 Simpan</button>
-          <button type="button" id="resetBtn" class="secondary">🔄 Reset</button>
-        </div>
-        <p id="formMsg" class="message"></p>
-      </form>
-    </section>
+    <!-- Form Tambah Region -->
+    <form id="regionForm">
+      <input id="region_name" name="region_name" placeholder="Nama Region (mis. Asia, Eropa, Amerika)" required />
+      <input id="description" name="description" placeholder="Deskripsi Region" />
+      <button type="submit">Tambah Region</button>
+    </form>
+    <p id="regionMsg"></p>
 
-    <!-- 🔹 DAFTAR REGION -->
-    <section class="table-section">
-      <h3>Daftar Region</h3>
-      <table id="regionTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nama Region</th>
-            <th>Dibuat</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+    <!-- Tabel Region -->
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nama Region</th>
+          <th>Deskripsi</th>
+          <th>Dibuat</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="regionTableBody"></tbody>
+    </table>
   </main>
-
-  <!-- ===================================================== -->
-  <!-- ⚙️ SCRIPT -->
-  <!-- ===================================================== -->
-  <script>
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    if (!token || (role !== "admin" && role !== "semiadmin")) {
-      alert("Akses ditolak! Halaman ini hanya untuk Admin / SemiAdmin.");
-      window.location.href = "dashboard.html";
-    }
-
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + token,
-    };
-
-    const regionForm = document.getElementById("regionForm");
-    const regionTable = document.querySelector("#regionTable tbody");
-    const formMsg = document.getElementById("formMsg");
-    const formTitle = document.getElementById("formTitle");
-    const saveBtn = document.getElementById("saveBtn");
-    const resetBtn = document.getElementById("resetBtn");
-
-    let editId = null;
-
-    // =====================================================
-    // 🧭 LOAD REGIONS
-    // =====================================================
-    async function loadRegions() {
-      try {
-        const res = await fetch("/api/regions", { headers });
-        const data = await res.json();
-
-        regionTable.innerHTML = data.map(r => `
-          <tr>
-            <td>${r.id}</td>
-            <td>${r.name}</td>
-            <td>${new Date(r.created_at).toLocaleString("id-ID")}</td>
-            <td>
-              <button onclick="editRegion(${r.id}, '${r.name}')">✏️ Edit</button>
-              <button class="danger" onclick="deleteRegion(${r.id})">🗑️ Hapus</button>
-            </td>
-          </tr>
-        `).join("");
-      } catch (err) {
-        console.error("❌ Gagal load region:", err);
-        formMsg.textContent = "Gagal memuat data region.";
-      }
-    }
-
-    // =====================================================
-    // 💾 SAVE / UPDATE REGION
-    // =====================================================
-    regionForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const name = document.getElementById("regionName").value.trim();
-      if (!name) {
-        formMsg.textContent = "Nama region wajib diisi.";
-        formMsg.style.color = "red";
-        return;
-      }
-
-      try {
-        const method = editId ? "PUT" : "POST";
-        const url = editId ? `/api/regions/${editId}` : "/api/regions";
-
-        const res = await fetch(url, {
-          method,
-          headers,
-          body: JSON.stringify({ name }),
-        });
-
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message);
-
-        formMsg.textContent = result.message;
-        formMsg.style.color = "green";
-        regionForm.reset();
-        editId = null;
-        formTitle.textContent = "Tambah Region";
-        saveBtn.textContent = "💾 Simpan";
-        loadRegions();
-      } catch (err) {
-        formMsg.textContent = err.message || "Gagal menyimpan region.";
-        formMsg.style.color = "red";
-      }
-    });
-
-    // =====================================================
-    // ✏️ EDIT REGION
-    // =====================================================
-    window.editRegion = function(id, name) {
-      editId = id;
-      document.getElementById("regionName").value = name;
-      formTitle.textContent = "Edit Region";
-      saveBtn.textContent = "💾 Update";
-      formMsg.textContent = "";
-    };
-
-    // =====================================================
-    // 🗑️ DELETE REGION
-    // =====================================================
-    window.deleteRegion = async function(id) {
-      if (!confirm("Yakin ingin menghapus region ini?")) return;
-
-      try {
-        const res = await fetch(`/api/regions/${id}`, {
-          method: "DELETE",
-          headers,
-        });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message);
-        alert("✅ " + result.message);
-        loadRegions();
-      } catch (err) {
-        console.error("❌ Delete region error:", err);
-        alert("❌ Gagal menghapus region.");
-      }
-    };
-
-    // =====================================================
-    // 🔄 RESET FORM
-    // =====================================================
-    resetBtn.addEventListener("click", () => {
-      editId = null;
-      regionForm.reset();
-      formTitle.textContent = "Tambah Region";
-      saveBtn.textContent = "💾 Simpan";
-      formMsg.textContent = "";
-    });
-
-    // 🚀 INIT
-    loadRegions();
-  </script>
 </body>
 </html>
