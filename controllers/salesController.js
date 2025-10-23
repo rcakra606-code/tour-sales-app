@@ -1,184 +1,73 @@
 // ==========================================================
-// 💰 Sales Controller — Travel Dashboard Enterprise v5.4.6
+// 💰 Sales Controller — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
 
-import pkg from "pg";
-const { Pool } = pkg;
+import { pool } from "../server.js";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-// ==========================================================
-// 🔹 GET /api/sales — Ambil Semua Data Sales
-// ==========================================================
+// ===== GET ALL SALES =====
 export async function getSales(req, res) {
   try {
-    const { staff, month } = req.query;
-    let filters = [];
-    let values = [];
-    let i = 1;
+    const role = req.user.role;
+    const staffName = req.user.staff_name;
+    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
+    const params = role === "staff" ? [staffName] : [];
 
-    if (staff) {
-      filters.push(`LOWER(staff_name) = LOWER($${i})`);
-      values.push(staff);
-      i++;
-    }
-
-    if (month) {
-      filters.push(`TO_CHAR(transaction_date, 'YYYY-MM') = $${i}`);
-      values.push(month);
-      i++;
-    }
-
-    const whereClause = filters.length ? "WHERE " + filters.join(" AND ") : "";
-
-    const query = `
-      SELECT id, transaction_date, invoice_number, staff_name, client_name,
-             sales_amount, profit_amount, category, tour_code, notes
+    const result = await pool.query(
+      `
+      SELECT 
+        id, transaction_date, invoice_number, customer_name, 
+        sales_category, sales_amount, profit_amount, staff_name, created_at
       FROM sales
       ${whereClause}
-      ORDER BY transaction_date DESC;
-    `;
+      ORDER BY transaction_date DESC
+      `,
+      params
+    );
 
-    const { rows } = await pool.query(query, values);
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error("❌ GET sales error:", err);
     res.status(500).json({ message: "Gagal memuat data sales." });
   }
 }
 
-// ==========================================================
-// 🔹 GET /api/sales/:id — Ambil Data Sales Berdasarkan ID
-// ==========================================================
-export async function getSaleById(req, res) {
-  try {
-    const { id } = req.params;
-    const query = `SELECT * FROM sales WHERE id = $1;`;
-    const { rows } = await pool.query(query, [id]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Data sales tidak ditemukan." });
-    }
-
-    res.json(rows[0]);
-  } catch (err) {
-    console.error("❌ Get sale by ID error:", err);
-    res.status(500).json({ message: "Gagal mengambil data sales." });
-  }
-}
-
-// ==========================================================
-// 🔹 POST /api/sales — Tambah Data Sales Baru
-// ==========================================================
+// ===== CREATE SALES =====
 export async function createSale(req, res) {
   try {
-    const {
-      transaction_date,
-      invoice_number,
-      staff_name,
-      client_name,
-      sales_amount,
-      profit_amount,
-      category,
-      tour_code,
-      notes,
-    } = req.body;
+    const data = req.body;
+    const staffName = req.user.role === "staff" ? req.user.staff_name : data.staff_name;
 
-    const query = `
+    await pool.query(
+      `
       INSERT INTO sales (
-        transaction_date, invoice_number, staff_name, client_name,
-        sales_amount, profit_amount, category, tour_code, notes
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-      RETURNING id;
-    `;
+        transaction_date, invoice_number, customer_name, 
+        sales_category, sales_amount, profit_amount, staff_name
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `,
+      [
+        data.transaction_date || null,
+        data.invoice_number || "",
+        data.customer_name || "",
+        data.sales_category || "",
+        parseFloat(data.sales_amount || 0),
+        parseFloat(data.profit_amount || 0),
+        staffName || ""
+      ]
+    );
 
-    const values = [
-      transaction_date || null,
-      invoice_number || null,
-      staff_name || null,
-      client_name || null,
-      parseFloat(sales_amount) || 0,
-      parseFloat(profit_amount) || 0,
-      category || null,
-      tour_code || null,
-      notes || null,
-    ];
-
-    await pool.query(query, values);
-    res.json({ message: "Data sales berhasil ditambahkan." });
+    res.json({ message: "Data sales berhasil disimpan." });
   } catch (err) {
     console.error("❌ Create sales error:", err);
-    res.status(500).json({ message: "Gagal menambah data sales." });
+    res.status(500).json({ message: "Gagal menyimpan data sales." });
   }
 }
 
-// ==========================================================
-// 🔹 PUT /api/sales/:id — Update Data Sales
-// ==========================================================
-export async function updateSale(req, res) {
-  try {
-    const { id } = req.params;
-    const {
-      transaction_date,
-      invoice_number,
-      staff_name,
-      client_name,
-      sales_amount,
-      profit_amount,
-      category,
-      tour_code,
-      notes,
-    } = req.body;
-
-    const query = `
-      UPDATE sales
-      SET transaction_date=$1, invoice_number=$2, staff_name=$3, client_name=$4,
-          sales_amount=$5, profit_amount=$6, category=$7, tour_code=$8, notes=$9
-      WHERE id=$10
-      RETURNING id;
-    `;
-
-    const values = [
-      transaction_date || null,
-      invoice_number || null,
-      staff_name || null,
-      client_name || null,
-      parseFloat(sales_amount) || 0,
-      parseFloat(profit_amount) || 0,
-      category || null,
-      tour_code || null,
-      notes || null,
-      id,
-    ];
-
-    const result = await pool.query(query, values);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Data sales tidak ditemukan." });
-    }
-
-    res.json({ message: "Data sales berhasil diperbarui." });
-  } catch (err) {
-    console.error("❌ Update sales error:", err);
-    res.status(500).json({ message: "Gagal memperbarui data sales." });
-  }
-}
-
-// ==========================================================
-// 🔹 DELETE /api/sales/:id — Hapus Data Sales
-// ==========================================================
+// ===== DELETE SALES =====
 export async function deleteSale(req, res) {
   try {
     const { id } = req.params;
-    const query = `DELETE FROM sales WHERE id = $1;`;
-    const result = await pool.query(query, [id]);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: "Data sales tidak ditemukan." });
-    }
-
+    await pool.query("DELETE FROM sales WHERE id = $1", [id]);
     res.json({ message: "Data sales berhasil dihapus." });
   } catch (err) {
     console.error("❌ Delete sales error:", err);
