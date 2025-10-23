@@ -1,20 +1,11 @@
-// ==========================================================
-// 📑 Report Document Routes — Travel Dashboard Enterprise v5.4.6
-// ==========================================================
 import express from "express";
-import { authenticate, authorize } from "../middleware/authMiddleware.js";
-import {
-  getDocuments,
-  createDocument,
-  updateDocument,
-  deleteDocument,
-} from "../controllers/reportDocumentController.js";
+import { getAllDocuments, addDocument, deleteDocument } from "../controllers/reportDocumentController.js";
+import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", authenticate, getDocuments);
-router.post("/", authenticate, authorize(["admin", "semiadmin", "staff"]), createDocument);
-router.put("/:id", authenticate, authorize(["admin", "semiadmin"]), updateDocument);
-router.delete("/:id", authenticate, authorize(["admin"]), deleteDocument);
+router.get("/", authenticate, getAllDocuments);
+router.post("/", authenticate, addDocument);
+router.delete("/:id", authenticate, deleteDocument);
 
 export default router;
