@@ -11,26 +11,83 @@
 
 <body class="light-mode">
   <!-- Sidebar -->
-  <aside id="sidebar" class="sidebar">
-    <div class="sidebar-header">
-      <h2>Travel Dashboard</h2>
-      <button id="toggleSidebar">☰</button>
-    </div>
-    <nav>
-      <ul>
-        <li><a href="dashboard.html">🏠 Dashboard</a></li>
-        <li><a href="report_tour.html">✈️ Report Tour</a></li>
-        <li><a href="report_sales.html">💰 Report Sales</a></li>
-        <li><a href="report_document.html">📑 Report Document</a></li>
-        <li><a href="region_management.html">🌍 Region Management</a></li>
-        <li><a href="target_management.html">🎯 Target Management</a></li>
-        <li><a href="executive-dashboard.html">👔 Executive Dashboard</a></li>
-        <li><a href="user-management.html" class="active">👥 User Management</a></li>
-        <li><a href="profile.html">👤 Profile</a></li>
-        <li><a href="logout.html">🚪 Logout</a></li>
-      </ul>
-    </nav>
-  </aside>
+  <!-- ===================================================== -->
+<!-- 🧭 Sidebar Navigation — Travel Dashboard v5.5 -->
+<!-- ===================================================== -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h2>TravelDashboard</h2>
+    <button data-toggle="sidebar" title="Toggle Sidebar">☰</button>
+  </div>
+
+  <nav>
+    <ul>
+      <li>
+        <a href="dashboard.html">
+          <span>🏠</span>
+          <span>Dashboard</span>
+        </a>
+      </li>
+
+      <li class="has-children">
+        <a href="#">
+          <span>📊</span>
+          <span>Reports</span>
+        </a>
+        <ul>
+          <li><a href="report_tour.html">Tour Report</a></li>
+          <li><a href="report_sales.html">Sales Report</a></li>
+          <li><a href="report_document.html">Document Report</a></li>
+        </ul>
+      </li>
+
+      <li class="has-children">
+        <a href="#">
+          <span>⚙️</span>
+          <span>Management</span>
+        </a>
+        <ul>
+          <li><a href="user-management.html">User Management</a></li>
+          <li><a href="region_management.html">Region Management</a></li>
+          <li><a href="target_management.html">Target Management</a></li>
+          <li><a href="tour_form.html">Tour Management</a></li>
+        </ul>
+      </li>
+
+      <li class="has-children">
+        <a href="#">
+          <span>💼</span>
+          <span>Executive</span>
+        </a>
+        <ul>
+          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="audit_log.html">Audit Log</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="profile.html">
+          <span>👤</span>
+          <span>Profile</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="logout.html">
+          <span>🚪</span>
+          <span>Logout</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="theme-switch">
+    <label>
+      <input type="checkbox" id="themeSwitch" />
+      🌙 Dark Mode
+    </label>
+  </div>
+</aside>
 
   <!-- Main -->
   <main>
