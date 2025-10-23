@@ -1,133 +1,97 @@
 // ==========================================================
-// 📈 Executive Dashboard v5.3.4
-// Combined Monthly Performance & Target Tracking
+// 👔 Executive Dashboard JS — Travel Dashboard Enterprise v5.4.9
 // ==========================================================
+
 document.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("token");
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  if (!token || token === "undefined") return (window.location.href = "/login.html");
-
-  // Hanya admin & semiadmin yang boleh akses
-  if (!["admin", "semiadmin"].includes(user.role)) {
-    alert("❌ Hanya Admin atau Semi Admin yang dapat mengakses halaman ini.");
-    return (window.location.href = "/dashboard.html");
-  }
-
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-  document.getElementById("year").textContent = new Date().getFullYear();
-  document.getElementById("activeUser").textContent = `${user.staff_name || user.username} (${user.role})`;
+  if (!token) return (window.location.href = "login.html");
 
   try {
-    const [monthlyRes, targetRes, profitRes] = await Promise.all([
-      fetch("/api/executive/monthly-performance", { headers }),
-      fetch("/api/executive/sales-targets", { headers }),
-      fetch("/api/executive/profit-trend", { headers }),
-    ]);
+    // ===== STAFF PERFORMANCE =====
+    const staffRes = await fetch("/api/executive/staff-performance", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const staffData = await staffRes.json();
 
-    const monthlyData = await monthlyRes.json();
+    const ctxStaff = document.getElementById("staffChart");
+    new Chart(ctxStaff, {
+      type: "bar",
+      data: {
+        labels: staffData.map(s => s.staff_name || "Tidak diketahui"),
+        datasets: [
+          {
+            label: "Sales",
+            data: staffData.map(s => s.total_sales),
+            backgroundColor: "#2563eb"
+          },
+          {
+            label: "Profit",
+            data: staffData.map(s => s.total_profit),
+            backgroundColor: "#10b981"
+          }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    });
+
+    // ===== TARGET PROGRESS =====
+    const targetRes = await fetch("/api/executive/target-progress", {
+      headers: { Authorization: "Bearer " + token }
+    });
     const targetData = await targetRes.json();
-    const profitData = await profitRes.json();
 
-    renderMonthlyPerformance(monthlyData);
-    renderSalesTarget(targetData);
-    renderProfitTrend(profitData);
+    const ctxTarget = document.getElementById("targetProgressChart");
+    new Chart(ctxTarget, {
+      type: "bar",
+      data: {
+        labels: targetData.map(t => t.staff_name),
+        datasets: [
+          {
+            label: "Target Sales",
+            data: targetData.map(t => t.target_sales),
+            backgroundColor: "#94a3b8"
+          },
+          {
+            label: "Actual Sales",
+            data: targetData.map(t => t.actual_sales),
+            backgroundColor: "#2563eb"
+          }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    });
+
+    // ===== MONTHLY PERFORMANCE =====
+    const monthlyRes = await fetch("/api/executive/monthly-performance", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const monthlyData = await monthlyRes.json();
+
+    const ctxMonthly = document.getElementById("monthlyChart");
+    new Chart(ctxMonthly, {
+      type: "line",
+      data: {
+        labels: monthlyData.map(m => new Date(m.month).toLocaleString("id-ID", { month: "short", year: "numeric" })),
+        datasets: [
+          {
+            label: "Sales",
+            data: monthlyData.map(m => m.total_sales),
+            borderColor: "#2563eb",
+            fill: false,
+            tension: 0.1
+          },
+          {
+            label: "Profit",
+            data: monthlyData.map(m => m.total_profit),
+            borderColor: "#10b981",
+            fill: false,
+            tension: 0.1
+          }
+        ]
+      },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    });
   } catch (err) {
-    console.error("❌ Error loading executive data:", err);
+    console.error("❌ Executive dashboard error:", err);
   }
 });
-
-// Monthly performance chart
-function renderMonthlyPerformance(data) {
-  const ctx = document.getElementById("monthlyPerformanceChart");
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: data.months || [],
-      datasets: [
-        {
-          label: "Total Sales",
-          data: data.sales || [],
-          backgroundColor: "#004b99",
-        },
-        {
-          label: "Total Profit",
-          data: data.profit || [],
-          backgroundColor: "#0a66c2",
-        },
-        {
-          label: "Total Tours",
-          data: data.tours || [],
-          backgroundColor: "#ffc107",
-        },
-      ],
-    },
-    options: {
-      plugins: {
-        legend: { position: "bottom" },
-      },
-      scales: {
-        y: { beginAtZero: true },
-      },
-    },
-  });
-}
-
-// Sales target vs actual
-function renderSalesTarget(data) {
-  const ctx = document.getElementById("targetChart");
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: data.staffs || [],
-      datasets: [
-        {
-          label: "Target Sales",
-          data: data.targetSales || [],
-          backgroundColor: "#6c757d",
-        },
-        {
-          label: "Actual Sales",
-          data: data.actualSales || [],
-          backgroundColor: "#28a745",
-        },
-      ],
-    },
-    options: {
-      plugins: {
-        legend: { position: "bottom" },
-      },
-      scales: {
-        y: { beginAtZero: true },
-      },
-    },
-  });
-}
-
-// Profit trend (line)
-function renderProfitTrend(data) {
-  const ctx = document.getElementById("profitChart");
-  new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: data.months || [],
-      datasets: [
-        {
-          label: "Total Profit",
-          data: data.profit || [],
-          borderColor: "#0a66c2",
-          backgroundColor: "rgba(10, 102, 194, 0.3)",
-          tension: 0.3,
-          fill: true,
-        },
-      ],
-    },
-    options: {
-      plugins: {
-        legend: { position: "bottom" },
-      },
-      scales: {
-        y: { beginAtZero: true },
-      },
-    },
-  });
-}
