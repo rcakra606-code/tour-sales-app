@@ -115,19 +115,13 @@ async function main() {
           region_id INT REFERENCES regions(id),
           departure_date DATE,
           booking_code VARCHAR(100),
-          tour_price NUMERIC DEFAULT 0,
           discount_remarks TEXT,
           payment_proof TEXT,
           document_received BOOLEAN DEFAULT false,
           visa_process_start DATE,
-          visa_process_end DATE,
-          document_remarks TEXT,
           staff_name VARCHAR(150),
           sales_amount NUMERIC DEFAULT 0,
           profit_amount NUMERIC DEFAULT 0,
-          departure_status VARCHAR(50) DEFAULT 'PENDING',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
       `);
 
       await client.query(`
@@ -837,4 +831,10 @@ echo "Next steps:"
 echo "  git push origin $BRANCH"
 echo "  review & merge to main"
 echo ""
-echo "If you want me to produce the raw .patch content here, tell me and I'll print it out."
+echo "If you want me to produce the raw .patch content here, tell me and I'll print it out."          departure_status VARCHAR(50) DEFAULT 'PENDING',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+          visa_process_end DATE,
+          document_remarks TEXT,
+

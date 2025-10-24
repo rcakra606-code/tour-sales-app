@@ -1,139 +1,99 @@
-// public/js/ui.js — v5.7 Corporate Blue
-// ✅ Sidebar (2 toggle) + Dark mode (sidebar only)
-// ✅ Auto JWT refresh & redirect to login on expiry
-// ✅ Active link sync
-
 (function(){
   "use strict";
-
   const body = document.body;
-  const sidebar = document.querySelector(".sidebar");
-  const sideToggleBtns = document.querySelectorAll("[data-toggle='sidebar']");
-  const themeCheckbox = document.getElementById("themeSwitch");
   const SIDEBAR_KEY = "td_sidebar_state";
   const THEME_KEY = "td_theme_mode";
   const TOKEN_KEY = "token";
   const REFRESH_KEY = "refreshToken";
 
-  // ===== Helper =====
-  function safe(fn){ try{ fn(); }catch(e){} }
-  function toast(msg,type='info',t=3000){
-    const tw = document.getElementById('toastWrap');
-    if(!tw) return;
-    const el=document.createElement('div');
-    el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
-    el.textContent=msg;
-    tw.appendChild(el);
-    setTimeout(()=>el.remove(),t);
-  }
-
-  // ===== Sidebar =====
-  safe(()=>{
-    const s = localStorage.getItem(SIDEBAR_KEY);
-    if(s==='collapsed') sidebar?.classList.add("collapsed");
-  });
-
-  sideToggleBtns.forEach(btn=>{
-    btn.addEventListener("click", e=>{
+  // sidebar toggle (buttons with data-toggle="sidebar")
+  document.querySelectorAll('[data-toggle="sidebar"]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
       e.preventDefault();
-      sidebar?.classList.toggle("collapsed");
-      localStorage.setItem(SIDEBAR_KEY, sidebar?.classList.contains("collapsed") ? "collapsed" : "expanded");
+      const sidebar = document.querySelector('.sidebar');
+      if(!sidebar) return;
+      sidebar.classList.toggle('collapsed');
+      localStorage.setItem(SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
     });
   });
 
-  // ===== Submenu expand =====
-  safe(()=>{
-    document.querySelectorAll(".has-children > a").forEach(a=>{
-      a.addEventListener("click", e=>{
-        e.preventDefault();
-        const p=a.parentElement;
-        p.classList.toggle("expanded");
-      });
+  // restore sidebar state
+  try{
+    const s = localStorage.getItem(SIDEBAR_KEY);
+    if(s==='collapsed'){ document.querySelectorAll('.sidebar').forEach(sb=>sb.classList.add('collapsed')); }
+  }catch(e){}
+
+  // theme switch (element with id themeSwitch inside sidebar)
+  const themeSwitch = document.getElementById('themeSwitch');
+  try{
+    const mode = localStorage.getItem(THEME_KEY) || 'light';
+    if(mode==='dark') document.documentElement.classList.add('theme-dark');
+    if(themeSwitch) themeSwitch.checked = (mode==='dark');
+    if(themeSwitch) themeSwitch.addEventListener('change', ()=>{
+      if(themeSwitch.checked){ document.documentElement.classList.add('theme-dark'); localStorage.setItem(THEME_KEY,'dark'); }
+      else { document.documentElement.classList.remove('theme-dark'); localStorage.setItem(THEME_KEY,'light'); }
     });
-  });
+  }catch(e){}
 
-  // ===== Theme toggle (sidebar only) =====
-  safe(()=>{
-    const mode = localStorage.getItem(THEME_KEY);
-    if(mode==='dark') body.classList.add("theme-dark");
-    if(themeCheckbox){
-      themeCheckbox.checked = mode==='dark';
-      themeCheckbox.addEventListener("change",()=>{
-        if(themeCheckbox.checked){
-          body.classList.add("theme-dark");
-          localStorage.setItem(THEME_KEY,"dark");
-        }else{
-          body.classList.remove("theme-dark");
-          localStorage.setItem(THEME_KEY,"light");
-        }
-      });
-    }
-  });
+  // current user indicator (.current-user)
+  (async function showCurrentUser(){
+    const nodes = document.querySelectorAll('.current-user');
+    if(nodes.length===0) return;
+    const token = localStorage.getItem(TOKEN_KEY);
+    if(!token) return;
+    try{
+      const res = await fetch('/api/profile', { headers: { Authorization: 'Bearer '+token }});
+      if(!res.ok) return;
+      const u = await res.json();
+      nodes.forEach(n => n.textContent = `👤 ${u.staff_name || u.username} (${u.role})`);
+    }catch(e){}
+  })();
 
-  // ===== Active link sync =====
-  safe(()=>{
-    const current = location.pathname.split("/").pop();
-    document.querySelectorAll(".sidebar nav a").forEach(a=>{
-      const h=a.getAttribute("href")||"";
-      if(h.endsWith(current)) a.classList.add("active");
-      else a.classList.remove("active");
-    });
-  });
-
-  // ===== JWT Handling =====
+  // secureFetch with refresh attempt
   async function refreshToken(){
     const rt = localStorage.getItem(REFRESH_KEY);
     if(!rt) return false;
     try{
-      const res = await fetch("/api/auth/refresh", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ refreshToken: rt })
       });
       const data = await res.json();
-      if(!res.ok) throw new Error(data.message || "Refresh gagal");
+      if(!res.ok) return false;
       localStorage.setItem(TOKEN_KEY, data.token);
       if(data.refreshToken) localStorage.setItem(REFRESH_KEY, data.refreshToken);
       return true;
     }catch(e){
-      console.warn("Token refresh gagal:", e);
       return false;
     }
   }
 
-  // Wrapper untuk fetch() agar auto-refresh token
-  window.secureFetch = async function(url, options={}){
-    const token = localStorage.getItem(TOKEN_KEY);
+  window.secureFetch = async function(url, options = {}){
     options.headers = options.headers || {};
-    if(token) options.headers["Authorization"] = "Bearer " + token;
-
+    const token = localStorage.getItem(TOKEN_KEY);
+    if(token) options.headers['Authorization'] = 'Bearer ' + token;
     let res = await fetch(url, options);
-    if(res.status===401){
-      console.warn("Token expired, mencoba refresh...");
+    if(res.status === 401){
       const ok = await refreshToken();
       if(ok){
-        const newToken = localStorage.getItem(TOKEN_KEY);
-        options.headers["Authorization"] = "Bearer " + newToken;
-        res = await fetch(url, options); // ulang sekali
-      }else{
-        toast("Sesi Anda telah berakhir","error");
+        options.headers['Authorization'] = 'Bearer ' + localStorage.getItem(TOKEN_KEY);
+        res = await fetch(url, options);
+      } else {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(REFRESH_KEY);
-        setTimeout(()=>location.href="login.html",1200);
+        location.href = 'login.html';
       }
     }
     return res;
   };
 
-  // ===== Auto redirect ke login jika tidak ada token =====
-  safe(()=>{
-    const page = location.pathname.split("/").pop();
-    const isAuthPage = ["login.html","logout.html","index.html"].includes(page);
-    const token = localStorage.getItem(TOKEN_KEY);
-    if(!token && !isAuthPage){
-      location.href = "login.html";
+  // redirect to login if no token and not on login page
+  try{
+    const page = location.pathname.split('/').pop();
+    const whitelisted = ['login.html','index.html',''];
+    if(!whitelisted.includes(page) && !localStorage.getItem(TOKEN_KEY)) {
+      location.href = 'login.html';
     }
-  });
-
-  console.log("✅ UI Core Loaded v5.7");
+  }catch(e){}
 })();

@@ -8,7 +8,8 @@
     "start": "node server.js",
     "verify": "node scripts/verify-deploy.js",
     "auto-reset": "node scripts/autoResetAndSeed.js",
-    "setup-admin": "node scripts/setup-admin.js"
+    "setup-admin": "node scripts/setup-admin.js",
+    "postinstall": "node scripts/initDatabase.js || true"
   },
   "engines": {
     "node": ">=22.0.0"

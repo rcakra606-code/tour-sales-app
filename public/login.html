@@ -1,100 +1,60 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Login | Travel Dashboard</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <title>Login — Travel Dashboard</title>
+  <meta name="description" content="Travel Dashboard — Login" />
+  <link rel="stylesheet" href="./css/style.css">
 </head>
-<body>
-  <div class="app">
-    <!-- Sidebar (minimal) -->
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="brand">TravelDashboard</div>
-        <button class="btn-compact" data-toggle="sidebar">☰</button>
-      </div>
-      <nav>
-        <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="login.html" class="active">Login</a></li>
-        </ul>
-      </nav>
-      <div class="theme-area">
-        <label style="display:inline-flex;align-items:center;gap:8px">
-          <input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode
-        </label>
-      </div>
-    </aside>
-
-    <!-- Main -->
-    <main>
-      <div class="login-wrap">
-        <div class="login-card card">
-          <h2 class="center">Selamat Datang</h2>
-          <p class="center note">Masuk ke sistem Travel Dashboard</p>
-
-          <form id="loginForm">
-            <div class="form-row">
-              <label for="username">Username</label>
-              <input id="username" name="username" type="text" placeholder="Masukkan username" required />
-            </div>
-            <div class="form-row">
-              <label for="password">Password</label>
-              <input id="password" name="password" type="password" placeholder="Masukkan password" required />
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn primary submit" style="width:100%">LOGIN</button>
-            </div>
-            <p id="loginMessage" class="note center"></p>
-          </form>
+<body class="page-login">
+  <main class="center-page">
+    <div class="card login-card">
+      <h2>Masuk</h2>
+      <p class="muted">Masuk untuk mengakses dashboard</p>
+      <form id="loginForm">
+        <div class="form-grid">
+          <label>Username</label>
+          <input id="username" name="username" type="text" required placeholder="username" />
+          <label>Password</label>
+          <input id="password" name="password" type="password" required placeholder="password" />
         </div>
-      </div>
-
-      <footer>© 2025 Travel Dashboard Enterprise</footer>
-    </main>
-  </div>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Login</button>
+        </div>
+        <p id="loginMessage" class="muted center"></p>
+      </form>
+    </div>
+  </main>
 
   <div class="toast-wrap" id="toastWrap"></div>
   <script src="./js/ui.js"></script>
   <script>
     const toastWrap = document.getElementById("toastWrap");
-    const toast = (msg, type="info", t=3200) => {
-      const el = document.createElement("div");
-      el.className = "toast " + (type === "success" ? "success" : type === "error" ? "error" : "info");
-      el.textContent = msg;
-      toastWrap.appendChild(el);
-      setTimeout(() => el.remove(), t);
+    const toast = (m,t='info',d=3000) => {
+      const el=document.createElement('div'); el.className='toast '+t; el.textContent=m; toastWrap.appendChild(el);
+      setTimeout(()=>el.remove(),d);
     };
 
-    const form = document.getElementById("loginForm");
-    form.addEventListener("submit", async (e) => {
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
-
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
       try {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ username: u, password: p })
         });
-
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || "Login gagal");
-
-        // Simpan token & refresh token
-        localStorage.setItem("token", data.token);
-        if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
-
-        toast("Login berhasil", "success");
-        setTimeout(() => {
-          window.location.href = "dashboard.html";
-        }, 600);
-      } catch (err) {
-        toast(err.message, "error");
-        document.getElementById("loginMessage").textContent = err.message;
+        if (!res.ok) throw new Error(data.message || 'Login gagal');
+        localStorage.setItem('token', data.token);
+        if(data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+        toast('Login berhasil','success',1500);
+        setTimeout(()=>location.href='dashboard.html',600);
+      } catch(err) {
+        document.getElementById('loginMessage').textContent = err.message;
+        toast(err.message,'error',3500);
       }
     });
   </script>

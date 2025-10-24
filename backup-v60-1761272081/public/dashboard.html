@@ -1,48 +1,51 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Dashboard — Travel Dashboard</title>
-  <meta name="description" content="Travel Dashboard — Executive Summary" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard | Travel Dashboard</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
   <div class="app">
+    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="brand">TravelDashboard</div>
         <button class="btn-compact" data-toggle="sidebar">☰</button>
       </div>
-
       <nav>
         <ul>
           <li><a href="dashboard.html" class="active">Dashboard</a></li>
-          <li class="has-children"><a href="#">Reports</a>
+          <li class="has-children expanded">
+            <a href="#">Reports</a>
             <ul>
-              <li><a href="report_tour.html">Report Tour</a></li>
-              <li><a href="report_sales.html">Report Sales</a></li>
-              <li><a href="report_document.html">Report Document</a></li>
+              <li><a href="report_tour.html">Tour Report</a></li>
+              <li><a href="report_sales.html">Sales Report</a></li>
+              <li><a href="report_document.html">Document Report</a></li>
             </ul>
           </li>
-          <li class="has-children"><a href="#">Management</a>
+          <li class="has-children">
+            <a href="#">Management</a>
             <ul>
               <li><a href="user-management.html">User Management</a></li>
               <li><a href="region_management.html">Region Management</a></li>
               <li><a href="target_management.html">Target Management</a></li>
+              <li><a href="tour_form.html">Tour Management</a></li>
             </ul>
           </li>
           <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+          <li><a href="audit_log.html">Audit Log</a></li>
           <li><a href="profile.html">Profile</a></li>
           <li><a href="logout.html">Logout</a></li>
         </ul>
       </nav>
-
       <div class="theme-area">
         <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
       </div>
     </aside>
 
+    <!-- MAIN -->
     <main>
       <div class="header">
         <div class="left">
@@ -50,24 +53,34 @@
           <h1>Dashboard</h1>
         </div>
         <div class="right">
-          <span class="current-user"></span>
+          <span id="currentUser" class="note"></span>
         </div>
       </div>
 
+      <!-- SUMMARY -->
       <section class="card">
-        <h2>Ringkasan</h2>
+        <h2>Ringkasan Utama</h2>
         <div id="summaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
       </section>
 
+      <!-- PERFORMANCE -->
       <section class="card">
         <h2>Performa Bulanan</h2>
         <canvas id="dashboardChart" height="180"></canvas>
       </section>
 
+      <!-- TABLE -->
       <section class="card">
         <h2>Aktivitas Terbaru</h2>
         <table class="table" id="recentTable">
-          <thead><tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th>Staff</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Kategori</th>
+              <th>Deskripsi</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
           <tbody></tbody>
         </table>
       </section>

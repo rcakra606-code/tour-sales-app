@@ -1,49 +1,22 @@
-// ==========================================================
-// 🌍 Region Controller — Travel Dashboard Enterprise v5.4.9
-// ==========================================================
+import db from "../config/database.js";
 
-import { pool } from "../server.js";
-
-// ===== GET ALL REGIONS =====
-export async function getRegions(req, res) {
-  try {
-    const result = await pool.query(
-      "SELECT id, region_name, description, created_at FROM regions ORDER BY region_name ASC"
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ GET regions error:", err);
-    res.status(500).json({ message: "Gagal memuat data region." });
+export async function getRegions(req, res){
+  try{
+    const q = await db.query("SELECT id, name FROM regions ORDER BY name ASC");
+    res.json(q.rows);
+  }catch(err){
+    console.error("GET regions error:", err);
+    res.status(500).json({ message: "Gagal mengambil regions" });
   }
 }
 
-// ===== CREATE REGION =====
-export async function createRegion(req, res) {
-  try {
-    const { region_name, description } = req.body;
-    if (!region_name)
-      return res.status(400).json({ message: "Nama region wajib diisi." });
-
-    await pool.query(
-      "INSERT INTO regions (region_name, description) VALUES ($1, $2)",
-      [region_name, description || ""]
-    );
-
-    res.json({ message: "Region berhasil ditambahkan." });
-  } catch (err) {
-    console.error("❌ Create region error:", err);
-    res.status(500).json({ message: "Gagal menambahkan region." });
-  }
-}
-
-// ===== DELETE REGION =====
-export async function deleteRegion(req, res) {
-  try {
-    const { id } = req.params;
-    await pool.query("DELETE FROM regions WHERE id = $1", [id]);
-    res.json({ message: "Region berhasil dihapus." });
-  } catch (err) {
-    console.error("❌ Delete region error:", err);
-    res.status(500).json({ message: "Gagal menghapus region." });
+export async function createRegion(req, res){
+  try{
+    const { code, name } = req.body;
+    const q = await db.query("INSERT INTO regions (code, name) VALUES ($1,$2) RETURNING *", [code || null, name]);
+    res.json(q.rows[0]);
+  }catch(err){
+    console.error("Create region error:", err);
+    res.status(500).json({ message: "Gagal membuat region" });
   }
 }
