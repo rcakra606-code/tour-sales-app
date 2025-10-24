@@ -1,0 +1,3056 @@
+From 7d2efda8e0eb9271e7c421df1fe1c94f2b88d34d Mon Sep 17 00:00:00 2001
+From: rcakra606-code <rcakra606@gmail.com>
+Date: Fri, 24 Oct 2025 09:14:45 +0700
+Subject: [PATCH] v6.0: full UI rebuild + backend sync (initDatabase,
+ controllers, public)
+
+---
+ apply_v6_patch.sh                             |  14 +-
+ .../controllers/dashboardController.js        | 125 ++++++
+ .../controllers/profileController.js          |  69 +++
+ .../controllers/regionController.js           |  49 ++
+ .../controllers/tourController.js             |  94 ++++
+ backup-v60-1761272081/public/css/style.css    | 357 +++++++++++++++
+ backup-v60-1761272081/public/dashboard.html   |  97 ++++
+ backup-v60-1761272081/public/js/dashboard.js  | 129 ++++++
+ backup-v60-1761272081/public/js/ui.js         | 139 ++++++
+ backup-v60-1761272081/public/login.html       | 102 +++++
+ controllers/dashboardController.js            | 135 +-----
+ controllers/executiveReportController.js      |  33 ++
+ controllers/profileController.js              |  94 ++--
+ controllers/regionController.js               |  59 +--
+ controllers/tourController.js                 | 131 ++----
+ package.json                                  |   3 +-
+ public/css/style.css                          | 418 +++---------------
+ public/dashboard.html                         |  45 +-
+ public/js/dashboard.js                        | 155 ++-----
+ public/js/ui.js                               | 154 +++----
+ public/login.html                             | 122 ++---
+ routes/executiveReport.js                     |  10 +
+ scripts/initDatabase.js                       | 147 ++++++
+ 23 files changed, 1677 insertions(+), 1004 deletions(-)
+ create mode 100644 backup-v60-1761272081/controllers/dashboardController.js
+ create mode 100644 backup-v60-1761272081/controllers/profileController.js
+ create mode 100644 backup-v60-1761272081/controllers/regionController.js
+ create mode 100644 backup-v60-1761272081/controllers/tourController.js
+ create mode 100644 backup-v60-1761272081/public/css/style.css
+ create mode 100644 backup-v60-1761272081/public/dashboard.html
+ create mode 100644 backup-v60-1761272081/public/js/dashboard.js
+ create mode 100644 backup-v60-1761272081/public/js/ui.js
+ create mode 100644 backup-v60-1761272081/public/login.html
+ create mode 100644 controllers/executiveReportController.js
+ create mode 100644 routes/executiveReport.js
+ create mode 100644 scripts/initDatabase.js
+
+diff --git a/apply_v6_patch.sh b/apply_v6_patch.sh
+index e8079ce..4aeb4db 100644
+--- a/apply_v6_patch.sh
++++ b/apply_v6_patch.sh
+@@ -115,19 +115,13 @@ async function main() {
+           region_id INT REFERENCES regions(id),
+           departure_date DATE,
+           booking_code VARCHAR(100),
+-          tour_price NUMERIC DEFAULT 0,
+           discount_remarks TEXT,
+           payment_proof TEXT,
+           document_received BOOLEAN DEFAULT false,
+           visa_process_start DATE,
+-          visa_process_end DATE,
+-          document_remarks TEXT,
+           staff_name VARCHAR(150),
+           sales_amount NUMERIC DEFAULT 0,
+           profit_amount NUMERIC DEFAULT 0,
+-          departure_status VARCHAR(50) DEFAULT 'PENDING',
+-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-        );
+       `);
+ 
+       await client.query(`
+@@ -837,4 +831,10 @@ echo "Next steps:"
+ echo "  git push origin $BRANCH"
+ echo "  review & merge to main"
+ echo ""
+-echo "If you want me to produce the raw .patch content here, tell me and I'll print it out."
+\ No newline at end of file
++echo "If you want me to produce the raw .patch content here, tell me and I'll print it out."          departure_status VARCHAR(50) DEFAULT 'PENDING',
++          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
++        );
++
++          visa_process_end DATE,
++          document_remarks TEXT,
++
+diff --git a/backup-v60-1761272081/controllers/dashboardController.js b/backup-v60-1761272081/controllers/dashboardController.js
+new file mode 100644
+index 0000000..07ed422
+--- /dev/null
++++ b/backup-v60-1761272081/controllers/dashboardController.js
+@@ -0,0 +1,125 @@
++// ==========================================================
++// 📊 Dashboard Controller — Travel Dashboard Enterprise v5.4.9
++// ==========================================================
++
++import { pool } from "../server.js";
++
++// ===== DASHBOARD SUMMARY =====
++export async function getDashboardSummary(req, res) {
++  try {
++    const role = req.user.role;
++    const staffName = req.user.staff_name;
++    const currentMonth = new Date().getMonth() + 1;
++    const currentYear = new Date().getFullYear();
++
++    let whereClause = "";
++    let params = [];
++
++    if (role === "staff") {
++      whereClause = "WHERE staff_name = $1";
++      params = [staffName];
++    }
++
++    const tourQuery = `
++      SELECT COUNT(*) AS total_tours, 
++             COALESCE(SUM(sales_amount), 0) AS total_sales, 
++             COALESCE(SUM(profit_amount), 0) AS total_profit 
++      FROM tours ${whereClause};
++    `;
++    const salesQuery = `
++      SELECT COUNT(*) AS total_sales_records,
++             COALESCE(SUM(sales_amount), 0) AS total_sales_amount,
++             COALESCE(SUM(profit_amount), 0) AS total_profit_amount
++      FROM sales ${whereClause};
++    `;
++    const targetQuery = `
++      SELECT target_sales, target_profit 
++      FROM targets 
++      ${role === "staff" ? "WHERE staff_name = $1" : ""}
++      AND month = $2 AND year = $3
++      LIMIT 1;
++    `;
++
++    const [tourRes, salesRes, targetRes] = await Promise.all([
++      pool.query(tourQuery, params),
++      pool.query(salesQuery, params),
++      pool.query(
++        role === "staff"
++          ? targetQuery
++          : "SELECT COALESCE(SUM(target_sales),0) AS target_sales, COALESCE(SUM(target_profit),0) AS target_profit FROM targets WHERE month=$1 AND year=$2",
++        role === "staff" ? [staffName, currentMonth, currentYear] : [currentMonth, currentYear]
++      ),
++    ]);
++
++    const tour = tourRes.rows[0];
++    const sales = salesRes.rows[0];
++    const target = targetRes.rows[0] || { target_sales: 0, target_profit: 0 };
++
++    const totalSales = parseFloat(tour.total_sales || 0) + parseFloat(sales.total_sales_amount || 0);
++    const totalProfit = parseFloat(tour.total_profit || 0) + parseFloat(sales.total_profit_amount || 0);
++
++    const progressSales =
++      target.target_sales > 0 ? (totalSales / target.target_sales) * 100 : 0;
++    const progressProfit =
++      target.target_profit > 0 ? (totalProfit / target.target_profit) * 100 : 0;
++
++    res.json({
++      total_tours: parseInt(tour.total_tours || 0),
++      total_sales: totalSales.toFixed(2),
++      total_profit: totalProfit.toFixed(2),
++      target_sales: target.target_sales,
++      target_profit: target.target_profit,
++      progress_sales: progressSales.toFixed(2),
++      progress_profit: progressProfit.toFixed(2),
++    });
++  } catch (err) {
++    console.error("❌ Dashboard summary error:", err);
++    res.status(500).json({ message: "Gagal memuat ringkasan dashboard." });
++  }
++}
++
++// ===== REGION STATS (TOUR PER REGION) =====
++export async function getTourRegionStats(req, res) {
++  try {
++    const role = req.user.role;
++    const staffName = req.user.staff_name;
++    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
++    const params = role === "staff" ? [staffName] : [];
++
++    const result = await pool.query(
++      `
++      SELECT region, COUNT(*) AS total_tour, COALESCE(SUM(sales_amount), 0) AS total_sales
++      FROM tours
++      ${whereClause}
++      GROUP BY region
++      ORDER BY total_tour DESC
++      `,
++      params
++    );
++
++    res.json(result.rows);
++  } catch (err) {
++    console.error("❌ Dashboard region stats error:", err);
++    res.status(500).json({ message: "Gagal memuat data tour per region." });
++  }
++}
++
++// ===== MONTHLY PERFORMANCE (FOR CHART) =====
++export async function getMonthlyPerformance(req, res) {
++  try {
++    const result = await pool.query(`
++      SELECT 
++        TO_CHAR(transaction_date, 'YYYY-MM') AS month,
++        SUM(sales_amount) AS total_sales,
++        SUM(profit_amount) AS total_profit
++      FROM sales
++      WHERE transaction_date IS NOT NULL
++      GROUP BY 1
++      ORDER BY month ASC;
++    `);
++    res.json(result.rows);
++  } catch (err) {
++    console.error("❌ Monthly performance error:", err);
++    res.status(500).json({ message: "Gagal memuat performa bulanan." });
++  }
++}
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/controllers/profileController.js b/backup-v60-1761272081/controllers/profileController.js
+new file mode 100644
+index 0000000..07e0029
+--- /dev/null
++++ b/backup-v60-1761272081/controllers/profileController.js
+@@ -0,0 +1,69 @@
++// ==========================================================
++// 👤 Profile Controller — Travel Dashboard Enterprise v5.5
++// ==========================================================
++
++import bcrypt from "bcryptjs";
++import { pool } from "../server.js";
++
++// ===== GET PROFILE (data user yang sedang login) =====
++export async function getProfile(req, res) {
++  try {
++    const userId = req.user?.id;
++    if (!userId)
++      return res.status(401).json({ message: "Token tidak valid atau kadaluarsa." });
++
++    const result = await pool.query(
++      "SELECT id, username, staff_name, role, created_at FROM users WHERE id = $1",
++      [userId]
++    );
++
++    if (result.rows.length === 0)
++      return res.status(404).json({ message: "User tidak ditemukan." });
++
++    res.json(result.rows[0]);
++  } catch (err) {
++    console.error("❌ Get profile error:", err);
++    res.status(500).json({ message: "Gagal memuat data profil." });
++  }
++}
++
++// ===== UPDATE PROFILE (nama staff atau password) =====
++export async function updateProfile(req, res) {
++  try {
++    const userId = req.user?.id;
++    const { staff_name, password } = req.body;
++
++    if (!userId)
++      return res.status(401).json({ message: "Token tidak valid atau kadaluarsa." });
++
++    const updates = [];
++    const params = [];
++    let paramIndex = 1;
++
++    if (staff_name) {
++      updates.push(`staff_name = $${paramIndex++}`);
++      params.push(staff_name);
++    }
++
++    if (password) {
++      const hashedPassword = await bcrypt.hash(password, 10);
++      updates.push(`password_hash = $${paramIndex++}`);
++      params.push(hashedPassword);
++    }
++
++    if (updates.length === 0)
++      return res.status(400).json({ message: "Tidak ada data yang diperbarui." });
++
++    params.push(userId);
++
++    await pool.query(
++      `UPDATE users SET ${updates.join(", ")} WHERE id = $${paramIndex}`,
++      params
++    );
++
++    res.json({ message: "Profil berhasil diperbarui." });
++  } catch (err) {
++    console.error("❌ Update profile error:", err);
++    res.status(500).json({ message: "Gagal memperbarui profil." });
++  }
++}
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/controllers/regionController.js b/backup-v60-1761272081/controllers/regionController.js
+new file mode 100644
+index 0000000..d8ec1dd
+--- /dev/null
++++ b/backup-v60-1761272081/controllers/regionController.js
+@@ -0,0 +1,49 @@
++// ==========================================================
++// 🌍 Region Controller — Travel Dashboard Enterprise v5.4.9
++// ==========================================================
++
++import { pool } from "../server.js";
++
++// ===== GET ALL REGIONS =====
++export async function getRegions(req, res) {
++  try {
++    const result = await pool.query(
++      "SELECT id, region_name, description, created_at FROM regions ORDER BY region_name ASC"
++    );
++    res.json(result.rows);
++  } catch (err) {
++    console.error("❌ GET regions error:", err);
++    res.status(500).json({ message: "Gagal memuat data region." });
++  }
++}
++
++// ===== CREATE REGION =====
++export async function createRegion(req, res) {
++  try {
++    const { region_name, description } = req.body;
++    if (!region_name)
++      return res.status(400).json({ message: "Nama region wajib diisi." });
++
++    await pool.query(
++      "INSERT INTO regions (region_name, description) VALUES ($1, $2)",
++      [region_name, description || ""]
++    );
++
++    res.json({ message: "Region berhasil ditambahkan." });
++  } catch (err) {
++    console.error("❌ Create region error:", err);
++    res.status(500).json({ message: "Gagal menambahkan region." });
++  }
++}
++
++// ===== DELETE REGION =====
++export async function deleteRegion(req, res) {
++  try {
++    const { id } = req.params;
++    await pool.query("DELETE FROM regions WHERE id = $1", [id]);
++    res.json({ message: "Region berhasil dihapus." });
++  } catch (err) {
++    console.error("❌ Delete region error:", err);
++    res.status(500).json({ message: "Gagal menghapus region." });
++  }
++}
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/controllers/tourController.js b/backup-v60-1761272081/controllers/tourController.js
+new file mode 100644
+index 0000000..026f16c
+--- /dev/null
++++ b/backup-v60-1761272081/controllers/tourController.js
+@@ -0,0 +1,94 @@
++// ==========================================================
++// ✈️ Tour Controller — Travel Dashboard Enterprise v5.4.9
++// ==========================================================
++
++import { pool } from "../server.js";
++
++// ===== GET ALL TOURS =====
++export async function getTours(req, res) {
++  try {
++    const role = req.user.role;
++    const staffName = req.user.staff_name;
++    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
++    const params = role === "staff" ? [staffName] : [];
++
++    const result = await pool.query(
++      `
++      SELECT 
++        id, registration_date, lead_passenger, all_passengers,
++        tour_code, region, departure_date, booking_code,
++        tour_price, discount_remarks, payment_proof,
++        document_received, visa_process_start, visa_process_end,
++        document_remarks, staff_name, sales_amount, profit_amount,
++        departure_status, created_at
++      FROM tours
++      ${whereClause}
++      ORDER BY registration_date DESC
++      `,
++      params
++    );
++
++    res.json(result.rows);
++  } catch (err) {
++    console.error("❌ GET tours error:", err);
++    res.status(500).json({ message: "Gagal memuat data tour." });
++  }
++}
++
++// ===== CREATE TOUR =====
++export async function createTour(req, res) {
++  try {
++    const data = req.body;
++
++    await pool.query(
++      `
++      INSERT INTO tours (
++        registration_date, lead_passenger, all_passengers,
++        tour_code, region, departure_date, booking_code,
++        tour_price, discount_remarks, payment_proof,
++        document_received, visa_process_start, visa_process_end,
++        document_remarks, staff_name, sales_amount, profit_amount,
++        departure_status
++      )
++      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
++      `,
++      [
++        data.registration_date || data.registrationDate || null,
++        data.lead_passenger || data.leadPassenger || "",
++        data.all_passengers || data.allPassengers || "",
++        data.tour_code || data.tourCode || "",
++        data.region || "",
++        data.departure_date || data.departureDate || null,
++        data.booking_code || data.bookingCode || "",
++        parseFloat(data.tour_price || data.tourPrice || 0),
++        data.discount_remarks || data.discountRemarks || "",
++        data.payment_proof || data.paymentProof || "",
++        data.document_received || data.documentReceived || null,
++        data.visa_process_start || data.visaProcessStart || null,
++        data.visa_process_end || data.visaProcessEnd || null,
++        data.document_remarks || data.documentRemarks || "",
++        data.staff_name || data.staff || req.user.staff_name,
++        parseFloat(data.sales_amount || data.salesAmount || 0),
++        parseFloat(data.profit_amount || data.profitAmount || 0),
++        data.departure_status || data.departureStatus || "PENDING"
++      ]
++    );
++
++    res.json({ message: "Data tour berhasil disimpan." });
++  } catch (err) {
++    console.error("❌ Create tour error:", err);
++    res.status(500).json({ message: "Gagal menyimpan data tour." });
++  }
++}
++
++// ===== DELETE TOUR =====
++export async function deleteTour(req, res) {
++  try {
++    const { id } = req.params;
++    await pool.query("DELETE FROM tours WHERE id = $1", [id]);
++    res.json({ message: "Data tour berhasil dihapus." });
++  } catch (err) {
++    console.error("❌ Delete tour error:", err);
++    res.status(500).json({ message: "Gagal menghapus data tour." });
++  }
++}
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/public/css/style.css b/backup-v60-1761272081/public/css/style.css
+new file mode 100644
+index 0000000..e032a58
+--- /dev/null
++++ b/backup-v60-1761272081/public/css/style.css
+@@ -0,0 +1,357 @@
++/* =====================================================
++   Travel Dashboard Enterprise - Corporate Blue Theme v5.8
++   ===================================================== */
++
++/* === CSS Variables === */
++:root {
++  --accent: #0077cc;
++  --accent-light: #0090e0;
++  --accent-dark: #005fa3;
++  --bg: #f5f7fa;
++  --card-bg: #ffffff;
++  --text: #222;
++  --text-light: #555;
++  --border: #d8dde3;
++  --shadow: 0 2px 6px rgba(0,0,0,0.08);
++  --radius: 10px;
++  --transition: all 0.3s ease;
++}
++
++/* === Dark Mode === */
++body.theme-dark {
++  --bg: #1e1f24;
++  --card-bg: #2a2c33;
++  --text: #e9e9e9;
++  --text-light: #bbb;
++  --border: #3d4049;
++  --shadow: 0 2px 6px rgba(0,0,0,0.4);
++}
++
++/* === Base === */
++* {
++  box-sizing: border-box;
++  margin: 0;
++  padding: 0;
++}
++
++body {
++  font-family: "Inter", sans-serif;
++  background: var(--bg);
++  color: var(--text);
++  transition: var(--transition);
++  min-height: 100vh;
++}
++
++/* === Layout === */
++.app {
++  display: flex;
++  min-height: 100vh;
++}
++
++main {
++  flex: 1;
++  padding: 24px;
++  overflow-y: auto;
++}
++
++/* === Sidebar === */
++.sidebar {
++  width: 240px;
++  background: var(--card-bg);
++  border-right: 1px solid var(--border);
++  box-shadow: var(--shadow);
++  display: flex;
++  flex-direction: column;
++  transition: var(--transition);
++}
++
++.sidebar.collapsed {
++  width: 70px;
++}
++
++.sidebar-header {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  padding: 16px;
++  font-weight: 600;
++  font-size: 1.1rem;
++  color: var(--accent);
++}
++
++.sidebar .brand {
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++
++.sidebar nav ul {
++  list-style: none;
++  padding: 0;
++  margin: 0;
++}
++
++.sidebar nav li {
++  border-bottom: 1px solid var(--border);
++}
++
++.sidebar nav a {
++  display: block;
++  padding: 12px 18px;
++  color: var(--text);
++  text-decoration: none;
++  transition: var(--transition);
++}
++
++.sidebar nav a:hover,
++.sidebar nav a.active {
++  background: var(--accent);
++  color: #fff;
++}
++
++.sidebar.collapsed nav a {
++  text-align: center;
++  font-size: 0.9rem;
++}
++
++.sidebar .has-children > ul {
++  display: none;
++  background: var(--bg);
++}
++
++.sidebar .has-children.expanded > ul {
++  display: block;
++}
++
++.theme-area {
++  padding: 14px;
++  margin-top: auto;
++  font-size: 0.9rem;
++  color: var(--text-light);
++  border-top: 1px solid var(--border);
++}
++
++/* === Header === */
++.header {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  margin-bottom: 18px;
++}
++
++.header .left h1 {
++  font-size: 1.4rem;
++  font-weight: 600;
++  color: var(--accent-dark);
++}
++
++.toggle {
++  background: var(--accent);
++  border: none;
++  color: #fff;
++  font-size: 1.2rem;
++  border-radius: var(--radius);
++  padding: 6px 10px;
++  cursor: pointer;
++}
++
++/* === Card === */
++.card {
++  background: var(--card-bg);
++  border: 1px solid var(--border);
++  border-radius: var(--radius);
++  box-shadow: var(--shadow);
++  padding: 20px;
++  margin-bottom: 20px;
++}
++
++.card h2 {
++  font-size: 1.2rem;
++  color: var(--accent-dark);
++  margin-bottom: 14px;
++}
++
++/* === Form === */
++.form-grid {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
++  gap: 16px 20px;
++}
++
++.form-row {
++  display: flex;
++  flex-direction: column;
++}
++
++.form-row.full-row {
++  grid-column: 1 / -1;
++}
++
++.form-row label {
++  font-weight: 600;
++  font-size: 0.9rem;
++  color: var(--text-light);
++  margin-bottom: 6px;
++}
++
++.form-row input,
++.form-row select,
++.form-row textarea {
++  border: 1px solid var(--border);
++  border-radius: var(--radius);
++  padding: 10px;
++  font-size: 0.95rem;
++  background: var(--bg);
++  color: var(--text);
++  transition: var(--transition);
++}
++
++.form-row input:focus,
++.form-row select:focus,
++.form-row textarea:focus {
++  border-color: var(--accent);
++  outline: none;
++  background: #fff;
++}
++
++.form-actions {
++  display: flex;
++  gap: 10px;
++  justify-content: flex-end;
++  margin-top: 10px;
++}
++
++/* === Buttons === */
++.btn {
++  padding: 10px 16px;
++  border-radius: var(--radius);
++  border: none;
++  cursor: pointer;
++  font-weight: 600;
++  transition: var(--transition);
++}
++
++.btn.primary {
++  background: var(--accent);
++  color: #fff;
++}
++
++.btn.primary:hover {
++  background: var(--accent-dark);
++}
++
++.btn.secondary {
++  background: #e8edf2;
++  color: var(--accent-dark);
++}
++
++.btn.secondary:hover {
++  background: var(--accent-light);
++  color: #fff;
++}
++
++/* === Tables === */
++.table {
++  width: 100%;
++  border-collapse: collapse;
++  font-size: 0.95rem;
++}
++
++.table thead {
++  background: var(--accent);
++  color: #fff;
++}
++
++.table th,
++.table td {
++  border: 1px solid var(--border);
++  padding: 10px;
++  text-align: left;
++}
++
++.table tbody tr:hover {
++  background: rgba(0,119,204,0.08);
++}
++
++/* === Login Page === */
++.login-wrap {
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  height: 90vh;
++}
++
++.login-card {
++  width: 100%;
++  max-width: 380px;
++  background: var(--card-bg);
++  border-radius: var(--radius);
++  box-shadow: var(--shadow);
++  padding: 26px;
++}
++
++.login-card h2 {
++  color: var(--accent-dark);
++  margin-bottom: 10px;
++  text-align: center;
++}
++
++.note {
++  text-align: center;
++  font-size: 0.9rem;
++  color: var(--text-light);
++  margin-bottom: 20px;
++}
++
++/* === Toast === */
++.toast-wrap {
++  position: fixed;
++  top: 20px;
++  right: 20px;
++  z-index: 9999;
++  display: flex;
++  flex-direction: column;
++  gap: 10px;
++}
++
++.toast {
++  padding: 12px 16px;
++  border-radius: var(--radius);
++  box-shadow: var(--shadow);
++  color: #fff;
++  font-size: 0.9rem;
++  animation: fadeInUp 0.3s ease;
++}
++
++.toast.info { background: var(--accent-light); }
++.toast.success { background: #2ecc71; }
++.toast.error { background: #e74c3c; }
++
++@keyframes fadeInUp {
++  from { opacity: 0; transform: translateY(10px); }
++  to { opacity: 1; transform: translateY(0); }
++}
++
++/* === Footer === */
++footer {
++  margin-top: 30px;
++  text-align: center;
++  font-size: 0.85rem;
++  color: var(--text-light);
++}
++
++/* === Responsive === */
++@media (max-width: 768px) {
++  .sidebar {
++    position: fixed;
++    z-index: 999;
++    height: 100%;
++    left: -240px;
++  }
++  .sidebar.expanded {
++    left: 0;
++  }
++  main {
++    padding: 16px;
++  }
++}
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/public/dashboard.html b/backup-v60-1761272081/public/dashboard.html
+new file mode 100644
+index 0000000..d421522
+--- /dev/null
++++ b/backup-v60-1761272081/public/dashboard.html
+@@ -0,0 +1,97 @@
++<!DOCTYPE html>
++<html lang="id">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width,initial-scale=1" />
++  <title>Dashboard | Travel Dashboard</title>
++  <link rel="stylesheet" href="./css/style.css" />
++</head>
++<body>
++  <div class="app">
++    <!-- SIDEBAR -->
++    <aside class="sidebar">
++      <div class="sidebar-header">
++        <div class="brand">TravelDashboard</div>
++        <button class="btn-compact" data-toggle="sidebar">☰</button>
++      </div>
++      <nav>
++        <ul>
++          <li><a href="dashboard.html" class="active">Dashboard</a></li>
++          <li class="has-children expanded">
++            <a href="#">Reports</a>
++            <ul>
++              <li><a href="report_tour.html">Tour Report</a></li>
++              <li><a href="report_sales.html">Sales Report</a></li>
++              <li><a href="report_document.html">Document Report</a></li>
++            </ul>
++          </li>
++          <li class="has-children">
++            <a href="#">Management</a>
++            <ul>
++              <li><a href="user-management.html">User Management</a></li>
++              <li><a href="region_management.html">Region Management</a></li>
++              <li><a href="target_management.html">Target Management</a></li>
++              <li><a href="tour_form.html">Tour Management</a></li>
++            </ul>
++          </li>
++          <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
++          <li><a href="audit_log.html">Audit Log</a></li>
++          <li><a href="profile.html">Profile</a></li>
++          <li><a href="logout.html">Logout</a></li>
++        </ul>
++      </nav>
++      <div class="theme-area">
++        <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
++      </div>
++    </aside>
++
++    <!-- MAIN -->
++    <main>
++      <div class="header">
++        <div class="left">
++          <button class="toggle" data-toggle="sidebar">☰</button>
++          <h1>Dashboard</h1>
++        </div>
++        <div class="right">
++          <span id="currentUser" class="note"></span>
++        </div>
++      </div>
++
++      <!-- SUMMARY -->
++      <section class="card">
++        <h2>Ringkasan Utama</h2>
++        <div id="summaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
++      </section>
++
++      <!-- PERFORMANCE -->
++      <section class="card">
++        <h2>Performa Bulanan</h2>
++        <canvas id="dashboardChart" height="180"></canvas>
++      </section>
++
++      <!-- TABLE -->
++      <section class="card">
++        <h2>Aktivitas Terbaru</h2>
++        <table class="table" id="recentTable">
++          <thead>
++            <tr>
++              <th>Tanggal</th>
++              <th>Kategori</th>
++              <th>Deskripsi</th>
++              <th>Staff</th>
++            </tr>
++          </thead>
++          <tbody></tbody>
++        </table>
++      </section>
++
++      <footer>© 2025 Travel Dashboard Enterprise</footer>
++    </main>
++  </div>
++
++  <div class="toast-wrap" id="toastWrap"></div>
++  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
++  <script src="./js/ui.js"></script>
++  <script src="./js/dashboard.js"></script>
++</body>
++</html>
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/public/js/dashboard.js b/backup-v60-1761272081/public/js/dashboard.js
+new file mode 100644
+index 0000000..508d234
+--- /dev/null
++++ b/backup-v60-1761272081/public/js/dashboard.js
+@@ -0,0 +1,129 @@
++// ==========================================================
++// 📊 Dashboard JS — Travel Dashboard Enterprise v5.4.9
++// ==========================================================
++
++document.addEventListener("DOMContentLoaded", async () => {
++  const token = localStorage.getItem("token");
++  if (!token) return (window.location.href = "login.html");
++
++  const headers = {
++    "Content-Type": "application/json",
++    Authorization: `Bearer ${token}`,
++  };
++
++  const summaryEl = document.getElementById("dashboard-summary");
++  const regionChartEl = document.getElementById("regionChart");
++  const performanceChartEl = document.getElementById("performanceChart");
++
++  try {
++    // === LOAD DASHBOARD SUMMARY ===
++    const resSummary = await fetch("/api/dashboard/summary", { headers });
++    if (resSummary.status === 401) {
++      alert("Sesi telah berakhir, silakan login kembali.");
++      localStorage.removeItem("token");
++      return (window.location.href = "login.html");
++    }
++
++    const summary = await resSummary.json();
++
++    if (summaryEl) {
++      summaryEl.innerHTML = `
++        <div class="summary-grid">
++          <div class="summary-card">
++            <h3>✈️ Total Tour</h3>
++            <p>${summary.total_tours}</p>
++          </div>
++          <div class="summary-card">
++            <h3>💰 Total Sales</h3>
++            <p>Rp ${parseFloat(summary.total_sales).toLocaleString("id-ID")}</p>
++          </div>
++          <div class="summary-card">
++            <h3>📈 Total Profit</h3>
++            <p>Rp ${parseFloat(summary.total_profit).toLocaleString("id-ID")}</p>
++          </div>
++          <div class="summary-card">
++            <h3>🎯 Target Sales</h3>
++            <p>Rp ${parseFloat(summary.target_sales).toLocaleString("id-ID")}</p>
++            <div class="progress-bar">
++              <div class="progress-fill" style="width:${summary.progress_sales}%"></div>
++            </div>
++            <small>${summary.progress_sales}% tercapai</small>
++          </div>
++          <div class="summary-card">
++            <h3>🎯 Target Profit</h3>
++            <p>Rp ${parseFloat(summary.target_profit).toLocaleString("id-ID")}</p>
++            <div class="progress-bar profit">
++              <div class="progress-fill" style="width:${summary.progress_profit}%"></div>
++            </div>
++            <small>${summary.progress_profit}% tercapai</small>
++          </div>
++        </div>
++      `;
++    }
++
++    // === LOAD TOUR REGION STATS ===
++    const resRegion = await fetch("/api/dashboard/tour-region", { headers });
++    const regionData = await resRegion.json();
++
++    if (regionChartEl && regionData.length > 0) {
++      const ctx = regionChartEl.getContext("2d");
++      new Chart(ctx, {
++        type: "bar",
++        data: {
++          labels: regionData.map((r) => r.region),
++          datasets: [
++            {
++              label: "Jumlah Tour",
++              data: regionData.map((r) => r.total_tour),
++            },
++          ],
++        },
++        options: {
++          responsive: true,
++          scales: { y: { beginAtZero: true } },
++        },
++      });
++    }
++
++    // === LOAD MONTHLY PERFORMANCE CHART ===
++    const resPerf = await fetch("/api/dashboard/monthly-performance", { headers });
++    const perfData = await resPerf.json();
++
++    if (performanceChartEl && perfData.length > 0) {
++      const ctxPerf = performanceChartEl.getContext("2d");
++      new Chart(ctxPerf, {
++        type: "line",
++        data: {
++          labels: perfData.map((p) => p.month),
++          datasets: [
++            {
++              label: "Total Sales",
++              data: perfData.map((p) => parseFloat(p.total_sales)),
++              borderWidth: 2,
++              borderColor: "#3b82f6",
++              tension: 0.3,
++            },
++            {
++              label: "Total Profit",
++              data: perfData.map((p) => parseFloat(p.total_profit)),
++              borderWidth: 2,
++              borderColor: "#16a34a",
++              tension: 0.3,
++            },
++          ],
++        },
++        options: {
++          responsive: true,
++          plugins: {
++            legend: { position: "bottom" },
++          },
++        },
++      });
++    }
++  } catch (err) {
++    console.error("❌ Dashboard load error:", err);
++    if (summaryEl)
++      summaryEl.innerHTML =
++        "<p style='color:red'>Gagal memuat data dashboard.</p>";
++  }
++});
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/public/js/ui.js b/backup-v60-1761272081/public/js/ui.js
+new file mode 100644
+index 0000000..1bc48e4
+--- /dev/null
++++ b/backup-v60-1761272081/public/js/ui.js
+@@ -0,0 +1,139 @@
++// public/js/ui.js — v5.7 Corporate Blue
++// ✅ Sidebar (2 toggle) + Dark mode (sidebar only)
++// ✅ Auto JWT refresh & redirect to login on expiry
++// ✅ Active link sync
++
++(function(){
++  "use strict";
++
++  const body = document.body;
++  const sidebar = document.querySelector(".sidebar");
++  const sideToggleBtns = document.querySelectorAll("[data-toggle='sidebar']");
++  const themeCheckbox = document.getElementById("themeSwitch");
++  const SIDEBAR_KEY = "td_sidebar_state";
++  const THEME_KEY = "td_theme_mode";
++  const TOKEN_KEY = "token";
++  const REFRESH_KEY = "refreshToken";
++
++  // ===== Helper =====
++  function safe(fn){ try{ fn(); }catch(e){} }
++  function toast(msg,type='info',t=3000){
++    const tw = document.getElementById('toastWrap');
++    if(!tw) return;
++    const el=document.createElement('div');
++    el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
++    el.textContent=msg;
++    tw.appendChild(el);
++    setTimeout(()=>el.remove(),t);
++  }
++
++  // ===== Sidebar =====
++  safe(()=>{
++    const s = localStorage.getItem(SIDEBAR_KEY);
++    if(s==='collapsed') sidebar?.classList.add("collapsed");
++  });
++
++  sideToggleBtns.forEach(btn=>{
++    btn.addEventListener("click", e=>{
++      e.preventDefault();
++      sidebar?.classList.toggle("collapsed");
++      localStorage.setItem(SIDEBAR_KEY, sidebar?.classList.contains("collapsed") ? "collapsed" : "expanded");
++    });
++  });
++
++  // ===== Submenu expand =====
++  safe(()=>{
++    document.querySelectorAll(".has-children > a").forEach(a=>{
++      a.addEventListener("click", e=>{
++        e.preventDefault();
++        const p=a.parentElement;
++        p.classList.toggle("expanded");
++      });
++    });
++  });
++
++  // ===== Theme toggle (sidebar only) =====
++  safe(()=>{
++    const mode = localStorage.getItem(THEME_KEY);
++    if(mode==='dark') body.classList.add("theme-dark");
++    if(themeCheckbox){
++      themeCheckbox.checked = mode==='dark';
++      themeCheckbox.addEventListener("change",()=>{
++        if(themeCheckbox.checked){
++          body.classList.add("theme-dark");
++          localStorage.setItem(THEME_KEY,"dark");
++        }else{
++          body.classList.remove("theme-dark");
++          localStorage.setItem(THEME_KEY,"light");
++        }
++      });
++    }
++  });
++
++  // ===== Active link sync =====
++  safe(()=>{
++    const current = location.pathname.split("/").pop();
++    document.querySelectorAll(".sidebar nav a").forEach(a=>{
++      const h=a.getAttribute("href")||"";
++      if(h.endsWith(current)) a.classList.add("active");
++      else a.classList.remove("active");
++    });
++  });
++
++  // ===== JWT Handling =====
++  async function refreshToken(){
++    const rt = localStorage.getItem(REFRESH_KEY);
++    if(!rt) return false;
++    try{
++      const res = await fetch("/api/auth/refresh", {
++        method:"POST",
++        headers:{ "Content-Type":"application/json" },
++        body: JSON.stringify({ refreshToken: rt })
++      });
++      const data = await res.json();
++      if(!res.ok) throw new Error(data.message || "Refresh gagal");
++      localStorage.setItem(TOKEN_KEY, data.token);
++      if(data.refreshToken) localStorage.setItem(REFRESH_KEY, data.refreshToken);
++      return true;
++    }catch(e){
++      console.warn("Token refresh gagal:", e);
++      return false;
++    }
++  }
++
++  // Wrapper untuk fetch() agar auto-refresh token
++  window.secureFetch = async function(url, options={}){
++    const token = localStorage.getItem(TOKEN_KEY);
++    options.headers = options.headers || {};
++    if(token) options.headers["Authorization"] = "Bearer " + token;
++
++    let res = await fetch(url, options);
++    if(res.status===401){
++      console.warn("Token expired, mencoba refresh...");
++      const ok = await refreshToken();
++      if(ok){
++        const newToken = localStorage.getItem(TOKEN_KEY);
++        options.headers["Authorization"] = "Bearer " + newToken;
++        res = await fetch(url, options); // ulang sekali
++      }else{
++        toast("Sesi Anda telah berakhir","error");
++        localStorage.removeItem(TOKEN_KEY);
++        localStorage.removeItem(REFRESH_KEY);
++        setTimeout(()=>location.href="login.html",1200);
++      }
++    }
++    return res;
++  };
++
++  // ===== Auto redirect ke login jika tidak ada token =====
++  safe(()=>{
++    const page = location.pathname.split("/").pop();
++    const isAuthPage = ["login.html","logout.html","index.html"].includes(page);
++    const token = localStorage.getItem(TOKEN_KEY);
++    if(!token && !isAuthPage){
++      location.href = "login.html";
++    }
++  });
++
++  console.log("✅ UI Core Loaded v5.7");
++})();
+\ No newline at end of file
+diff --git a/backup-v60-1761272081/public/login.html b/backup-v60-1761272081/public/login.html
+new file mode 100644
+index 0000000..0d4f5e1
+--- /dev/null
++++ b/backup-v60-1761272081/public/login.html
+@@ -0,0 +1,102 @@
++<!DOCTYPE html>
++<html lang="id">
++<head>
++  <meta charset="utf-8" />
++  <meta name="viewport" content="width=device-width,initial-scale=1" />
++  <title>Login | Travel Dashboard</title>
++  <link rel="stylesheet" href="./css/style.css" />
++</head>
++<body>
++  <div class="app">
++    <!-- Sidebar (minimal) -->
++    <aside class="sidebar">
++      <div class="sidebar-header">
++        <div class="brand">TravelDashboard</div>
++        <button class="btn-compact" data-toggle="sidebar">☰</button>
++      </div>
++      <nav>
++        <ul>
++          <li><a href="index.html">Home</a></li>
++          <li><a href="login.html" class="active">Login</a></li>
++        </ul>
++      </nav>
++      <div class="theme-area">
++        <label style="display:inline-flex;align-items:center;gap:8px">
++          <input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode
++        </label>
++      </div>
++    </aside>
++
++    <!-- Main -->
++    <main>
++      <div class="login-wrap">
++        <div class="login-card card">
++          <h2 class="center">Selamat Datang</h2>
++          <p class="center note">Masuk ke sistem Travel Dashboard</p>
++
++          <form id="loginForm">
++            <div class="form-row">
++              <label for="username">Username</label>
++              <input id="username" name="username" type="text" placeholder="Masukkan username" required />
++            </div>
++            <div class="form-row">
++              <label for="password">Password</label>
++              <input id="password" name="password" type="password" placeholder="Masukkan password" required />
++            </div>
++
++            <div class="form-actions">
++              <button type="submit" class="btn primary submit" style="width:100%">LOGIN</button>
++            </div>
++            <p id="loginMessage" class="note center"></p>
++          </form>
++        </div>
++      </div>
++
++      <footer>© 2025 Travel Dashboard Enterprise</footer>
++    </main>
++  </div>
++
++  <div class="toast-wrap" id="toastWrap"></div>
++  <script src="./js/ui.js"></script>
++  <script>
++    const toastWrap = document.getElementById("toastWrap");
++    const toast = (msg, type="info", t=3200) => {
++      const el = document.createElement("div");
++      el.className = "toast " + (type === "success" ? "success" : type === "error" ? "error" : "info");
++      el.textContent = msg;
++      toastWrap.appendChild(el);
++      setTimeout(() => el.remove(), t);
++    };
++
++    const form = document.getElementById("loginForm");
++    form.addEventListener("submit", async (e) => {
++      e.preventDefault();
++      const username = document.getElementById("username").value.trim();
++      const password = document.getElementById("password").value.trim();
++
++      try {
++        const res = await fetch("/api/auth/login", {
++          method: "POST",
++          headers: { "Content-Type": "application/json" },
++          body: JSON.stringify({ username, password }),
++        });
++
++        const data = await res.json();
++        if (!res.ok) throw new Error(data.message || "Login gagal");
++
++        // Simpan token & refresh token
++        localStorage.setItem("token", data.token);
++        if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
++
++        toast("Login berhasil", "success");
++        setTimeout(() => {
++          window.location.href = "dashboard.html";
++        }, 600);
++      } catch (err) {
++        toast(err.message, "error");
++        document.getElementById("loginMessage").textContent = err.message;
++      }
++    });
++  </script>
++</body>
++</html>
+\ No newline at end of file
+diff --git a/controllers/dashboardController.js b/controllers/dashboardController.js
+index 07ed422..6075cbb 100644
+--- a/controllers/dashboardController.js
++++ b/controllers/dashboardController.js
+@@ -1,125 +1,24 @@
+-// ==========================================================
+-// 📊 Dashboard Controller — Travel Dashboard Enterprise v5.4.9
+-// ==========================================================
++import db from "../config/database.js";
+ 
+-import { pool } from "../server.js";
++export async function getDashboardSummary(req, res){
++  try{
++    const totalToursQ = await db.query("SELECT COUNT(*) as cnt FROM tours");
++    const totalSalesQ = await db.query("SELECT COALESCE(SUM(sales_amount),0) as total FROM sales");
++    const totalProfitQ = await db.query("SELECT COALESCE(SUM(profit_amount),0) as total FROM sales");
++    const totalDocsQ = await db.query("SELECT COUNT(*) as cnt FROM documents");
+ 
+-// ===== DASHBOARD SUMMARY =====
+-export async function getDashboardSummary(req, res) {
+-  try {
+-    const role = req.user.role;
+-    const staffName = req.user.staff_name;
+-    const currentMonth = new Date().getMonth() + 1;
+-    const currentYear = new Date().getFullYear();
+-
+-    let whereClause = "";
+-    let params = [];
+-
+-    if (role === "staff") {
+-      whereClause = "WHERE staff_name = $1";
+-      params = [staffName];
+-    }
+-
+-    const tourQuery = `
+-      SELECT COUNT(*) AS total_tours, 
+-             COALESCE(SUM(sales_amount), 0) AS total_sales, 
+-             COALESCE(SUM(profit_amount), 0) AS total_profit 
+-      FROM tours ${whereClause};
+-    `;
+-    const salesQuery = `
+-      SELECT COUNT(*) AS total_sales_records,
+-             COALESCE(SUM(sales_amount), 0) AS total_sales_amount,
+-             COALESCE(SUM(profit_amount), 0) AS total_profit_amount
+-      FROM sales ${whereClause};
+-    `;
+-    const targetQuery = `
+-      SELECT target_sales, target_profit 
+-      FROM targets 
+-      ${role === "staff" ? "WHERE staff_name = $1" : ""}
+-      AND month = $2 AND year = $3
+-      LIMIT 1;
+-    `;
+-
+-    const [tourRes, salesRes, targetRes] = await Promise.all([
+-      pool.query(tourQuery, params),
+-      pool.query(salesQuery, params),
+-      pool.query(
+-        role === "staff"
+-          ? targetQuery
+-          : "SELECT COALESCE(SUM(target_sales),0) AS target_sales, COALESCE(SUM(target_profit),0) AS target_profit FROM targets WHERE month=$1 AND year=$2",
+-        role === "staff" ? [staffName, currentMonth, currentYear] : [currentMonth, currentYear]
+-      ),
+-    ]);
+-
+-    const tour = tourRes.rows[0];
+-    const sales = salesRes.rows[0];
+-    const target = targetRes.rows[0] || { target_sales: 0, target_profit: 0 };
+-
+-    const totalSales = parseFloat(tour.total_sales || 0) + parseFloat(sales.total_sales_amount || 0);
+-    const totalProfit = parseFloat(tour.total_profit || 0) + parseFloat(sales.total_profit_amount || 0);
+-
+-    const progressSales =
+-      target.target_sales > 0 ? (totalSales / target.target_sales) * 100 : 0;
+-    const progressProfit =
+-      target.target_profit > 0 ? (totalProfit / target.target_profit) * 100 : 0;
++    const targetsQ = await db.query("SELECT COALESCE(SUM(sales_target),0) as sales_target, COALESCE(SUM(profit_target),0) as profit_target FROM targets");
+ 
+     res.json({
+-      total_tours: parseInt(tour.total_tours || 0),
+-      total_sales: totalSales.toFixed(2),
+-      total_profit: totalProfit.toFixed(2),
+-      target_sales: target.target_sales,
+-      target_profit: target.target_profit,
+-      progress_sales: progressSales.toFixed(2),
+-      progress_profit: progressProfit.toFixed(2),
++      total_tours: Number(totalToursQ.rows[0].cnt || 0),
++      total_sales: Number(totalSalesQ.rows[0].total || 0),
++      total_profit: Number(totalProfitQ.rows[0].total || 0),
++      total_documents: Number(totalDocsQ.rows[0].cnt || 0),
++      target_sales: Number(targetsQ.rows[0].sales_target || 0),
++      target_profit: Number(targetsQ.rows[0].profit_target || 0)
+     });
+-  } catch (err) {
+-    console.error("❌ Dashboard summary error:", err);
+-    res.status(500).json({ message: "Gagal memuat ringkasan dashboard." });
++  }catch(err){
++    console.error("Dashboard summary error:", err);
++    res.status(500).json({ message: "Gagal memuat summary" });
+   }
+ }
+-
+-// ===== REGION STATS (TOUR PER REGION) =====
+-export async function getTourRegionStats(req, res) {
+-  try {
+-    const role = req.user.role;
+-    const staffName = req.user.staff_name;
+-    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
+-    const params = role === "staff" ? [staffName] : [];
+-
+-    const result = await pool.query(
+-      `
+-      SELECT region, COUNT(*) AS total_tour, COALESCE(SUM(sales_amount), 0) AS total_sales
+-      FROM tours
+-      ${whereClause}
+-      GROUP BY region
+-      ORDER BY total_tour DESC
+-      `,
+-      params
+-    );
+-
+-    res.json(result.rows);
+-  } catch (err) {
+-    console.error("❌ Dashboard region stats error:", err);
+-    res.status(500).json({ message: "Gagal memuat data tour per region." });
+-  }
+-}
+-
+-// ===== MONTHLY PERFORMANCE (FOR CHART) =====
+-export async function getMonthlyPerformance(req, res) {
+-  try {
+-    const result = await pool.query(`
+-      SELECT 
+-        TO_CHAR(transaction_date, 'YYYY-MM') AS month,
+-        SUM(sales_amount) AS total_sales,
+-        SUM(profit_amount) AS total_profit
+-      FROM sales
+-      WHERE transaction_date IS NOT NULL
+-      GROUP BY 1
+-      ORDER BY month ASC;
+-    `);
+-    res.json(result.rows);
+-  } catch (err) {
+-    console.error("❌ Monthly performance error:", err);
+-    res.status(500).json({ message: "Gagal memuat performa bulanan." });
+-  }
+-}
+\ No newline at end of file
+diff --git a/controllers/executiveReportController.js b/controllers/executiveReportController.js
+new file mode 100644
+index 0000000..4462fff
+--- /dev/null
++++ b/controllers/executiveReportController.js
+@@ -0,0 +1,33 @@
++import db from "../config/database.js";
++
++export async function getExecutiveSummary(req,res){
++  try{
++    const summary = await db.query(`
++      SELECT COALESCE(r.name,'(Unknown)') as region, COUNT(t.id) as tours, COALESCE(SUM(t.sales_amount),0) as sales, COALESCE(SUM(t.profit_amount),0) as profit
++      FROM tours t
++      LEFT JOIN regions r ON r.id = t.region_id
++      GROUP BY r.name ORDER BY sales DESC
++    `);
++    res.json(summary.rows);
++  }catch(err){
++    console.error("Executive summary error:", err);
++    res.status(500).json({ message: "Gagal memuat executive summary" });
++  }
++}
++
++export async function getMonthlyPerformance(req,res){
++  try{
++    const year = Number(req.query.year) || (new Date()).getFullYear();
++    const q = await db.query(`
++      SELECT TO_CHAR(COALESCE(transaction_date, created_at), 'Mon') as month,
++        COALESCE(SUM(sales_amount),0) as sales, COALESCE(SUM(profit_amount),0) as profit
++      FROM sales
++      WHERE EXTRACT(YEAR FROM COALESCE(transaction_date, created_at)) = $1
++      GROUP BY 1 ORDER BY date_part('month', COALESCE(transaction_date, created_at))
++    `, [year]);
++    res.json(q.rows);
++  }catch(err){
++    console.error("Monthly performance error:", err);
++    res.status(500).json({ message: "Gagal memuat monthly performance" });
++  }
++}
+diff --git a/controllers/profileController.js b/controllers/profileController.js
+index 07e0029..e70e16c 100644
+--- a/controllers/profileController.js
++++ b/controllers/profileController.js
+@@ -1,69 +1,43 @@
+-// ==========================================================
+-// 👤 Profile Controller — Travel Dashboard Enterprise v5.5
+-// ==========================================================
+-
++import db from "../config/database.js";
+ import bcrypt from "bcryptjs";
+-import { pool } from "../server.js";
+ 
+-// ===== GET PROFILE (data user yang sedang login) =====
+-export async function getProfile(req, res) {
+-  try {
++export async function getProfile(req, res){
++  try{
+     const userId = req.user?.id;
+-    if (!userId)
+-      return res.status(401).json({ message: "Token tidak valid atau kadaluarsa." });
+-
+-    const result = await pool.query(
+-      "SELECT id, username, staff_name, role, created_at FROM users WHERE id = $1",
+-      [userId]
+-    );
+-
+-    if (result.rows.length === 0)
+-      return res.status(404).json({ message: "User tidak ditemukan." });
+-
+-    res.json(result.rows[0]);
+-  } catch (err) {
+-    console.error("❌ Get profile error:", err);
+-    res.status(500).json({ message: "Gagal memuat data profil." });
++    const q = await db.query("SELECT id, username, staff_name, role, created_at FROM users WHERE id=$1", [userId]);
++    res.json(q.rows[0] || null);
++  }catch(err){
++    console.error("GET profile error:", err);
++    res.status(500).json({ message: "Gagal memuat profile" });
+   }
+ }
+ 
+-// ===== UPDATE PROFILE (nama staff atau password) =====
+-export async function updateProfile(req, res) {
+-  try {
++export async function updateProfile(req, res){
++  try{
+     const userId = req.user?.id;
+-    const { staff_name, password } = req.body;
+-
+-    if (!userId)
+-      return res.status(401).json({ message: "Token tidak valid atau kadaluarsa." });
+-
+-    const updates = [];
+-    const params = [];
+-    let paramIndex = 1;
+-
+-    if (staff_name) {
+-      updates.push(`staff_name = $${paramIndex++}`);
+-      params.push(staff_name);
+-    }
+-
+-    if (password) {
+-      const hashedPassword = await bcrypt.hash(password, 10);
+-      updates.push(`password_hash = $${paramIndex++}`);
+-      params.push(hashedPassword);
+-    }
+-
+-    if (updates.length === 0)
+-      return res.status(400).json({ message: "Tidak ada data yang diperbarui." });
+-
+-    params.push(userId);
+-
+-    await pool.query(
+-      `UPDATE users SET ${updates.join(", ")} WHERE id = $${paramIndex}`,
+-      params
+-    );
++    const { staff_name } = req.body;
++    await db.query("UPDATE users SET staff_name=$1 WHERE id=$2", [staff_name, userId]);
++    res.json({ message: "Profil diperbarui" });
++  }catch(err){
++    console.error("UPDATE profile error:", err);
++    res.status(500).json({ message: "Gagal memperbarui profile" });
++  }
++}
+ 
+-    res.json({ message: "Profil berhasil diperbarui." });
+-  } catch (err) {
+-    console.error("❌ Update profile error:", err);
+-    res.status(500).json({ message: "Gagal memperbarui profil." });
++export async function changePassword(req, res){
++  try{
++    const userId = req.user?.id;
++    const { currentPassword, newPassword } = req.body;
++    const q = await db.query("SELECT password_hash FROM users WHERE id=$1", [userId]);
++    if(q.rows.length===0) return res.status(404).json({ message: "User tidak ditemukan" });
++    const hash = q.rows[0].password_hash;
++    const ok = bcrypt.compareSync(currentPassword, hash);
++    if(!ok) return res.status(400).json({ message: "Password lama salah" });
++    const newHash = bcrypt.hashSync(newPassword, 10);
++    await db.query("UPDATE users SET password_hash=$1 WHERE id=$2", [newHash, userId]);
++    res.json({ message: "Password berhasil diubah" });
++  }catch(err){
++    console.error("CHANGE password error:", err);
++    res.status(500).json({ message: "Gagal mengubah password" });
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/controllers/regionController.js b/controllers/regionController.js
+index d8ec1dd..22ea5a6 100644
+--- a/controllers/regionController.js
++++ b/controllers/regionController.js
+@@ -1,49 +1,22 @@
+-// ==========================================================
+-// 🌍 Region Controller — Travel Dashboard Enterprise v5.4.9
+-// ==========================================================
++import db from "../config/database.js";
+ 
+-import { pool } from "../server.js";
+-
+-// ===== GET ALL REGIONS =====
+-export async function getRegions(req, res) {
+-  try {
+-    const result = await pool.query(
+-      "SELECT id, region_name, description, created_at FROM regions ORDER BY region_name ASC"
+-    );
+-    res.json(result.rows);
+-  } catch (err) {
+-    console.error("❌ GET regions error:", err);
+-    res.status(500).json({ message: "Gagal memuat data region." });
++export async function getRegions(req, res){
++  try{
++    const q = await db.query("SELECT id, name FROM regions ORDER BY name ASC");
++    res.json(q.rows);
++  }catch(err){
++    console.error("GET regions error:", err);
++    res.status(500).json({ message: "Gagal mengambil regions" });
+   }
+ }
+ 
+-// ===== CREATE REGION =====
+-export async function createRegion(req, res) {
+-  try {
+-    const { region_name, description } = req.body;
+-    if (!region_name)
+-      return res.status(400).json({ message: "Nama region wajib diisi." });
+-
+-    await pool.query(
+-      "INSERT INTO regions (region_name, description) VALUES ($1, $2)",
+-      [region_name, description || ""]
+-    );
+-
+-    res.json({ message: "Region berhasil ditambahkan." });
+-  } catch (err) {
+-    console.error("❌ Create region error:", err);
+-    res.status(500).json({ message: "Gagal menambahkan region." });
++export async function createRegion(req, res){
++  try{
++    const { code, name } = req.body;
++    const q = await db.query("INSERT INTO regions (code, name) VALUES ($1,$2) RETURNING *", [code || null, name]);
++    res.json(q.rows[0]);
++  }catch(err){
++    console.error("Create region error:", err);
++    res.status(500).json({ message: "Gagal membuat region" });
+   }
+ }
+-
+-// ===== DELETE REGION =====
+-export async function deleteRegion(req, res) {
+-  try {
+-    const { id } = req.params;
+-    await pool.query("DELETE FROM regions WHERE id = $1", [id]);
+-    res.json({ message: "Region berhasil dihapus." });
+-  } catch (err) {
+-    console.error("❌ Delete region error:", err);
+-    res.status(500).json({ message: "Gagal menghapus region." });
+-  }
+-}
+\ No newline at end of file
+diff --git a/controllers/tourController.js b/controllers/tourController.js
+index 026f16c..342303f 100644
+--- a/controllers/tourController.js
++++ b/controllers/tourController.js
+@@ -1,94 +1,51 @@
+-// ==========================================================
+-// ✈️ Tour Controller — Travel Dashboard Enterprise v5.4.9
+-// ==========================================================
+-
+-import { pool } from "../server.js";
+-
+-// ===== GET ALL TOURS =====
+-export async function getTours(req, res) {
+-  try {
+-    const role = req.user.role;
+-    const staffName = req.user.staff_name;
+-    const whereClause = role === "staff" ? "WHERE staff_name = $1" : "";
+-    const params = role === "staff" ? [staffName] : [];
+-
+-    const result = await pool.query(
+-      `
+-      SELECT 
+-        id, registration_date, lead_passenger, all_passengers,
+-        tour_code, region, departure_date, booking_code,
+-        tour_price, discount_remarks, payment_proof,
+-        document_received, visa_process_start, visa_process_end,
+-        document_remarks, staff_name, sales_amount, profit_amount,
+-        departure_status, created_at
+-      FROM tours
+-      ${whereClause}
+-      ORDER BY registration_date DESC
+-      `,
+-      params
+-    );
+-
+-    res.json(result.rows);
+-  } catch (err) {
+-    console.error("❌ GET tours error:", err);
+-    res.status(500).json({ message: "Gagal memuat data tour." });
++import db from "../config/database.js";
++
++export async function getTours(req, res){
++  try{
++    const q = await db.query(`
++      SELECT t.*, r.name as region_name
++      FROM tours t
++      LEFT JOIN regions r ON r.id = t.region_id
++      ORDER BY t.created_at DESC
++    `);
++    res.json(q.rows);
++  }catch(err){
++    console.error("GET tours error:", err);
++    res.status(500).json({ message: "Gagal mengambil tours" });
+   }
+ }
+ 
+-// ===== CREATE TOUR =====
+-export async function createTour(req, res) {
+-  try {
++export async function createTour(req, res){
++  try{
+     const data = req.body;
+-
+-    await pool.query(
+-      `
+-      INSERT INTO tours (
+-        registration_date, lead_passenger, all_passengers,
+-        tour_code, region, departure_date, booking_code,
+-        tour_price, discount_remarks, payment_proof,
+-        document_received, visa_process_start, visa_process_end,
+-        document_remarks, staff_name, sales_amount, profit_amount,
+-        departure_status
+-      )
+-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+-      `,
++    const q = await db.query(`
++      INSERT INTO tours (registration_date, lead_passenger, all_passengers, tour_code, region_id, departure_date,
++        booking_code, tour_price, discount_remarks, payment_proof, document_received, visa_process_start,
++        visa_process_end, document_remarks, staff_name, sales_amount, profit_amount, departure_status)
++      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+       [
+-        data.registration_date || data.registrationDate || null,
+-        data.lead_passenger || data.leadPassenger || "",
+-        data.all_passengers || data.allPassengers || "",
+-        data.tour_code || data.tourCode || "",
+-        data.region || "",
+-        data.departure_date || data.departureDate || null,
+-        data.booking_code || data.bookingCode || "",
+-        parseFloat(data.tour_price || data.tourPrice || 0),
+-        data.discount_remarks || data.discountRemarks || "",
+-        data.payment_proof || data.paymentProof || "",
+-        data.document_received || data.documentReceived || null,
+-        data.visa_process_start || data.visaProcessStart || null,
+-        data.visa_process_end || data.visaProcessEnd || null,
+-        data.document_remarks || data.documentRemarks || "",
+-        data.staff_name || data.staff || req.user.staff_name,
+-        parseFloat(data.sales_amount || data.salesAmount || 0),
+-        parseFloat(data.profit_amount || data.profitAmount || 0),
+-        data.departure_status || data.departureStatus || "PENDING"
+-      ]
+-    );
+-
+-    res.json({ message: "Data tour berhasil disimpan." });
+-  } catch (err) {
+-    console.error("❌ Create tour error:", err);
+-    res.status(500).json({ message: "Gagal menyimpan data tour." });
++        data.registrationDate || null,
++        data.leadPassenger || null,
++        data.allPassengers || 1,
++        data.tourCode || null,
++        data.regionId || null,
++        data.departureDate || null,
++        data.bookingCode || null,
++        data.tourPrice || 0,
++        data.discountRemarks || null,
++        data.paymentProof || null,
++        data.documentReceived || false,
++        data.visaProcessStart || null,
++        data.visaProcessEnd || null,
++        data.documentRemarks || null,
++        data.staff || null,
++        data.salesAmount || 0,
++        data.profitAmount || 0,
++        data.departureStatus || "PENDING"
++      ]);
++    res.json(q.rows[0]);
++  }catch(err){
++    console.error("CREATE tour error:", err);
++    res.status(500).json({ message:"Gagal membuat tour" });
+   }
+ }
+-
+-// ===== DELETE TOUR =====
+-export async function deleteTour(req, res) {
+-  try {
+-    const { id } = req.params;
+-    await pool.query("DELETE FROM tours WHERE id = $1", [id]);
+-    res.json({ message: "Data tour berhasil dihapus." });
+-  } catch (err) {
+-    console.error("❌ Delete tour error:", err);
+-    res.status(500).json({ message: "Gagal menghapus data tour." });
+-  }
+-}
+\ No newline at end of file
+diff --git a/package.json b/package.json
+index b062493..c75e9da 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,8 @@
+     "start": "node server.js",
+     "verify": "node scripts/verify-deploy.js",
+     "auto-reset": "node scripts/autoResetAndSeed.js",
+-    "setup-admin": "node scripts/setup-admin.js"
++    "setup-admin": "node scripts/setup-admin.js",
++    "postinstall": "node scripts/initDatabase.js || true"
+   },
+   "engines": {
+     "node": ">=22.0.0"
+diff --git a/public/css/style.css b/public/css/style.css
+index e032a58..5e5d271 100644
+--- a/public/css/style.css
++++ b/public/css/style.css
+@@ -1,357 +1,63 @@
+-/* =====================================================
+-   Travel Dashboard Enterprise - Corporate Blue Theme v5.8
+-   ===================================================== */
+-
+-/* === CSS Variables === */
+-:root {
+-  --accent: #0077cc;
+-  --accent-light: #0090e0;
+-  --accent-dark: #005fa3;
+-  --bg: #f5f7fa;
+-  --card-bg: #ffffff;
+-  --text: #222;
+-  --text-light: #555;
+-  --border: #d8dde3;
+-  --shadow: 0 2px 6px rgba(0,0,0,0.08);
+-  --radius: 10px;
+-  --transition: all 0.3s ease;
+-}
+-
+-/* === Dark Mode === */
+-body.theme-dark {
+-  --bg: #1e1f24;
+-  --card-bg: #2a2c33;
+-  --text: #e9e9e9;
+-  --text-light: #bbb;
+-  --border: #3d4049;
+-  --shadow: 0 2px 6px rgba(0,0,0,0.4);
+-}
+-
+-/* === Base === */
+-* {
+-  box-sizing: border-box;
+-  margin: 0;
+-  padding: 0;
+-}
+-
+-body {
+-  font-family: "Inter", sans-serif;
+-  background: var(--bg);
+-  color: var(--text);
+-  transition: var(--transition);
+-  min-height: 100vh;
+-}
+-
+-/* === Layout === */
+-.app {
+-  display: flex;
+-  min-height: 100vh;
+-}
+-
+-main {
+-  flex: 1;
+-  padding: 24px;
+-  overflow-y: auto;
+-}
+-
+-/* === Sidebar === */
+-.sidebar {
+-  width: 240px;
+-  background: var(--card-bg);
+-  border-right: 1px solid var(--border);
+-  box-shadow: var(--shadow);
+-  display: flex;
+-  flex-direction: column;
+-  transition: var(--transition);
+-}
+-
+-.sidebar.collapsed {
+-  width: 70px;
+-}
+-
+-.sidebar-header {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  padding: 16px;
+-  font-weight: 600;
+-  font-size: 1.1rem;
+-  color: var(--accent);
+-}
+-
+-.sidebar .brand {
+-  white-space: nowrap;
+-  overflow: hidden;
+-  text-overflow: ellipsis;
+-}
+-
+-.sidebar nav ul {
+-  list-style: none;
+-  padding: 0;
+-  margin: 0;
+-}
+-
+-.sidebar nav li {
+-  border-bottom: 1px solid var(--border);
+-}
+-
+-.sidebar nav a {
+-  display: block;
+-  padding: 12px 18px;
+-  color: var(--text);
+-  text-decoration: none;
+-  transition: var(--transition);
+-}
+-
+-.sidebar nav a:hover,
+-.sidebar nav a.active {
+-  background: var(--accent);
+-  color: #fff;
+-}
+-
+-.sidebar.collapsed nav a {
+-  text-align: center;
+-  font-size: 0.9rem;
+-}
+-
+-.sidebar .has-children > ul {
+-  display: none;
+-  background: var(--bg);
+-}
+-
+-.sidebar .has-children.expanded > ul {
+-  display: block;
+-}
+-
+-.theme-area {
+-  padding: 14px;
+-  margin-top: auto;
+-  font-size: 0.9rem;
+-  color: var(--text-light);
+-  border-top: 1px solid var(--border);
+-}
+-
+-/* === Header === */
+-.header {
+-  display: flex;
+-  justify-content: space-between;
+-  align-items: center;
+-  margin-bottom: 18px;
+-}
+-
+-.header .left h1 {
+-  font-size: 1.4rem;
+-  font-weight: 600;
+-  color: var(--accent-dark);
+-}
+-
+-.toggle {
+-  background: var(--accent);
+-  border: none;
+-  color: #fff;
+-  font-size: 1.2rem;
+-  border-radius: var(--radius);
+-  padding: 6px 10px;
+-  cursor: pointer;
+-}
+-
+-/* === Card === */
+-.card {
+-  background: var(--card-bg);
+-  border: 1px solid var(--border);
+-  border-radius: var(--radius);
+-  box-shadow: var(--shadow);
+-  padding: 20px;
+-  margin-bottom: 20px;
+-}
+-
+-.card h2 {
+-  font-size: 1.2rem;
+-  color: var(--accent-dark);
+-  margin-bottom: 14px;
++/* style.css v6.0 — Corporate Blue + form grid */
++:root{
++  --bg:#f6f9fc;
++  --card:#ffffff;
++  --muted:#6b7280;
++  --accent:#0b69ff;
++  --text:#0f1724;
++  --radius:10px;
++  --gap:12px;
++  --shadow: 0 6px 18px rgba(12,24,48,0.06);
++}
++*{box-sizing:border-box}
++body{font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0; color:var(--text); background:var(--bg);}
++
++/* center login */
++.center-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
++.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
++.login-card{width:100%;max-width:420px}
++.muted{color:var(--muted);font-size:13px}
++.center{text-align:center}
++
++/* form grid */
++.form-grid{display:grid;grid-template-columns:1fr 2fr;gap:10px;align-items:center}
++.form-grid label{font-weight:600;font-size:14px}
++.form-grid input, .form-grid select, .form-grid textarea{padding:10px;border:1px solid #e6e9ef;border-radius:8px;width:100%;}
++.form-actions{margin-top:14px;text-align:right}
++
++/* buttons */
++.btn{padding:10px 14px;border-radius:8px;border:0;cursor:pointer}
++.btn.primary{background:var(--accent);color:#fff;font-weight:600}
++.btn.ghost{background:transparent;border:1px solid #e6e9ef;color:var(--text)}
++
++/* app layout */
++.app{display:flex;min-height:100vh}
++.sidebar{width:260px;background:#062a4f;color:#fff;flex-shrink:0;padding:14px;display:flex;flex-direction:column;gap:12px}
++.sidebar .brand{font-weight:800;font-size:18px}
++.sidebar nav ul{list-style:none;padding:0;margin:0}
++.sidebar nav a{color:#e6f0ff;text-decoration:none;display:block;padding:8px;border-radius:8px}
++.sidebar .theme-area{margin-top:auto;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06)}
++
++/* collapsed */
++.sidebar.collapsed{width:64px}
++.sidebar.collapsed nav a{font-size:0;padding:8px}
++.sidebar .btn-compact{background:transparent;border:0;color:inherit;cursor:pointer}
++
++/* main */
++main{flex:1;padding:20px}
++.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
++.header .left h1{margin:0;font-size:20px}
++.header .right .current-user{font-weight:600;color:#334155}
++
++/* cards & summary */
++.card{margin-bottom:12px}
++#summaryCards .card{padding:12px}
++.table{width:100%;border-collapse:collapse}
++.table th, .table td{padding:8px;text-align:left;border-bottom:1px solid #eef2f6}
++
++/* responsive */
++@media (max-width:900px){
++  .sidebar{display:none}
++  .app{flex-direction:column}
++  .form-grid{grid-template-columns:1fr}
+ }
+-
+-/* === Form === */
+-.form-grid {
+-  display: grid;
+-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+-  gap: 16px 20px;
+-}
+-
+-.form-row {
+-  display: flex;
+-  flex-direction: column;
+-}
+-
+-.form-row.full-row {
+-  grid-column: 1 / -1;
+-}
+-
+-.form-row label {
+-  font-weight: 600;
+-  font-size: 0.9rem;
+-  color: var(--text-light);
+-  margin-bottom: 6px;
+-}
+-
+-.form-row input,
+-.form-row select,
+-.form-row textarea {
+-  border: 1px solid var(--border);
+-  border-radius: var(--radius);
+-  padding: 10px;
+-  font-size: 0.95rem;
+-  background: var(--bg);
+-  color: var(--text);
+-  transition: var(--transition);
+-}
+-
+-.form-row input:focus,
+-.form-row select:focus,
+-.form-row textarea:focus {
+-  border-color: var(--accent);
+-  outline: none;
+-  background: #fff;
+-}
+-
+-.form-actions {
+-  display: flex;
+-  gap: 10px;
+-  justify-content: flex-end;
+-  margin-top: 10px;
+-}
+-
+-/* === Buttons === */
+-.btn {
+-  padding: 10px 16px;
+-  border-radius: var(--radius);
+-  border: none;
+-  cursor: pointer;
+-  font-weight: 600;
+-  transition: var(--transition);
+-}
+-
+-.btn.primary {
+-  background: var(--accent);
+-  color: #fff;
+-}
+-
+-.btn.primary:hover {
+-  background: var(--accent-dark);
+-}
+-
+-.btn.secondary {
+-  background: #e8edf2;
+-  color: var(--accent-dark);
+-}
+-
+-.btn.secondary:hover {
+-  background: var(--accent-light);
+-  color: #fff;
+-}
+-
+-/* === Tables === */
+-.table {
+-  width: 100%;
+-  border-collapse: collapse;
+-  font-size: 0.95rem;
+-}
+-
+-.table thead {
+-  background: var(--accent);
+-  color: #fff;
+-}
+-
+-.table th,
+-.table td {
+-  border: 1px solid var(--border);
+-  padding: 10px;
+-  text-align: left;
+-}
+-
+-.table tbody tr:hover {
+-  background: rgba(0,119,204,0.08);
+-}
+-
+-/* === Login Page === */
+-.login-wrap {
+-  display: flex;
+-  justify-content: center;
+-  align-items: center;
+-  height: 90vh;
+-}
+-
+-.login-card {
+-  width: 100%;
+-  max-width: 380px;
+-  background: var(--card-bg);
+-  border-radius: var(--radius);
+-  box-shadow: var(--shadow);
+-  padding: 26px;
+-}
+-
+-.login-card h2 {
+-  color: var(--accent-dark);
+-  margin-bottom: 10px;
+-  text-align: center;
+-}
+-
+-.note {
+-  text-align: center;
+-  font-size: 0.9rem;
+-  color: var(--text-light);
+-  margin-bottom: 20px;
+-}
+-
+-/* === Toast === */
+-.toast-wrap {
+-  position: fixed;
+-  top: 20px;
+-  right: 20px;
+-  z-index: 9999;
+-  display: flex;
+-  flex-direction: column;
+-  gap: 10px;
+-}
+-
+-.toast {
+-  padding: 12px 16px;
+-  border-radius: var(--radius);
+-  box-shadow: var(--shadow);
+-  color: #fff;
+-  font-size: 0.9rem;
+-  animation: fadeInUp 0.3s ease;
+-}
+-
+-.toast.info { background: var(--accent-light); }
+-.toast.success { background: #2ecc71; }
+-.toast.error { background: #e74c3c; }
+-
+-@keyframes fadeInUp {
+-  from { opacity: 0; transform: translateY(10px); }
+-  to { opacity: 1; transform: translateY(0); }
+-}
+-
+-/* === Footer === */
+-footer {
+-  margin-top: 30px;
+-  text-align: center;
+-  font-size: 0.85rem;
+-  color: var(--text-light);
+-}
+-
+-/* === Responsive === */
+-@media (max-width: 768px) {
+-  .sidebar {
+-    position: fixed;
+-    z-index: 999;
+-    height: 100%;
+-    left: -240px;
+-  }
+-  .sidebar.expanded {
+-    left: 0;
+-  }
+-  main {
+-    padding: 16px;
+-  }
+-}
+\ No newline at end of file
+diff --git a/public/dashboard.html b/public/dashboard.html
+index d421522..bb9149d 100644
+--- a/public/dashboard.html
++++ b/public/dashboard.html
+@@ -1,51 +1,48 @@
+-<!DOCTYPE html>
++<!doctype html>
+ <html lang="id">
+ <head>
+-  <meta charset="UTF-8" />
+-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+-  <title>Dashboard | Travel Dashboard</title>
++  <meta charset="utf-8">
++  <meta name="viewport" content="width=device-width,initial-scale=1">
++  <title>Dashboard — Travel Dashboard</title>
++  <meta name="description" content="Travel Dashboard — Executive Summary" />
+   <link rel="stylesheet" href="./css/style.css" />
+ </head>
+ <body>
+   <div class="app">
+-    <!-- SIDEBAR -->
+     <aside class="sidebar">
+       <div class="sidebar-header">
+         <div class="brand">TravelDashboard</div>
+         <button class="btn-compact" data-toggle="sidebar">☰</button>
+       </div>
++
+       <nav>
+         <ul>
+           <li><a href="dashboard.html" class="active">Dashboard</a></li>
+-          <li class="has-children expanded">
+-            <a href="#">Reports</a>
++          <li class="has-children"><a href="#">Reports</a>
+             <ul>
+-              <li><a href="report_tour.html">Tour Report</a></li>
+-              <li><a href="report_sales.html">Sales Report</a></li>
+-              <li><a href="report_document.html">Document Report</a></li>
++              <li><a href="report_tour.html">Report Tour</a></li>
++              <li><a href="report_sales.html">Report Sales</a></li>
++              <li><a href="report_document.html">Report Document</a></li>
+             </ul>
+           </li>
+-          <li class="has-children">
+-            <a href="#">Management</a>
++          <li class="has-children"><a href="#">Management</a>
+             <ul>
+               <li><a href="user-management.html">User Management</a></li>
+               <li><a href="region_management.html">Region Management</a></li>
+               <li><a href="target_management.html">Target Management</a></li>
+-              <li><a href="tour_form.html">Tour Management</a></li>
+             </ul>
+           </li>
+           <li><a href="executive-dashboard.html">Executive Dashboard</a></li>
+-          <li><a href="audit_log.html">Audit Log</a></li>
+           <li><a href="profile.html">Profile</a></li>
+           <li><a href="logout.html">Logout</a></li>
+         </ul>
+       </nav>
++
+       <div class="theme-area">
+         <label><input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode</label>
+       </div>
+     </aside>
+ 
+-    <!-- MAIN -->
+     <main>
+       <div class="header">
+         <div class="left">
+@@ -53,34 +50,24 @@
+           <h1>Dashboard</h1>
+         </div>
+         <div class="right">
+-          <span id="currentUser" class="note"></span>
++          <span class="current-user"></span>
+         </div>
+       </div>
+ 
+-      <!-- SUMMARY -->
+       <section class="card">
+-        <h2>Ringkasan Utama</h2>
++        <h2>Ringkasan</h2>
+         <div id="summaryCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
+       </section>
+ 
+-      <!-- PERFORMANCE -->
+       <section class="card">
+         <h2>Performa Bulanan</h2>
+         <canvas id="dashboardChart" height="180"></canvas>
+       </section>
+ 
+-      <!-- TABLE -->
+       <section class="card">
+         <h2>Aktivitas Terbaru</h2>
+         <table class="table" id="recentTable">
+-          <thead>
+-            <tr>
+-              <th>Tanggal</th>
+-              <th>Kategori</th>
+-              <th>Deskripsi</th>
+-              <th>Staff</th>
+-            </tr>
+-          </thead>
++          <thead><tr><th>Tanggal</th><th>Kategori</th><th>Deskripsi</th><th>Staff</th></tr></thead>
+           <tbody></tbody>
+         </table>
+       </section>
+@@ -94,4 +81,4 @@
+   <script src="./js/ui.js"></script>
+   <script src="./js/dashboard.js"></script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
+diff --git a/public/js/dashboard.js b/public/js/dashboard.js
+index 508d234..d69a240 100644
+--- a/public/js/dashboard.js
++++ b/public/js/dashboard.js
+@@ -1,129 +1,34 @@
+-// ==========================================================
+-// 📊 Dashboard JS — Travel Dashboard Enterprise v5.4.9
+-// ==========================================================
+-
+-document.addEventListener("DOMContentLoaded", async () => {
+-  const token = localStorage.getItem("token");
+-  if (!token) return (window.location.href = "login.html");
+-
+-  const headers = {
+-    "Content-Type": "application/json",
+-    Authorization: `Bearer ${token}`,
+-  };
+-
+-  const summaryEl = document.getElementById("dashboard-summary");
+-  const regionChartEl = document.getElementById("regionChart");
+-  const performanceChartEl = document.getElementById("performanceChart");
+-
+-  try {
+-    // === LOAD DASHBOARD SUMMARY ===
+-    const resSummary = await fetch("/api/dashboard/summary", { headers });
+-    if (resSummary.status === 401) {
+-      alert("Sesi telah berakhir, silakan login kembali.");
+-      localStorage.removeItem("token");
+-      return (window.location.href = "login.html");
+-    }
+-
+-    const summary = await resSummary.json();
+-
+-    if (summaryEl) {
+-      summaryEl.innerHTML = `
+-        <div class="summary-grid">
+-          <div class="summary-card">
+-            <h3>✈️ Total Tour</h3>
+-            <p>${summary.total_tours}</p>
+-          </div>
+-          <div class="summary-card">
+-            <h3>💰 Total Sales</h3>
+-            <p>Rp ${parseFloat(summary.total_sales).toLocaleString("id-ID")}</p>
+-          </div>
+-          <div class="summary-card">
+-            <h3>📈 Total Profit</h3>
+-            <p>Rp ${parseFloat(summary.total_profit).toLocaleString("id-ID")}</p>
+-          </div>
+-          <div class="summary-card">
+-            <h3>🎯 Target Sales</h3>
+-            <p>Rp ${parseFloat(summary.target_sales).toLocaleString("id-ID")}</p>
+-            <div class="progress-bar">
+-              <div class="progress-fill" style="width:${summary.progress_sales}%"></div>
+-            </div>
+-            <small>${summary.progress_sales}% tercapai</small>
+-          </div>
+-          <div class="summary-card">
+-            <h3>🎯 Target Profit</h3>
+-            <p>Rp ${parseFloat(summary.target_profit).toLocaleString("id-ID")}</p>
+-            <div class="progress-bar profit">
+-              <div class="progress-fill" style="width:${summary.progress_profit}%"></div>
+-            </div>
+-            <small>${summary.progress_profit}% tercapai</small>
+-          </div>
+-        </div>
+-      `;
+-    }
+-
+-    // === LOAD TOUR REGION STATS ===
+-    const resRegion = await fetch("/api/dashboard/tour-region", { headers });
+-    const regionData = await resRegion.json();
+-
+-    if (regionChartEl && regionData.length > 0) {
+-      const ctx = regionChartEl.getContext("2d");
+-      new Chart(ctx, {
+-        type: "bar",
+-        data: {
+-          labels: regionData.map((r) => r.region),
+-          datasets: [
+-            {
+-              label: "Jumlah Tour",
+-              data: regionData.map((r) => r.total_tour),
+-            },
+-          ],
+-        },
+-        options: {
+-          responsive: true,
+-          scales: { y: { beginAtZero: true } },
+-        },
+-      });
+-    }
+-
+-    // === LOAD MONTHLY PERFORMANCE CHART ===
+-    const resPerf = await fetch("/api/dashboard/monthly-performance", { headers });
+-    const perfData = await resPerf.json();
+-
+-    if (performanceChartEl && perfData.length > 0) {
+-      const ctxPerf = performanceChartEl.getContext("2d");
+-      new Chart(ctxPerf, {
+-        type: "line",
++(async function(){
++  try{
++    const res = await secureFetch('/api/dashboard/summary');
++    if(!res.ok) throw new Error('Gagal memuat summary');
++    const data = await res.json();
++
++    const cards = document.getElementById('summaryCards');
++    const makeCard = (title, value) => {
++      const c = document.createElement('div'); c.className='card';
++      c.innerHTML = `<strong style="font-size:18px">${value}</strong><div class="muted">${title}</div>`;
++      return c;
++    };
++    cards.appendChild(makeCard('Total Tours', data.total_tours));
++    cards.appendChild(makeCard('Total Sales', data.total_sales));
++    cards.appendChild(makeCard('Total Profit', data.total_profit));
++    cards.appendChild(makeCard('Total Documents', data.total_documents));
++    cards.appendChild(makeCard('Target Sales', data.target_sales));
++    cards.appendChild(makeCard('Target Profit', data.target_profit));
++
++    // chart (monthly sales) - minimal example plotting 12 months zeros if none
++    const ctx = document.getElementById('dashboardChart');
++    if(ctx){
++      const chart = new Chart(ctx, {
++        type: 'line',
+         data: {
+-          labels: perfData.map((p) => p.month),
+-          datasets: [
+-            {
+-              label: "Total Sales",
+-              data: perfData.map((p) => parseFloat(p.total_sales)),
+-              borderWidth: 2,
+-              borderColor: "#3b82f6",
+-              tension: 0.3,
+-            },
+-            {
+-              label: "Total Profit",
+-              data: perfData.map((p) => parseFloat(p.total_profit)),
+-              borderWidth: 2,
+-              borderColor: "#16a34a",
+-              tension: 0.3,
+-            },
+-          ],
+-        },
+-        options: {
+-          responsive: true,
+-          plugins: {
+-            legend: { position: "bottom" },
+-          },
+-        },
++          labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
++          datasets: [{ label:'Sales', data: new Array(12).fill(0) }]
++        }
+       });
+     }
+-  } catch (err) {
+-    console.error("❌ Dashboard load error:", err);
+-    if (summaryEl)
+-      summaryEl.innerHTML =
+-        "<p style='color:red'>Gagal memuat data dashboard.</p>";
++  }catch(err){
++    console.error('❌ Dashboard load error:', err);
+   }
+-});
+\ No newline at end of file
++})();
+diff --git a/public/js/ui.js b/public/js/ui.js
+index 1bc48e4..3f0099b 100644
+--- a/public/js/ui.js
++++ b/public/js/ui.js
+@@ -1,139 +1,99 @@
+-// public/js/ui.js — v5.7 Corporate Blue
+-// ✅ Sidebar (2 toggle) + Dark mode (sidebar only)
+-// ✅ Auto JWT refresh & redirect to login on expiry
+-// ✅ Active link sync
+-
+ (function(){
+   "use strict";
+-
+   const body = document.body;
+-  const sidebar = document.querySelector(".sidebar");
+-  const sideToggleBtns = document.querySelectorAll("[data-toggle='sidebar']");
+-  const themeCheckbox = document.getElementById("themeSwitch");
+   const SIDEBAR_KEY = "td_sidebar_state";
+   const THEME_KEY = "td_theme_mode";
+   const TOKEN_KEY = "token";
+   const REFRESH_KEY = "refreshToken";
+ 
+-  // ===== Helper =====
+-  function safe(fn){ try{ fn(); }catch(e){} }
+-  function toast(msg,type='info',t=3000){
+-    const tw = document.getElementById('toastWrap');
+-    if(!tw) return;
+-    const el=document.createElement('div');
+-    el.className='toast '+(type==='success'?'success':type==='error'?'error':'info');
+-    el.textContent=msg;
+-    tw.appendChild(el);
+-    setTimeout(()=>el.remove(),t);
+-  }
+-
+-  // ===== Sidebar =====
+-  safe(()=>{
+-    const s = localStorage.getItem(SIDEBAR_KEY);
+-    if(s==='collapsed') sidebar?.classList.add("collapsed");
+-  });
+-
+-  sideToggleBtns.forEach(btn=>{
+-    btn.addEventListener("click", e=>{
++  // sidebar toggle (buttons with data-toggle="sidebar")
++  document.querySelectorAll('[data-toggle="sidebar"]').forEach(btn=>{
++    btn.addEventListener('click', e=>{
+       e.preventDefault();
+-      sidebar?.classList.toggle("collapsed");
+-      localStorage.setItem(SIDEBAR_KEY, sidebar?.classList.contains("collapsed") ? "collapsed" : "expanded");
++      const sidebar = document.querySelector('.sidebar');
++      if(!sidebar) return;
++      sidebar.classList.toggle('collapsed');
++      localStorage.setItem(SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+     });
+   });
+ 
+-  // ===== Submenu expand =====
+-  safe(()=>{
+-    document.querySelectorAll(".has-children > a").forEach(a=>{
+-      a.addEventListener("click", e=>{
+-        e.preventDefault();
+-        const p=a.parentElement;
+-        p.classList.toggle("expanded");
+-      });
+-    });
+-  });
+-
+-  // ===== Theme toggle (sidebar only) =====
+-  safe(()=>{
+-    const mode = localStorage.getItem(THEME_KEY);
+-    if(mode==='dark') body.classList.add("theme-dark");
+-    if(themeCheckbox){
+-      themeCheckbox.checked = mode==='dark';
+-      themeCheckbox.addEventListener("change",()=>{
+-        if(themeCheckbox.checked){
+-          body.classList.add("theme-dark");
+-          localStorage.setItem(THEME_KEY,"dark");
+-        }else{
+-          body.classList.remove("theme-dark");
+-          localStorage.setItem(THEME_KEY,"light");
+-        }
+-      });
+-    }
+-  });
++  // restore sidebar state
++  try{
++    const s = localStorage.getItem(SIDEBAR_KEY);
++    if(s==='collapsed'){ document.querySelectorAll('.sidebar').forEach(sb=>sb.classList.add('collapsed')); }
++  }catch(e){}
+ 
+-  // ===== Active link sync =====
+-  safe(()=>{
+-    const current = location.pathname.split("/").pop();
+-    document.querySelectorAll(".sidebar nav a").forEach(a=>{
+-      const h=a.getAttribute("href")||"";
+-      if(h.endsWith(current)) a.classList.add("active");
+-      else a.classList.remove("active");
++  // theme switch (element with id themeSwitch inside sidebar)
++  const themeSwitch = document.getElementById('themeSwitch');
++  try{
++    const mode = localStorage.getItem(THEME_KEY) || 'light';
++    if(mode==='dark') document.documentElement.classList.add('theme-dark');
++    if(themeSwitch) themeSwitch.checked = (mode==='dark');
++    if(themeSwitch) themeSwitch.addEventListener('change', ()=>{
++      if(themeSwitch.checked){ document.documentElement.classList.add('theme-dark'); localStorage.setItem(THEME_KEY,'dark'); }
++      else { document.documentElement.classList.remove('theme-dark'); localStorage.setItem(THEME_KEY,'light'); }
+     });
+-  });
++  }catch(e){}
++
++  // current user indicator (.current-user)
++  (async function showCurrentUser(){
++    const nodes = document.querySelectorAll('.current-user');
++    if(nodes.length===0) return;
++    const token = localStorage.getItem(TOKEN_KEY);
++    if(!token) return;
++    try{
++      const res = await fetch('/api/profile', { headers: { Authorization: 'Bearer '+token }});
++      if(!res.ok) return;
++      const u = await res.json();
++      nodes.forEach(n => n.textContent = `👤 ${u.staff_name || u.username} (${u.role})`);
++    }catch(e){}
++  })();
+ 
+-  // ===== JWT Handling =====
++  // secureFetch with refresh attempt
+   async function refreshToken(){
+     const rt = localStorage.getItem(REFRESH_KEY);
+     if(!rt) return false;
+     try{
+-      const res = await fetch("/api/auth/refresh", {
+-        method:"POST",
+-        headers:{ "Content-Type":"application/json" },
++      const res = await fetch('/api/auth/refresh', {
++        method: 'POST',
++        headers: { 'Content-Type':'application/json' },
+         body: JSON.stringify({ refreshToken: rt })
+       });
+       const data = await res.json();
+-      if(!res.ok) throw new Error(data.message || "Refresh gagal");
++      if(!res.ok) return false;
+       localStorage.setItem(TOKEN_KEY, data.token);
+       if(data.refreshToken) localStorage.setItem(REFRESH_KEY, data.refreshToken);
+       return true;
+     }catch(e){
+-      console.warn("Token refresh gagal:", e);
+       return false;
+     }
+   }
+ 
+-  // Wrapper untuk fetch() agar auto-refresh token
+-  window.secureFetch = async function(url, options={}){
+-    const token = localStorage.getItem(TOKEN_KEY);
++  window.secureFetch = async function(url, options = {}){
+     options.headers = options.headers || {};
+-    if(token) options.headers["Authorization"] = "Bearer " + token;
+-
++    const token = localStorage.getItem(TOKEN_KEY);
++    if(token) options.headers['Authorization'] = 'Bearer ' + token;
+     let res = await fetch(url, options);
+-    if(res.status===401){
+-      console.warn("Token expired, mencoba refresh...");
++    if(res.status === 401){
+       const ok = await refreshToken();
+       if(ok){
+-        const newToken = localStorage.getItem(TOKEN_KEY);
+-        options.headers["Authorization"] = "Bearer " + newToken;
+-        res = await fetch(url, options); // ulang sekali
+-      }else{
+-        toast("Sesi Anda telah berakhir","error");
++        options.headers['Authorization'] = 'Bearer ' + localStorage.getItem(TOKEN_KEY);
++        res = await fetch(url, options);
++      } else {
+         localStorage.removeItem(TOKEN_KEY);
+         localStorage.removeItem(REFRESH_KEY);
+-        setTimeout(()=>location.href="login.html",1200);
++        location.href = 'login.html';
+       }
+     }
+     return res;
+   };
+ 
+-  // ===== Auto redirect ke login jika tidak ada token =====
+-  safe(()=>{
+-    const page = location.pathname.split("/").pop();
+-    const isAuthPage = ["login.html","logout.html","index.html"].includes(page);
+-    const token = localStorage.getItem(TOKEN_KEY);
+-    if(!token && !isAuthPage){
+-      location.href = "login.html";
++  // redirect to login if no token and not on login page
++  try{
++    const page = location.pathname.split('/').pop();
++    const whitelisted = ['login.html','index.html',''];
++    if(!whitelisted.includes(page) && !localStorage.getItem(TOKEN_KEY)) {
++      location.href = 'login.html';
+     }
+-  });
+-
+-  console.log("✅ UI Core Loaded v5.7");
+-})();
+\ No newline at end of file
++  }catch(e){}
++})();
+diff --git a/public/login.html b/public/login.html
+index 0d4f5e1..0612fdd 100644
+--- a/public/login.html
++++ b/public/login.html
+@@ -1,102 +1,62 @@
+ <!DOCTYPE html>
+-<html lang="id">
++<html lang="id" class="h-full">
+ <head>
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width,initial-scale=1" />
+-  <title>Login | Travel Dashboard</title>
+-  <link rel="stylesheet" href="./css/style.css" />
++  <title>Login — Travel Dashboard</title>
++  <meta name="description" content="Travel Dashboard — Login" />
++  <link rel="stylesheet" href="./css/style.css">
+ </head>
+-<body>
+-  <div class="app">
+-    <!-- Sidebar (minimal) -->
+-    <aside class="sidebar">
+-      <div class="sidebar-header">
+-        <div class="brand">TravelDashboard</div>
+-        <button class="btn-compact" data-toggle="sidebar">☰</button>
+-      </div>
+-      <nav>
+-        <ul>
+-          <li><a href="index.html">Home</a></li>
+-          <li><a href="login.html" class="active">Login</a></li>
+-        </ul>
+-      </nav>
+-      <div class="theme-area">
+-        <label style="display:inline-flex;align-items:center;gap:8px">
+-          <input type="checkbox" id="themeSwitch" /> 🌙 Dark Mode
+-        </label>
+-      </div>
+-    </aside>
+-
+-    <!-- Main -->
+-    <main>
+-      <div class="login-wrap">
+-        <div class="login-card card">
+-          <h2 class="center">Selamat Datang</h2>
+-          <p class="center note">Masuk ke sistem Travel Dashboard</p>
+-
+-          <form id="loginForm">
+-            <div class="form-row">
+-              <label for="username">Username</label>
+-              <input id="username" name="username" type="text" placeholder="Masukkan username" required />
+-            </div>
+-            <div class="form-row">
+-              <label for="password">Password</label>
+-              <input id="password" name="password" type="password" placeholder="Masukkan password" required />
+-            </div>
+-
+-            <div class="form-actions">
+-              <button type="submit" class="btn primary submit" style="width:100%">LOGIN</button>
+-            </div>
+-            <p id="loginMessage" class="note center"></p>
+-          </form>
++<body class="page-login">
++  <main class="center-page">
++    <div class="card login-card">
++      <h2>Masuk</h2>
++      <p class="muted">Masuk untuk mengakses dashboard</p>
++      <form id="loginForm">
++        <div class="form-grid">
++          <label>Username</label>
++          <input id="username" name="username" type="text" required placeholder="username" />
++          <label>Password</label>
++          <input id="password" name="password" type="password" required placeholder="password" />
+         </div>
+-      </div>
+-
+-      <footer>© 2025 Travel Dashboard Enterprise</footer>
+-    </main>
+-  </div>
++        <div class="form-actions">
++          <button class="btn primary" type="submit">Login</button>
++        </div>
++        <p id="loginMessage" class="muted center"></p>
++      </form>
++    </div>
++  </main>
+ 
+   <div class="toast-wrap" id="toastWrap"></div>
+   <script src="./js/ui.js"></script>
+   <script>
+     const toastWrap = document.getElementById("toastWrap");
+-    const toast = (msg, type="info", t=3200) => {
+-      const el = document.createElement("div");
+-      el.className = "toast " + (type === "success" ? "success" : type === "error" ? "error" : "info");
+-      el.textContent = msg;
+-      toastWrap.appendChild(el);
+-      setTimeout(() => el.remove(), t);
++    const toast = (m,t='info',d=3000) => {
++      const el=document.createElement('div'); el.className='toast '+t; el.textContent=m; toastWrap.appendChild(el);
++      setTimeout(()=>el.remove(),d);
+     };
+ 
+-    const form = document.getElementById("loginForm");
+-    form.addEventListener("submit", async (e) => {
++    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+       e.preventDefault();
+-      const username = document.getElementById("username").value.trim();
+-      const password = document.getElementById("password").value.trim();
+-
++      const u = document.getElementById('username').value.trim();
++      const p = document.getElementById('password').value.trim();
+       try {
+-        const res = await fetch("/api/auth/login", {
+-          method: "POST",
+-          headers: { "Content-Type": "application/json" },
+-          body: JSON.stringify({ username, password }),
++        const res = await fetch('/api/auth/login', {
++          method: 'POST',
++          headers: { 'Content-Type':'application/json' },
++          body: JSON.stringify({ username: u, password: p })
+         });
+-
+         const data = await res.json();
+-        if (!res.ok) throw new Error(data.message || "Login gagal");
+-
+-        // Simpan token & refresh token
+-        localStorage.setItem("token", data.token);
+-        if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+-
+-        toast("Login berhasil", "success");
+-        setTimeout(() => {
+-          window.location.href = "dashboard.html";
+-        }, 600);
+-      } catch (err) {
+-        toast(err.message, "error");
+-        document.getElementById("loginMessage").textContent = err.message;
++        if (!res.ok) throw new Error(data.message || 'Login gagal');
++        localStorage.setItem('token', data.token);
++        if(data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
++        toast('Login berhasil','success',1500);
++        setTimeout(()=>location.href='dashboard.html',600);
++      } catch(err) {
++        document.getElementById('loginMessage').textContent = err.message;
++        toast(err.message,'error',3500);
+       }
+     });
+   </script>
+ </body>
+-</html>
+\ No newline at end of file
++</html>
+diff --git a/routes/executiveReport.js b/routes/executiveReport.js
+new file mode 100644
+index 0000000..7798eca
+--- /dev/null
++++ b/routes/executiveReport.js
+@@ -0,0 +1,10 @@
++import express from "express";
++import { getExecutiveSummary, getMonthlyPerformance } from "../controllers/executiveReportController.js";
++import { authenticate } from "../middleware/authMiddleware.js";
++
++const router = express.Router();
++
++router.get("/summary", authenticate, getExecutiveSummary);
++router.get("/monthly-performance", authenticate, getMonthlyPerformance);
++
++export default router;
+diff --git a/scripts/initDatabase.js b/scripts/initDatabase.js
+new file mode 100644
+index 0000000..3ded9fc
+--- /dev/null
++++ b/scripts/initDatabase.js
+@@ -0,0 +1,147 @@
++/**
++ * scripts/initDatabase.js — reset schema v6.0 (destructive)
++ * Seeds default admin (admin / Admin123)
++ */
++import pg from "pg";
++import bcrypt from "bcryptjs";
++
++const { Pool } = pg;
++
++async function main() {
++  try {
++    const DATABASE_URL = process.env.DATABASE_URL;
++    if (!DATABASE_URL) {
++      console.warn("DATABASE_URL not set — skipping DB init.");
++      return;
++    }
++    const pool = new Pool({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false }});
++    const client = await pool.connect();
++    try {
++      console.log("Connected to DB — resetting schema v6.0...");
++      await client.query("BEGIN");
++
++      // drop tables if exist
++      await client.query(`DROP TABLE IF EXISTS logs;`);
++      await client.query(`DROP TABLE IF EXISTS targets;`);
++      await client.query(`DROP TABLE IF EXISTS documents;`);
++      await client.query(`DROP TABLE IF EXISTS sales;`);
++      await client.query(`DROP TABLE IF EXISTS tours;`);
++      await client.query(`DROP TABLE IF EXISTS regions;`);
++      await client.query(`DROP TABLE IF EXISTS users;`);
++
++      // recreate schema
++      await client.query(`
++        CREATE TABLE users (
++          id SERIAL PRIMARY KEY,
++          username VARCHAR(100) UNIQUE NOT NULL,
++          staff_name VARCHAR(150),
++          password_hash VARCHAR(255) NOT NULL,
++          role VARCHAR(50) DEFAULT 'staff',
++          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
++        );
++      `);
++
++      await client.query(`
++        CREATE TABLE regions (
++          id SERIAL PRIMARY KEY,
++          code VARCHAR(50),
++          name VARCHAR(150) NOT NULL
++        );
++      `);
++
++      await client.query(`
++        CREATE TABLE tours (
++          id SERIAL PRIMARY KEY,
++          registration_date DATE,
++          lead_passenger VARCHAR(255),
++          all_passengers INT DEFAULT 1,
++          tour_code VARCHAR(100),
++          region_id INT REFERENCES regions(id),
++          departure_date DATE,
++          booking_code VARCHAR(100),
++          discount_remarks TEXT,
++          payment_proof TEXT,
++          document_received BOOLEAN DEFAULT false,
++          visa_process_start DATE,
++          staff_name VARCHAR(150),
++          sales_amount NUMERIC DEFAULT 0,
++          profit_amount NUMERIC DEFAULT 0,
++      `);
++
++      await client.query(`
++        CREATE TABLE sales (
++          id SERIAL PRIMARY KEY,
++          transaction_date DATE,
++          invoice VARCHAR(100),
++          staff_name VARCHAR(150),
++          sales_amount NUMERIC DEFAULT 0,
++          profit_amount NUMERIC DEFAULT 0,
++          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
++        );
++      `);
++
++      await client.query(`
++        CREATE TABLE documents (
++          id SERIAL PRIMARY KEY,
++          received_date DATE,
++          sent_date DATE,
++          guest_name VARCHAR(255),
++          passport_or_visa VARCHAR(255),
++          process_type VARCHAR(50),
++          booking_code_dms VARCHAR(100),
++          invoice_no VARCHAR(100),
++          guest_phone VARCHAR(50),
++          eta DATE,
++          staff_name VARCHAR(150),
++          tour_code VARCHAR(100),
++          remarks TEXT,
++          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
++        );
++      `);
++
++      await client.query(`
++        CREATE TABLE targets (
++          id SERIAL PRIMARY KEY,
++          user_id INT REFERENCES users(id),
++          year INT,
++          month INT,
++          sales_target NUMERIC DEFAULT 0,
++          profit_target NUMERIC DEFAULT 0,
++          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
++        );
++      `);
++
++      await client.query(`
++        CREATE TABLE logs (
++          id SERIAL PRIMARY KEY,
++          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
++          "user" VARCHAR(150),
++          action VARCHAR(150),
++          detail TEXT,
++          ip VARCHAR(50)
++        );
++      `);
++
++      // seed default admin (idempotent)
++      const pw = "Admin123";
++      const hash = bcrypt.hashSync(pw, 10);
++      await client.query(
++        `INSERT INTO users (username, staff_name, password_hash, role) VALUES ($1,$2,$3,$4) ON CONFLICT (username) DO NOTHING`,
++        ["admin","Super Admin", hash, "superadmin"]
++      );
++
++      await client.query("COMMIT");
++      console.log("Database reset complete, admin seeded (username: admin, password: Admin123)");
++    } catch (err) {
++      await client.query("ROLLBACK");
++      console.error("DB init failed:", err);
++    } finally {
++      client.release();
++      await pool.end();
++    }
++  } catch (e) {
++    console.error("initDatabase error:", e);
++  }
++}
++
++main();
+-- 
+2.51.0.windows.2
+

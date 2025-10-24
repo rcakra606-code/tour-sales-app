@@ -831,10 +831,5 @@ echo "Next steps:"
 echo "  git push origin $BRANCH"
 echo "  review & merge to main"
 echo ""
-echo "If you want me to produce the raw .patch content here, tell me and I'll print it out."          departure_status VARCHAR(50) DEFAULT 'PENDING',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-          visa_process_end DATE,
-          document_remarks TEXT,
+echo "If you want me to produce the raw .patch content here, tell me and I'll print it out."
 
