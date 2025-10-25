@@ -12,14 +12,14 @@
 
 import pkg from "pg";
 import dotenv from "dotenv";
-import logger, { logInfo, logError } from "./logger.js";
+import logger from "./logger.js";
 
 dotenv.config();
 const { Pool } = pkg;
 
 // Pastikan URL database tersedia
 if (!process.env.DATABASE_URL) {
-  logError("❌ DATABASE_URL belum diset di .env");
+  logger.Error("❌ DATABASE_URL belum diset di .env");
   throw new Error("DATABASE_URL tidak ditemukan di environment variable.");
 }
 
@@ -35,13 +35,13 @@ const pool = new Pool({
 // 🔄 Fungsi cek koneksi awal
 export const verifyConnection = async () => {
   try {
-    logInfo("🔌 Menguji koneksi ke NeonDB...");
+    logger.Info("🔌 Menguji koneksi ke NeonDB...");
     const client = await pool.connect();
     const result = await client.query("SELECT NOW()");
     client.release();
-    logInfo(`✅ Koneksi ke NeonDB berhasil (${result.rows[0].now})`);
+    logger.Info(`✅ Koneksi ke NeonDB berhasil (${result.rows[0].now})`);
   } catch (err) {
-    logError(`❌ Gagal koneksi ke NeonDB: ${err.message}`);
+    logger.Error(`❌ Gagal koneksi ke NeonDB: ${err.message}`);
     throw err;
   }
 };
@@ -52,10 +52,10 @@ export const query = async (text, params) => {
     const start = Date.now();
     const result = await pool.query(text, params);
     const duration = Date.now() - start;
-    logInfo(`📦 Query selesai dalam ${duration}ms: ${text}`);
+    logger.Info(`📦 Query selesai dalam ${duration}ms: ${text}`);
     return result;
   } catch (err) {
-    logError(`❌ Query error: ${err.message} | SQL: ${text}`);
+    logger.Error(`❌ Query error: ${err.message} | SQL: ${text}`);
     throw err;
   }
 };
